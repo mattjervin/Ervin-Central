@@ -143,8 +143,8 @@ const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['t
 
 // ---- Countdowns -----------------------------------------------------------------------------------
 
-/** Six "days until" tiles: the girls' birthdays always, then the soonest four of everyone else's
- *  birthdays and the major holidays (holidays with countdown: true). */
+/** Six "days until" tiles, soonest first. The girls' birthdays are always included; the other four
+ *  are the soonest of everyone else's birthdays and the major holidays (holidays with countdown: true). */
 export function countdowns(now = new Date(), total = 6) {
   const today = parseYmd(ymd(now));
   const days = (d) => Math.round((d - today) / 864e5);
@@ -164,7 +164,7 @@ export function countdowns(now = new Date(), total = 6) {
     return { title: h.title, icon: h.icon, date: d, days: days(d), kind: 'holiday' };
   }).filter((h) => h.days >= 0);
   const rest = [...bs.filter((b) => !b.kid), ...hol].sort((a, b) => a.days - b.days).slice(0, total - pinned.length);
-  return [...pinned, ...rest];
+  return [...pinned, ...rest].sort((a, b) => a.days - b.days); // soonest first, wherever the girls land
 }
 
 // ---- Where the girls sleep ------------------------------------------------------------------------

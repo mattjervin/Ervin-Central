@@ -22,7 +22,7 @@ export function render() {
   });
   const totalDone = choreStats.reduce((s, c) => s + c.done, 0);
   const total = choreStats.reduce((s, c) => s + c.list.length, 0);
-  const next = countdowns(now).sort((a, b) => a.days - b.days)[0];
+  const next = countdowns(now)[0];
 
   return `
   <section class="home-hero anim-fade-up">
