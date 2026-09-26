@@ -5,14 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#050b08">
+  <meta name="application-name" content="Ervin Central">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ervin Central">
   <title>Ervin Central</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest?v=2">
+  <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon-32.png?v=2" type="image/png" sizes="32x32">
+  <!-- iOS "Add to Home Screen" picks the best size; opaque PNGs so iOS doesn't paint them black -->
+  <link rel="apple-touch-icon" href="assets/app-icon-180.png?v=2">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/app-icon-180.png?v=2">
+  <link rel="apple-touch-icon" sizes="167x167" href="assets/app-icon-167.png?v=2">
+  <link rel="apple-touch-icon" sizes="152x152" href="assets/app-icon-152.png?v=2">
+  <link rel="apple-touch-icon" sizes="120x120" href="assets/app-icon-120.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap">
@@ -26,11 +33,7 @@
   <header class="topnav" id="topnav">
     <div class="tn-inner">
       <a class="brand" href="#/home" aria-label="Ervin Central home">
-        <svg class="brand-hex" viewBox="0 0 40 44" aria-hidden="true">
-          <path d="M20 2 L37 11.5 V32.5 L20 42 L3 32.5 V11.5 Z" class="bh-outer"/>
-          <path d="M20 9 L31 15 V29 L20 35 L9 29 V15 Z" class="bh-inner"/>
-          <text x="20" y="27" text-anchor="middle">E</text>
-        </svg>
+        <img class="brand-hex" src="assets/app-icon.svg?v=2" alt="" width="40" height="40">
         <span class="brand-text"><span class="brand-name">Ervin <em>Central</em></span><span class="brand-sub">Family HQ</span></span>
       </a>
 

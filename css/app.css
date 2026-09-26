@@ -107,11 +107,8 @@ code { font: 12px var(--mono); color: var(--acc-light); background: rgba(var(--a
 .tn-inner { max-width: 1440px; margin: 0 auto; display: flex; align-items: center; gap: 20px; }
 
 .brand { display: flex; align-items: center; gap: 11px; flex: none; animation: logoIn 0.6s var(--glide) both; }
-.brand-hex { width: 40px; height: 44px; transition: width 0.35s var(--glide), height 0.35s var(--glide); filter: drop-shadow(0 0 12px rgba(var(--acc-rgb), 0.35)); }
-.scrolled .brand-hex { width: 32px; height: 35px; }
-.bh-outer { fill: rgba(var(--acc-rgb), 0.12); stroke: var(--acc); stroke-width: 1.6; }
-.bh-inner { fill: none; stroke: rgba(var(--acc-rgb), 0.35); stroke-width: 1; }
-.brand-hex text { font: 800 17px var(--display); fill: var(--acc-light); }
+.brand-hex { width: 40px; height: 40px; border-radius: 11px; transition: width 0.35s var(--glide), height 0.35s var(--glide), border-radius 0.35s; box-shadow: 0 0 0 1px rgba(var(--acc-rgb), 0.35), 0 0 18px rgba(var(--acc-rgb), 0.25); }
+.scrolled .brand-hex { width: 32px; height: 32px; border-radius: 9px; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.05; }
 .brand-name { font: 800 21px var(--display); letter-spacing: 0.04em; color: var(--t0); white-space: nowrap; transition: font-size 0.35s var(--glide); }
 .scrolled .brand-name { font-size: 18px; }
@@ -726,7 +723,7 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
   .topnav.scrolled { padding-top: calc(6px + var(--safe-t)); padding-bottom: 6px; }
   .tn-inner { flex-wrap: wrap; gap: 10px; }
   .brand-name { font-size: 18px; }
-  .brand-hex, .scrolled .brand-hex { width: 30px; height: 33px; }
+  .brand-hex, .scrolled .brand-hex { width: 30px; height: 30px; border-radius: 8px; }
   .tn-right { margin-left: auto; }
   .tn-clock { font-size: 17px; }
   .tabs { order: 3; width: 100%; justify-content: space-between; }
