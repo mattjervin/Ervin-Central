@@ -1,0 +1,55 @@
+{
+  "district": {
+    "name": "ADM Community Schools",
+    "linq": {
+      "identifier": "MB8AWT",
+      "districtId": "57bb4109-b3a0-ed11-8e69-a425f6d11f24"
+    }
+  },
+  "year": {
+    "label": "2026–27",
+    "firstDay": "2026-08-24",
+    "lastDay": "2027-05-27",
+    "firstDaysEarlyOut": ["2026-08-24", "2026-08-25"],
+    "noSchool": [],
+    "extraEarlyOut": [],
+    "_todo": "lastDay is a placeholder and noSchool/extraEarlyOut are empty — fill both from the ADM academic calendar."
+  },
+  "schools": {
+    "mv": {
+      "name": "Meadow View Elementary",
+      "short": "Meadow View",
+      "buildingId": "a27caa29-7dc2-ed11-82b1-d5cd70520469",
+      "full": ["08:10", "15:10"],
+      "early": ["08:10", "12:40"],
+      "earlyWeekdays": [5],
+      "arrive": "07:50",
+      "specials": null,
+      "notes": [
+        "Specials (Art, Music, PE, Library, Computer Science) rotate on a 5-day schedule.",
+        "Music class meets twice a week."
+      ]
+    },
+    "ae": {
+      "name": "Adel Elementary",
+      "short": "Adel Elementary",
+      "buildingId": "9128eda7-7dc2-ed11-82b1-d9ef6f63d58f",
+      "full": ["08:15", "15:15"],
+      "early": ["08:15", "12:45"],
+      "earlyWeekdays": [5],
+      "arrive": "07:55",
+      "lunchTime": "11:00",
+      "specials": {
+        "1": "Art & PE",
+        "2": "Music & Library",
+        "3": "PE",
+        "4": "Music & Library",
+        "5": null
+      },
+      "notes": [
+        "Recess 3× a day — dress for the weather.",
+        "Home lunch needs an ice pack (no fridge at school)."
+      ]
+    }
+  }
+}

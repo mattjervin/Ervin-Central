@@ -1,0 +1,1385 @@
+{
+ "updated": "2026-09-26T18:19:03.897Z",
+ "schools": {
+  "mv": {
+   "2026-09-23": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Breakfast Sandwich - Egg & Cheese",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Spaghetti & Meatballs"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Caesar Salad",
+         "Cucumber Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-24": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Freshly Baked Cinnamon Roll",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Hot Ham & Cheese Sandwich"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Au Gratin Potatoes",
+         "Fresh Broccoli"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Watermelon"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-28": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Bacon & Cheese Breakfast Pizza",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Chicken Tenders W/Dinner Roll"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Creamy Mashed Potatoes",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Sliced Pears"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-29": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Donut",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Cinnamon French Toast Sticks"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Hashbrown"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Strawberry Cup"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-30": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Breakfast Sandwich - Egg & Cheese",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Mandarin Orange Chicken"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Broccoli",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mandarin Oranges"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Steamed Rice"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-01": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Hot Dog"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Crispy Tater Tots",
+         "Baked Beans"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-02": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Garlic French Bread Pizza"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Green Beans",
+         "Cucumber Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mixed Fruit"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-05": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Mini Corn Dogs"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Crispy Tater Tots",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Peaches"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-06": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Soft Shell Beef & Cheese Taco"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Corn",
+         "Salsa Cup"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Pineapple Tidbits"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Cilantro Lime Rice"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-07": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Crispy Chicken Drumstick"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Creamy Mashed Potatoes",
+         "Broccoli Salad"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Dinner Roll"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-08": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "BBQ Rib Sandwich"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Baked Beans"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Watermelon"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-09": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Pizza Crunchers"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Green Beans",
+         "Marinara Sauce",
+         "Celery Sticks"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mixed Fruit"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-12": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Popcorn Chicken"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Creamy Mashed Potatoes",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Sliced Pears"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-13": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Mini Pancakes w/Sausage Patty"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Hashbrown"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Strawberry Cup"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-14": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Macaroni and Cheese"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Peas",
+         "Broccoli Salad"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Dinner Roll"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-15": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "ADM Crispy Chicken Sandwich"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Crispy Tater Tots",
+         "Baked Beans",
+         "Leaf Lettuce",
+         "Tomatoes Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Cantaloupe"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-16": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Pepperoni Deep Dish Pizza"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Broccoli",
+         "Cucumber Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mixed Fruit"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   }
+  },
+  "ae": {
+   "2026-09-23": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Breakfast Sandwich - Egg & Cheese",
+       "Fruit Parfaits",
+       "Donut"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Spaghetti & Meatballs"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Caesar Salad",
+         "Cucumber Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices",
+         "Sliced Pears"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-24": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Freshly Baked Cinnamon Roll",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup",
+         "Pineapple Tidbits",
+         "Peaches"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Hot Ham & Cheese Sandwich"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Au Gratin Potatoes",
+         "Fresh Broccoli"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Watermelon"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-28": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Bacon & Cheese Breakfast Pizza",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Chicken Tenders W/Dinner Roll"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Creamy Mashed Potatoes",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Sliced Pears"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-29": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Donut",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Cinnamon French Toast Sticks"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Hashbrown"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Strawberry Cup"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-09-30": {
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Breakfast Sandwich - Egg & Cheese",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Mandarin Orange Chicken"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Broccoli",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mandarin Oranges"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Steamed Rice"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-01": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Hot Dog"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Crispy Tater Tots",
+         "Baked Beans"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-02": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Garlic French Bread Pizza"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Green Beans",
+         "Cucumber Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mixed Fruit"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-05": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Mini Corn Dogs"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Crispy Tater Tots",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Peaches"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-06": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Soft Shell Beef & Cheese Taco"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Corn",
+         "Salsa Cup"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Pineapple Tidbits"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Cilantro Lime Rice"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-07": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Crispy Chicken Drumstick"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Creamy Mashed Potatoes",
+         "Broccoli Salad"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Dinner Roll"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-08": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "BBQ Rib Sandwich"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Baked Beans"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Watermelon"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-09": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Pizza Crunchers"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Green Beans",
+         "Marinara Sauce",
+         "Celery Sticks"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mixed Fruit"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-12": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Popcorn Chicken"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Creamy Mashed Potatoes",
+         "Fresh Carrots"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Sliced Pears"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-13": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Mini Pancakes w/Sausage Patty"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Hashbrown"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Strawberry Cup"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-14": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Macaroni and Cheese"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Peas",
+         "Broccoli Salad"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Fresh Appleslices"
+        ]
+       },
+       {
+        "label": "Grain",
+        "items": [
+         "Dinner Roll"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-15": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "ADM Crispy Chicken Sandwich"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Crispy Tater Tots",
+         "Baked Beans"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Cantaloupe"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   },
+   "2026-10-16": {
+    "breakfast": [],
+    "lunch": [
+     {
+      "label": "Hot Lunch",
+      "main": [
+       "Pepperoni Deep Dish Pizza"
+      ],
+      "sides": [
+       {
+        "label": "Vegetable",
+        "items": [
+         "Steamed Broccoli",
+         "Cucumber Slices"
+        ]
+       },
+       {
+        "label": "Fruit",
+        "items": [
+         "Mixed Fruit"
+        ]
+       }
+      ]
+     },
+     {
+      "label": "Packaged Meal",
+      "main": [
+       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
+       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
+      ],
+      "sides": []
+     }
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,12 @@
+{
+  "family": "Ervin",
+  "location": { "name": "Adel, IA", "lat": 41.6144, "lon": -94.0169, "timezone": "America/Chicago" },
+  "kids": [
+    { "id": "evelynn", "name": "Evelynn", "emoji": "🦋", "color": "#b07eff", "school": "mv" },
+    { "id": "avery", "name": "Avery", "emoji": "🌻", "color": "#3dd8c5", "school": "ae" }
+  ],
+  "kiosk": {
+    "idleReturnSeconds": 120,
+    "keepAwake": true
+  }
+}
