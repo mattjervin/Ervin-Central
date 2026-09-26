@@ -21,7 +21,7 @@ export function render() {
   const ks = kids().filter((k) => !who || k.id === who);
   const start = schoolWeekStart();
   return `
-  ${hero(`${cfg.school.district.name} · ${cfg.school.year.label}`, 'School', 'day', 'Hours, specials and what’s on the lunch tray — menus come straight from the district.')}
+  ${hero(`${cfg.school.district.name} · ${cfg.school.year.label}`, 'School', 'day', 'Hours, specials and what’s on the lunch tray — one menu for both girls, straight from the district.')}
   <div class="toolbar anim-fade-up">
     ${kidFilter(kids(), who)}
     ${segmented('meal', [['lunch', '🍱 Lunch'], ['breakfast', '🥞 Breakfast']], meal)}
@@ -31,11 +31,12 @@ export function render() {
       <button class="icon-btn" data-step="1" aria-label="Next week">›</button>
     </div>
   </div>
-  <div class="cols ${ks.length > 1 ? 'two' : ''}">${ks.map((k, i) => kidCard(k, start, i)).join('')}</div>
+  ${menuCard(start, 1)}
+  <div class="cols ${ks.length > 1 ? 'two' : ''}">${ks.map((k, i) => kidCard(k, i + 2)).join('')}</div>
   <p class="footnote">Menus from LINQ Connect — subject to change.</p>`;
 }
 
-function kidCard(k, start, i) {
+function kidCard(k, i) {
   const s = schoolOf(k);
   const now = new Date();
   const today = schoolDay(k.school, now);
@@ -53,19 +54,26 @@ function kidCard(k, start, i) {
     ${s.specials ? `
       ${header('Specials', { color: k.color, eyebrow: sp && today.type !== 'none' ? `Today: ${sp}${/PE/.test(sp) ? ' — wear sneakers 👟' : ''}` : 'Weekly rotation' })}
       <div class="specials">${[1, 2, 3, 4, 5].map((d) => `<div class="sp ${d === now.getDay() ? 'today' : ''}" style="--c:${k.color}"><span class="sp-d">${DOW3[d]}</span><span class="sp-v">${esc(s.specials[d] || '—')}</span></div>`).join('')}</div>` : ''}
-    ${header(meal === 'lunch' ? 'Lunch menu' : 'Breakfast menu', { color: 'var(--amber)', eyebrow: `Week of ${start.getMonth() + 1}/${start.getDate()}` })}
-    <div class="menu-week" data-menu="${k.id}" data-start="${ymd(start)}"><p class="empty">Loading menu…</p></div>
     ${s.notes?.length ? `<ul class="notes">${s.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
   `, 'kid-card', i);
 }
 
-async function fillMenu(el, k) {
+/** One menu for both girls — the two elementaries serve the same food. */
+function menuCard(start, i) {
+  return card(`
+    ${header(meal === 'lunch' ? 'Lunch menu' : 'Breakfast menu', { color: 'var(--amber)', eyebrow: `Week of ${MONTH[start.getMonth()].slice(0, 3)} ${start.getDate()} · same menu at both schools` })}
+    <div class="menu-week wide" data-menu data-start="${ymd(start)}"><p class="empty">Loading menu…</p></div>`, 'menu-card', i);
+}
+
+async function fillMenu(el) {
   const start = new Date(el.dataset.start + 'T00:00');
-  const days = await menuRange(k.school, start, 5);
+  const days = await menuRange(cfg.school.lunch.source, start, 5);
+  const ks = kids();
   const today = ymd();
   el.innerHTML = days.map(({ date, menu }, i) => {
     const d = new Date(date + 'T00:00');
-    const off = schoolDay(k.school, d);
+    const offs = ks.map((k) => schoolDay(k.school, d));
+    const off = offs.every((o) => o.type === 'none') ? offs[0] : { type: 'open' };
     const meals = menu?.[meal] || [];
     const body = off.type === 'none' ? `<span class="muted">${esc(off.reason)}</span>`
       : meals.length ? meals.map((m) => meal === 'lunch' && !/hot/i.test(m.label) && !m.sides.length ? `
@@ -89,5 +97,5 @@ export function mount(root, rerender) {
     const s = e.target.closest('[data-step]');
     if (s) { const n = Number(s.dataset.step); weekOffset = n === 0 ? 0 : weekOffset + n; rerender(); }
   });
-  for (const el of root.querySelectorAll('[data-menu]')) fillMenu(el, kids().find((k) => k.id === el.dataset.menu));
+  for (const el of root.querySelectorAll('[data-menu]')) fillMenu(el);
 }

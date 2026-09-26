@@ -443,6 +443,11 @@ body.parent .parent-btn .lock-closed { display: none; }
 .ag-free { font-size: 13px; color: var(--t4); padding: 2px 0 6px; }
 
 .lunch-when { margin-bottom: -4px; }
+.lunch-hero { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: rgba(240, 176, 62, 0.08); border: 1px solid rgba(240, 176, 62, 0.28); }
+.lh-icon { font-size: 30px; }
+.lh-kids { margin-left: auto; display: flex; gap: 3px; }
+.lunch-alt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.menu-week.wide { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .lunch-row { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: color-mix(in srgb, var(--c) 8%, transparent); border: 1px solid color-mix(in srgb, var(--c) 20%, transparent); }
 .lk { font: 700 10px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--t3); }
 .lm { font-weight: 800; color: var(--t0); font-size: 16.5px; line-height: 1.25; }
@@ -745,6 +750,7 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
   .upnext-card, .agenda-card, .lunch, .leader-card, .sleep-card, .coming-card, .cd-card { grid-column: span 1; grid-row: auto; }
   .chores-card, .cd-card { grid-column: span 2; }
   .cd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .menu-week.wide { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
@@ -795,6 +801,7 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
   .field-row .btn { grid-column: 1 / -1; }
   .un-t { font-size: 22px; }
   .cd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .menu-week.wide { grid-template-columns: minmax(0, 1fr); }
   .cd { padding: 12px; column-gap: 8px; }
   .cd-i { font-size: 24px; }
   .cd-n { font-size: 24px; }

@@ -10,7 +10,10 @@
     "label": "2026–27",
     "firstDay": "2026-08-24",
     "lastDay": "2027-05-27",
-    "firstDaysEarlyOut": ["2026-08-24", "2026-08-25"],
+    "firstDaysEarlyOut": [
+      "2026-08-24",
+      "2026-08-25"
+    ],
     "noSchool": [],
     "extraEarlyOut": [],
     "_todo": "lastDay is a placeholder and noSchool/extraEarlyOut are empty — fill both from the ADM academic calendar."
@@ -20,9 +23,17 @@
       "name": "Meadow View Elementary",
       "short": "Meadow View",
       "buildingId": "a27caa29-7dc2-ed11-82b1-d5cd70520469",
-      "full": ["08:10", "15:10"],
-      "early": ["08:10", "12:40"],
-      "earlyWeekdays": [5],
+      "full": [
+        "08:10",
+        "15:10"
+      ],
+      "early": [
+        "08:10",
+        "12:40"
+      ],
+      "earlyWeekdays": [
+        5
+      ],
       "arrive": "07:50",
       "specials": null,
       "notes": [
@@ -34,9 +45,17 @@
       "name": "Adel Elementary",
       "short": "Adel Elementary",
       "buildingId": "9128eda7-7dc2-ed11-82b1-d9ef6f63d58f",
-      "full": ["08:15", "15:15"],
-      "early": ["08:15", "12:45"],
-      "earlyWeekdays": [5],
+      "full": [
+        "08:15",
+        "15:15"
+      ],
+      "early": [
+        "08:15",
+        "12:45"
+      ],
+      "earlyWeekdays": [
+        5
+      ],
       "arrive": "07:55",
       "lunchTime": "11:00",
       "specials": {
@@ -51,5 +70,10 @@
         "Home lunch needs an ice pack (no fridge at school)."
       ]
     }
+  },
+  "lunch": {
+    "_help": "Both elementary schools serve the same menu, so the site shows one. source = which school's LINQ menu to read.",
+    "source": "mv",
+    "label": "ADM Elementary"
   }
 }

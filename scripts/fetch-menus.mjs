@@ -1,4 +1,4 @@
-// Caches the next ~3 weeks of breakfast/lunch menus for every school in data/school.json into
+// Caches every published breakfast/lunch menu (LINQ usually posts ~2 months ahead) for every school in data/school.json into
 // data/menus.json. Run nightly by .github/workflows/menus.yml so the site still has menus if the
 // live LINQ call ever fails from a kid's iPad. Usage: node scripts/fetch-menus.mjs
 import { readFile, writeFile } from 'node:fs/promises';
@@ -11,7 +11,7 @@ const iso = (d) => d.toISOString().slice(0, 10);
 const start = new Date();
 start.setDate(start.getDate() - 3);
 const end = new Date();
-end.setDate(end.getDate() + 21);
+end.setDate(end.getDate() + 90);
 
 // LINQ's WAF rejects requests that don't look like a browser.
 const headers = {

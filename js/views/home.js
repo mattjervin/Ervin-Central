@@ -217,18 +217,26 @@ function agendaCard(now, i) {
   return card(`${header('Agenda', { href: '#/calendar', eyebrow: 'Next 5 days' })}<div class="agenda">${blocks}</div>`, 'agenda-card', i);
 }
 
+/** One menu for both girls — ADM's elementaries serve the same lunch. After 1pm, look ahead. */
 async function lunchBody(now) {
   const ks = kids();
   const day = new Date(now);
   if (now.getHours() >= 13) day.setDate(day.getDate() + 1);
   for (let i = 0; i < 7 && ks.every((k) => schoolDay(k.school, day).type === 'none'); i++) day.setDate(day.getDate() + 1);
-  const rows = await Promise.all(ks.map(async (k) => {
-    const [{ menu }] = await menuRange(k.school, day, 1);
-    const off = schoolDay(k.school, day).type === 'none';
-    const main = off ? 'No school' : lunchHeadline(menu) || 'Menu not posted yet';
-    return `<div class="lunch-row anim-row" style="--c:${k.color}">${avatar(k)}<div><div class="lk">${esc(k.name)} · ${esc(schoolOf(k).short)}</div><div class="lm">${esc(main)}</div></div></div>`;
-  }));
-  return `<div class="sh-eyebrow lunch-when">${esc(relDay(day, now))}</div>${rows.join('')}`;
+  const [{ menu }] = await menuRange(cfg.school.lunch.source, day, 1);
+  const lunch = menu?.lunch || [];
+  const hot = lunch.find((m) => /hot/i.test(m.label)) || lunch[0];
+  const others = lunch.filter((m) => m !== hot);
+  const sides = hot?.sides.flatMap((x) => x.items) || [];
+  return `
+    <div class="sh-eyebrow lunch-when">${esc(relDay(day, now))} · both girls</div>
+    <div class="lunch-hero anim-row">
+      <span class="lh-icon">🍱</span>
+      <div><div class="lk">Hot lunch</div><div class="lm">${esc(hot?.main?.[0] || 'Menu not posted yet')}</div></div>
+      <span class="lh-kids">${ks.map((k) => avatar(k, 'xs')).join('')}</span>
+    </div>
+    ${sides.length ? `<div class="meal-sides">${sides.map((x) => chip(x, 'var(--amber)')).join('')}</div>` : ''}
+    ${others.map((m) => `<div class="lunch-alt"><span class="meal-l">${esc(m.label)}</span>${m.main.map((x) => chip(x.replace(/\s*\(.*\)\s*$/, ''))).join('')}</div>`).join('')}`;
 }
 
 function choresCard(choreStats, i) {
