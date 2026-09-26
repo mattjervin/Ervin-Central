@@ -10,7 +10,7 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
 - No build step, no framework, no npm dependencies. ES modules loaded directly by the browser.
 - Every interpolated value in a view goes through `esc()`.
 - Touch first: tap targets ≥ 44px (primary actions 48px+). No hover-only affordances.
-- Green (`--acc`) is the brand/family color; each kid keeps her own color (Evelynn purple, Avery blue); coins are gold.
+- Green (`--acc`) is the brand/family color; each kid keeps her own color (Evelynn orange, Avery blue; Mom's nights rose so they don't clash with orange); coins are gold.
 - Entrance animations run only when arriving on a page (`.view.settled` disables them on tap re-renders). Respect `prefers-reduced-motion`.
 - Content changes go in `data/*.json`, not code.
 - The site is public: never add teacher names, pickup numbers, home/party addresses, phone
