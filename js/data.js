@@ -95,7 +95,7 @@ export function itemsOn(date) {
   // The same thing at the same time for both girls reads once, with both dots.
   const merged = [];
   for (const it of out) {
-    const twin = merged.find((m) => m.kind === 'event' && it.kind === 'event' && m.title === it.title && +m.start === +it.start && m.who.length && it.who.length);
+    const twin = merged.find((m) => m.kind !== 'school' && m.kind === it.kind && m.title === it.title && +m.start === +it.start && m.who.length && it.who.length);
     if (twin) twin.who = [...new Set([...twin.who, ...it.who])];
     else merged.push({ ...it, who: [...it.who] });
   }
@@ -105,7 +105,8 @@ export function itemsOn(date) {
 function toItem(src, date) {
   const allDay = !src.start;
   return {
-    title: src.title, detail: src.detail || '', icon: src.icon || '📌', who: src.who || [], kind: 'event',
+    title: src.tentative ? `${src.title} ?` : src.title, detail: src.detail || '', icon: src.icon || '📌', who: src.who || [],
+    kind: src.kind || (src.days ? 'recurring' : 'event'), tentative: Boolean(src.tentative),
     allDay,
     start: allDay ? at(date, '00:00') : at(date, src.start),
     end: allDay ? at(date, '23:59') : at(date, src.end || src.start),
@@ -122,6 +123,39 @@ export function upcoming(days = 7, now = new Date()) {
     for (const it of itemsOn(d)) if (it.end > now) out.push({ ...it, date: d });
   }
   return out;
+}
+
+// ---- Where the girls sleep ------------------------------------------------------------------------
+
+/** { key, label, icon, color, why } for the night of `date`. Overrides beat the weekly pattern. */
+export function sleepOn(date) {
+  const sl = cfg.calendar.sleep;
+  if (!sl) return null;
+  const key = ymd(date);
+  const place = (k, why) => (k && sl.places[k] ? { key: k, ...sl.places[k], why } : null);
+  const o = (sl.overrides || []).find((x) => key >= x.from && key <= (x.to || x.from));
+  if (o) return place(o.who, o.note || 'Schedule change');
+  const dow = date.getDay();
+  if (sl.weekdays[dow]) return place(sl.weekdays[dow], 'Weeknight');
+  if (sl.weekendDays.includes(dow)) {
+    // Which Friday does this weekend hang off? Sat → yesterday, Sun → two days back.
+    const fri = addDays(date, -((dow + 2) % 7));
+    const weeks = Math.round((fri - parseYmd(sl.weekendAnchor.friday)) / (7 * 864e5));
+    const who = weeks % 2 === 0 ? sl.weekendAnchor.who : sl.weekendAnchor.alternate;
+    return place(who, 'Weekend');
+  }
+  return null;
+}
+
+/** Next night the girls sleep somewhere different from `date`. */
+export function nextSwitch(date) {
+  const now = sleepOn(date);
+  for (let i = 1; i < 21; i++) {
+    const d = addDays(date, i);
+    const s = sleepOn(d);
+    if (s && now && s.key !== now.key) return { date: d, ...s };
+  }
+  return null;
 }
 
 // ---- Chores ------------------------------------------------------------------------------

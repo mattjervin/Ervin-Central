@@ -2,7 +2,7 @@
 // (big date grid). Color-coded per girl, filterable, with a legend. Tap a month day for its details.
 // School days come from data/school.json; everything else from data/calendar.json.
 
-import { kids, itemsOn, forKid, weather, schoolDay, schoolOf } from '../data.js';
+import { kids, itemsOn, forKid, weather, schoolDay, schoolOf, sleepOn } from '../data.js';
 import { card, hero, kidFilter, segmented, whoDots, whoColor, modal } from '../ui.js';
 import { esc, clock, addDays, startOfWeek, ymd, relDay, DOW, DOW3, MONTH } from '../util.js';
 
@@ -13,6 +13,12 @@ let view = 'week';
 let offset = 0;   // weeks (week/agenda) or months (month) from now
 
 const time = (i) => (i.allDay ? 'All day' : `${clock(i.start)}${i.end > i.start ? ` – ${clock(i.end)}` : ''}`);
+
+/** "🏡 Dad's" pill for the night of `d`. */
+function sleepTag(d, cls) {
+  const s = sleepOn(d);
+  return s ? `<span class="${cls}" style="--c:${s.color}">${esc(s.icon)} ${esc(s.label)}</span>` : '';
+}
 
 export function render() {
   const ks = kids();
@@ -50,6 +56,7 @@ function week(today) {
     return `
       <div class="wk-day ${isToday ? 'today' : ''} ${ymd(d) < ymd(today) ? 'past' : ''}" style="--i:${i}">
         <div class="wk-head"><span class="wk-dow">${DOW3[d.getDay()]}</span><span class="wk-num">${d.getDate()}</span><span class="wk-wx" data-wx="${ymd(d)}"></span></div>
+        ${sleepTag(d, 'wk-sleep')}
         <div class="wk-items">
           ${items.map((x) => `
             <div class="ev ${x.kind}" style="--c:${whoColor(x.who, ks)}">
@@ -74,9 +81,9 @@ function agenda(today) {
     const items = forKid(itemsOn(d), who);
     if (!items.length) return '';
     return card(`
-      <div class="agl-head"><span class="agl-day">${esc(relDay(d, today))}</span><span class="agl-date">${DOW[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}</span></div>
+      <div class="agl-head"><span class="agl-day">${esc(relDay(d, today))}</span>${sleepTag(d, 'agl-sleep')}<span class="agl-date">${DOW[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}</span></div>
       ${items.map((x, j) => `
-        <div class="agl-item anim-row" style="--c:${whoColor(x.who, ks)};--i:${j}">
+        <div class="agl-item anim-row ${x.kind}" style="--c:${whoColor(x.who, ks)};--i:${j}">
           <span class="agl-time">${x.allDay ? 'All day' : clock(x.start)}</span>
           <span class="agl-icon">${esc(x.icon)}</span>
           <span class="agl-main"><span class="agl-title">${esc(x.title)}</span><span class="agl-sub">${esc([x.detail, x.allDay ? '' : time(x)].filter(Boolean).join(' · '))}</span></span>
@@ -102,6 +109,7 @@ function month(today) {
         <span class="mo-num">${d.getDate()}</span>${school ? '<span class="mo-school" title="School day">🏫</span>' : ''}
         <span class="mo-evs">${items.slice(0, 3).map((x) => `<span class="mo-ev" style="--c:${whoColor(x.who, ks)}">${esc(x.icon)} ${esc(x.title)}</span>`).join('')}
         ${items.length > 3 ? `<span class="mo-more">+${items.length - 3} more</span>` : ''}</span>
+        ${(() => { const s = sleepOn(d); return s ? `<span class="mo-sleep" style="--c:${s.color}" title="${esc(s.label)}"></span>` : ''; })()}
       </button>`;
   }).join('');
   const label = `${MONTH[first.getMonth()]} ${first.getFullYear()}`;
@@ -115,6 +123,7 @@ function dayDetail(key) {
   modal(`
     <div class="eyebrow">${esc(relDay(d))}</div>
     <h3 class="sheet-title">${DOW[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}</h3>
+    ${sleepTag(d, 'agl-sleep')}
     <div class="sheet-list">${items.map((x) => `
       <div class="agl-item" style="--c:${whoColor(x.who, ks)}"><span class="agl-time">${x.allDay ? 'All day' : clock(x.start)}</span><span class="agl-icon">${esc(x.icon)}</span>
       <span class="agl-main"><span class="agl-title">${esc(x.title)}</span><span class="agl-sub">${esc(x.detail || time(x))}</span></span><span class="row-dots">${whoDots(x.who, ks)}</span></div>`).join('') || '<p class="empty">Nothing planned.</p>'}</div>

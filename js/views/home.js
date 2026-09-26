@@ -2,7 +2,7 @@
 // a live landscape, the forecast, an "Up next" card with a running countdown, the agenda by day,
 // lunch, chores you can tick right here, the coin leaderboard, and countdowns to the big days.
 
-import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, lunchHeadline, weather, schoolDay, schoolOf } from '../data.js';
+import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, lunchHeadline, weather, schoolDay, schoolOf, sleepOn, nextSwitch } from '../data.js';
 import { store } from '../store.js';
 import { card, header, stat, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
 import { sceneSvg } from '../scene.js';
@@ -50,10 +50,12 @@ export function render() {
   <div class="board">
     ${upNextCard(now, 0)}
     ${agendaCard(now, 1)}
-    ${card(`${header('School Lunch', { color: 'var(--amber)', href: '#/school' })}<div id="home-lunch"><p class="empty">Loading menu…</p></div>`, 'lunch', 2)}
+    ${sleepCard(now, 2)}
     ${choresCard(choreStats, 3)}
-    ${leaderCard(4)}
-    ${countdownCard(now, 5)}
+    ${card(`${header('School Lunch', { color: 'var(--amber)', href: '#/school' })}<div id="home-lunch"><p class="empty">Loading menu…</p></div>`, 'lunch', 4)}
+    ${comingCard(now, 5)}
+    ${leaderCard(6)}
+    ${countdownCard(now, 7)}
   </div>`;
 }
 
@@ -112,6 +114,49 @@ function synthesis(now, choreStats) {
 
 // ---- Cards ------------------------------------------------------------------------------------
 
+/** Where the girls sleep tonight, when it switches, and the week of nights at a glance. */
+function sleepCard(now, i) {
+  const tonight = sleepOn(now);
+  if (!tonight) return '';
+  const sw = nextSwitch(now);
+  const nights = Array.from({ length: 7 }, (_, d) => addDays(now, d));
+  const swWhen = sw ? (Math.round((new Date(ymd(sw.date) + 'T00:00') - new Date(ymd(now) + 'T00:00')) / 864e5) === 1 ? 'tomorrow' : DOW3[sw.date.getDay()]) : '';
+  return card(`
+    ${header('Tonight', { color: tonight.color, eyebrow: 'Where we’re sleeping' })}
+    <div class="sleep-now" style="--c:${tonight.color}">
+      <span class="sn-icon">${esc(tonight.icon)}</span>
+      <div><div class="sn-place">${esc(tonight.label)}</div>
+      <div class="sn-sub">${sw ? `${esc(sw.label)} starting ${esc(swWhen)}` : 'All week'}</div></div>
+    </div>
+    <div class="nights">${nights.map((d, j) => {
+      const s = sleepOn(d);
+      return `<div class="night ${j === 0 ? 'today' : ''}" style="--c:${s?.color || 'var(--t4)'};--i:${j}"><span class="nt-d">${j === 0 ? 'Tonight' : DOW3[d.getDay()]}</span><span class="nt-i">${esc(s?.icon || '·')}</span><span class="nt-l">${esc(s?.label || '')}</span></div>`;
+    }).join('')}</div>`, 'sleep-card', i, `--c:${tonight.color}`);
+}
+
+/** The next few notable things beyond this week — games, parties, events (not routine practices). */
+function comingCard(now, i) {
+  const ks = kids();
+  const out = [];
+  for (let d = 0; d < 60 && out.length < 7; d++) {
+    const day = addDays(now, d);
+    for (const x of itemsOn(day)) {
+      if (x.kind === 'school' || x.kind === 'recurring') continue;
+      if (!x.allDay && x.end < now) continue;
+      out.push({ ...x, date: day });
+    }
+  }
+  return card(`
+    ${header('Coming Up', { color: 'var(--blue)', href: '#/calendar', eyebrow: 'Games · parties · events' })}
+    ${out.slice(0, 7).map((x, j) => `
+      <div class="cu-row anim-row ${x.kind}" style="--c:${whoColor(x.who, ks)};--i:${j}">
+        <div class="cu-date"><span class="cu-dow">${DOW3[x.date.getDay()]}</span><span class="cu-day">${x.date.getDate()}</span></div>
+        <div class="cu-main"><div class="cu-title">${esc(x.icon)} ${esc(x.title)}</div>
+          <div class="cu-sub">${esc([x.allDay ? relDay(x.date, now) : `${relDay(x.date, now)} · ${clock(x.start)}`, x.detail].filter(Boolean).join(' · '))}</div></div>
+        <span class="row-dots">${whoDots(x.who, ks)}</span>
+      </div>`).join('') || empty('Nothing on the books yet.')}`, 'coming-card', i);
+}
+
 function upNextCard(now, i) {
   const ks = kids();
   // School only counts as "up next" when it's the next thing this morning, not two days out.
@@ -130,7 +175,7 @@ function upNextCard(now, i) {
       </div>
       <div class="un-count"><span class="un-in">in</span><span class="un-t" data-until="${+n.start}"></span></div>
     </div>
-    ${list.slice(1, 4).map((x, j) => `
+    ${list.slice(1, 5).map((x, j) => `
       <div class="un-later anim-row" style="--i:${j}"><span class="ul-t">${esc(relDay(x.date, now) === 'Today' ? clock(x.start) : `${DOW3[x.date.getDay()]} ${clock(x.start, false)}`)}</span>
         <span class="ul-n">${esc(x.icon)} ${esc(x.title)}</span><span class="row-dots">${whoDots(x.who, ks)}</span></div>`).join('')}`
     : empty('Nothing scheduled in the next few days.');

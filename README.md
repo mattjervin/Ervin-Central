@@ -22,7 +22,7 @@ leaderboard, and *days until* countdowns.
 
 | Page | What it shows | Where the data comes from |
 |---|---|---|
-| **Home** | Clock over a live landscape, forecast, Up next + countdown, 5-day agenda, lunch, tap-to-finish chores, leaderboard, countdowns | Everything below |
+| **Home** | Clock over a live landscape, forecast, Up next + countdown, 5-day agenda, **Tonight** (where the girls sleep + the week of nights), lunch, tap-to-finish chores, **Coming up** (games, parties), leaderboard, countdowns | Everything below |
 | **Calendar** | Agenda, rolling Week and Month views, filterable by kid, with school hours, early-outs, specials and weather | `data/calendar.json` + `data/school.json` |
 | **School** | Hours, specials, and the week's lunch/breakfast menu per girl | `data/school.json` + ADM's LINQ Connect menus |
 | **Chores** | Big tap tiles by morning / after school / evening; bonus tasks | `data/chores.json` |
@@ -33,7 +33,7 @@ leaderboard, and *days until* countdowns.
 All content is hand-edited JSON in `data/` — no code changes needed:
 
 - **`family.json`** — kids (name, emoji, color, school), location for weather, kiosk settings.
-- **`calendar.json`** — `recurring` weekly items, one-off `events`, and `countdowns` (big "days until" tiles). `who` is a list of kid ids; empty means the whole family.
+- **`calendar.json`** — `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates), one-off `events` (`kind: "game"`, `tentative`), and `countdowns`. `who` is a list of kid ids; empty means the whole family.
 - **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates. **TODO:** fill `lastDay`, `noSchool` and `extraEarlyOut` from the ADM academic calendar.
 - **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
 - **`menus.json`** — generated; don't edit. A GitHub Action refreshes it every morning.

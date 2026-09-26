@@ -1,73 +1,48 @@
 {
-  "_help": "who = list of kid ids, or [] for the whole family. days = weekdays (0 Sun … 6 Sat). Times are 24h HH:MM. Omit start for an all-day item. countdowns = big 'days until' tiles on Home (DAKboard-style).",
+  "_help": "Synced by hand from the Kids calendar on Matt's Mac (2026-09-26). who = kid ids, [] = whole family. days = weekdays (0 Sun … 6 Sat). Times 24h HH:MM; omit start for all-day. except = dates a recurring item is cancelled. tentative = show with a '?'. countdowns = big 'days until' tiles on Home. Keep private items (medical, counseling, addresses) out of this public file.",
+
+  "sleep": {
+    "_help": "Where the girls sleep each night. The night of a date belongs to whoever has that day. Mon/Wed = mom, Tue/Thu = dad, Fri–Sun alternate weekends starting from weekendAnchor. overrides beat the pattern (holidays, swaps).",
+    "places": {
+      "dad": { "label": "Dad's", "icon": "🏡", "color": "#4ade80" },
+      "mom": { "label": "Mom's", "icon": "🏠", "color": "#f0b03e" }
+    },
+    "weekdays": { "1": "mom", "2": "dad", "3": "mom", "4": "dad" },
+    "weekendDays": [5, 6, 0],
+    "weekendAnchor": { "friday": "2026-09-25", "who": "dad", "alternate": "mom" },
+    "overrides": []
+  },
+
   "recurring": [
-    {
-      "title": "Soccer practice",
-      "icon": "⚽",
-      "who": [
-        "avery"
-      ],
-      "days": [
-        1
-      ],
-      "start": "18:00",
-      "end": "19:00",
-      "from": "2026-08-24",
-      "until": "2026-10-31"
-    },
-    {
-      "title": "Soccer game day",
-      "icon": "⚽",
-      "who": [
-        "avery"
-      ],
-      "days": [
-        6
-      ],
-      "from": "2026-09-12",
-      "until": "2026-10-31",
-      "except": [
-        "2026-10-24"
-      ]
-    },
-    {
-      "title": "Soccer game day",
-      "icon": "⚽",
-      "who": [
-        "evelynn"
-      ],
-      "days": [
-        6
-      ],
-      "from": "2026-09-12",
-      "until": "2026-10-31"
-    }
+    { "title": "Soccer practice", "icon": "⚽", "who": ["avery"], "days": [1], "start": "18:00", "end": "19:00", "detail": "Island Park · Field 13 South", "from": "2026-08-24", "until": "2026-11-02", "except": ["2026-09-28"] },
+    { "title": "Soccer practice", "icon": "⚽", "who": ["avery"], "days": [3], "start": "18:00", "end": "18:30", "detail": "Island Park · Field 13 South", "from": "2026-08-26", "until": "2026-11-04", "except": ["2026-09-30"] },
+    { "title": "Soccer practice", "icon": "⚽", "who": ["evelynn"], "days": [1], "start": "18:30", "end": "19:30", "detail": "Island Park · Field 3", "from": "2026-08-24", "until": "2026-11-02", "except": ["2026-09-28"] },
+    { "title": "Soccer practice", "icon": "⚽", "who": ["evelynn"], "days": [4], "start": "18:30", "end": "19:30", "detail": "Island Park · Field 11", "from": "2026-08-27", "until": "2026-11-05", "except": ["2026-10-01"] },
+    { "title": "Hip hop", "icon": "💃", "who": ["evelynn"], "days": [3], "start": "16:15", "end": "16:45", "detail": "Adel Tumbling & Dance Club", "from": "2026-09-09" },
+    { "title": "Guitar lesson", "icon": "🎸", "who": ["evelynn"], "days": [3], "start": "19:00", "end": "19:30", "detail": "Tiger Riff Guitar Studios", "from": "2026-08-26" },
+    { "title": "Tumbling", "icon": "🤸", "who": ["evelynn"], "days": [4], "start": "18:45", "end": "19:45", "detail": "Adel Tumbling & Dance Club", "from": "2026-10-15" }
   ],
+
   "events": [
-    {
-      "title": "Shoot the Moon tournament (optional)",
-      "icon": "🏆",
-      "who": [
-        "evelynn"
-      ],
-      "date": "2026-10-24"
-    }
+    { "title": "Olivia's birthday party", "icon": "🎂", "who": ["evelynn"], "date": "2026-09-27", "start": "14:00", "end": "17:00" },
+
+    { "title": "Soccer vs Pleasant Hill (away)", "icon": "⚽", "who": ["evelynn"], "date": "2026-10-03", "start": "09:00", "end": "10:00", "detail": "Hickory Glen Park · Field 5, Pleasant Hill", "kind": "game" },
+    { "title": "Soccer vs NPU G7C (home)", "icon": "⚽", "who": ["avery"], "date": "2026-10-03", "start": "11:00", "end": "12:00", "detail": "Island Park · Field 4A", "kind": "game" },
+    { "title": "Soccer vs NPU G7D", "icon": "⚽", "who": ["avery"], "date": "2026-10-10", "start": "11:00", "end": "12:00", "detail": "Polk City Sports Complex · Field 5", "kind": "game" },
+    { "title": "Soccer vs NPU G10C (home)", "icon": "⚽", "who": ["evelynn"], "date": "2026-10-10", "start": "11:30", "end": "12:30", "detail": "Island Park · Field 3", "kind": "game" },
+    { "title": "Snack day", "icon": "🍎", "who": ["avery"], "date": "2026-10-12", "detail": "Bring the class snack" },
+    { "title": "Soccer game (maybe)", "icon": "⚽", "who": ["avery"], "date": "2026-10-15", "start": "18:00", "end": "19:15", "detail": "Possibly moved here from 10/24", "kind": "game", "tentative": true },
+    { "title": "Soccer vs Earlham (away)", "icon": "⚽", "who": ["evelynn"], "date": "2026-10-17", "start": "09:00", "end": "10:00", "detail": "Earlham Recreation Park · Field 3", "kind": "game" },
+    { "title": "Soccer vs NPU G7A (home)", "icon": "⚽", "who": ["avery"], "date": "2026-10-17", "start": "10:00", "end": "11:00", "detail": "Island Park · Field 4A", "kind": "game" },
+    { "title": "Soccer vs ADM G07B (home)", "icon": "⚽", "who": ["avery"], "date": "2026-10-24", "start": "10:00", "end": "11:00", "detail": "Island Park · Field 4A", "kind": "game" },
+    { "title": "Shoot the Moon tournament (optional)", "icon": "🏆", "who": ["evelynn"], "date": "2026-10-24" },
+    { "title": "Soccer vs Spring Creek (away)", "icon": "⚽", "who": ["evelynn"], "date": "2026-10-31", "start": "09:00", "end": "10:00", "detail": "Spring Creek Sports Complex · Field 12B, Altoona", "kind": "game" },
+    { "title": "Spring music concert", "icon": "🎵", "who": ["avery"], "date": "2027-04-13", "start": "18:00", "end": "19:00", "detail": "Adel Elementary" }
   ],
+
   "countdowns": [
-    {
-      "title": "Halloween",
-      "icon": "🎃",
-      "date": "2026-10-31"
-    },
-    {
-      "title": "Thanksgiving",
-      "icon": "🦃",
-      "date": "2026-11-26"
-    },
-    {
-      "title": "Christmas",
-      "icon": "🎄",
-      "date": "2026-12-25"
-    }
+    { "title": "Halloween", "icon": "🎃", "date": "2026-10-31" },
+    { "title": "Thanksgiving", "icon": "🦃", "date": "2026-11-26" },
+    { "title": "Christmas", "icon": "🎄", "date": "2026-12-25" }
   ]
 }

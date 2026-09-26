@@ -13,8 +13,13 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
 - Green (`--acc`) is the brand/family color; each kid keeps her own color (Evelynn purple, Avery blue); coins are gold.
 - Entrance animations run only when arriving on a page (`.view.settled` disables them on tap re-renders). Respect `prefers-reduced-motion`.
 - Content changes go in `data/*.json`, not code.
-- The site is public: never add teacher names, pickup numbers, addresses, phone numbers,
-  medical or custody details. Kids' family details live in Matt's Second Brain vault
+- The site is public: never add teacher names, pickup numbers, home/party addresses, phone
+  numbers, medical, counseling or legal details. The sleep schedule (Matt asked for it) shows only
+  "Dad's" / "Mom's" — never names or addresses.
+- Calendar data is hand-synced from the "Kids" calendar in Calendar.app on Matt's Mac. EventKit
+  is blocked for this app; JXA (`osascript -l JavaScript`) against Calendar.app works — read
+  summary/startDate/endDate/recurrence/uid/excludedDates and expand recurrences yourself (first
+  event per uid = master, the rest are moved occurrences). Kids' family details live in Matt's Second Brain vault
   (`Family/Kids/`) — pull only schedule-level facts from there.
 - Coin balances are derived from the ledger in `store.js`; never store a balance.
 - State syncs to JSONBin (collection "Ervin Central": household / evelynn / avery bins). All
