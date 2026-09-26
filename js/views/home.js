@@ -155,7 +155,7 @@ function comingCard(now, i) {
   for (let d = 0; d < 60 && out.length < 7; d++) {
     const day = addDays(now, d);
     for (const x of itemsOn(day)) {
-      if (x.kind === 'school' || x.kind === 'recurring' || x.kind === 'watch') continue;
+      if (x.kind === 'school' || x.kind === 'recurring') continue;
       if (!x.allDay && x.end < now) continue;
       out.push({ ...x, date: day });
     }
@@ -174,7 +174,7 @@ function comingCard(now, i) {
 function upNextCard(now, i) {
   const ks = kids();
   // School only counts as "up next" when it's the next thing this morning, not two days out.
-  const list = upcoming(3, now).filter((x) => !x.allDay && x.kind !== 'watch' && x.start > now && (x.kind !== 'school' || x.start - now < 12 * 36e5));
+  const list = upcoming(3, now).filter((x) => !x.allDay && x.start > now && (x.kind !== 'school' || x.start - now < 12 * 36e5));
   const allDay = itemsOn(now).filter((x) => x.allDay);
   const n = list[0];
   const color = n ? whoColor(n.who, ks) : 'var(--acc)';

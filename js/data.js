@@ -6,7 +6,7 @@ import { addDays, at, clock, parseYmd, ymd } from './util.js';
 const clockShort = (hhmm) => clock(hhmm, false);
 import { fetchMenu } from './linq.js';
 
-export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null, penguins: null };
+export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null };
 
 async function getJson(path) {
   const res = await fetch(path, { cache: 'no-cache' });
@@ -15,15 +15,14 @@ async function getJson(path) {
 }
 
 export async function loadConfig() {
-  const [family, school, calendar, chores, menus, penguins] = await Promise.all([
+  const [family, school, calendar, chores, menus] = await Promise.all([
     getJson('data/family.json'),
     getJson('data/school.json'),
     getJson('data/calendar.json'),
     getJson('data/chores.json'),
     getJson('data/menus.json').catch(() => ({ updated: null, schools: {} })),
-    getJson('data/penguins.json').catch(() => ({ games: [] })),
   ]);
-  Object.assign(cfg, { family, school, calendar, chores, menus, penguins });
+  Object.assign(cfg, { family, school, calendar, chores, menus });
 }
 
 export const kids = () => cfg.family.kids;
@@ -101,9 +100,6 @@ export function itemsOn(date) {
       const title = `${b.name}'s ${age ? ordinal(age) + ' ' : ''}birthday`;
       out.push({ ...toItem({ title, icon: b.icon || '🎂', who: b.kid ? [b.kid] : [] }, date), kind: 'birthday' });
     }
-  }
-  for (const g of cfg.penguins?.games || []) {
-    if (g.date === key) out.push({ ...toItem({ ...g, icon: '🏒', who: [] }, date), kind: 'watch' });
   }
 
   // The same thing at the same time for both girls reads once, with both dots.
