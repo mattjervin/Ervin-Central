@@ -1,5 +1,5 @@
 // Chores — DAKboard's family chore chart: every girl gets her own column, tap a chore to finish it
-// and the coins pop out. Bonus tasks go to a parent to OK first (see Coins → Waiting).
+// and the coins pop out. Extra chores go to a parent to OK first (see Coins → Waiting).
 
 import { cfg, kids, kid as kidById, choresFor } from '../data.js';
 import { store } from '../store.js';
@@ -18,7 +18,7 @@ export function render(params) {
   const left = sel.reduce((s, k) => s + choresFor(k.id).filter((c) => !store.isDone(today, c.id, k.id)).length, 0);
 
   return `
-  ${hero(one ? `${one.name}'s chart` : 'Family chore chart', 'Chore', 'chart', left ? `${left} left today. Tap a chore when it’s done — coins land right away.` : 'Everything’s done today. Nice work! 🎉')}
+  ${hero(one ? `${one.name}'s chart` : 'Family chore chart', 'Chore', 'chart', left ? `${left} daily chore${left === 1 ? '' : 's'} left today. Tap one when it’s done — the coin lands right away. Extra chores earn 2.` : 'Everything’s done today. Nice work! 🎉')}
   <div class="toolbar anim-fade-up">
     <div class="pills">
       <a class="choice-pill ${!one ? 'selected' : ''}" href="#/chores" style="--c:var(--acc)">Everyone</a>
@@ -69,7 +69,7 @@ function tile(k, c, done, j) {
 
 function bonus(sel, i) {
   return card(`
-    ${header('Earn extra coins', { color: 'var(--coin)', eyebrow: 'Bonus tasks · a parent checks, then coins land' })}
+    ${header('Extra chores', { color: 'var(--coin)', eyebrow: 'Earn extra coins · tap your face when it’s done · a parent OKs it' })}
     <div class="bonus-grid">${cfg.chores.bonus.map((b, j) => `
       <div class="bonus anim-row" style="--i:${j}">
         <span class="b-icon">${esc(b.icon)}</span>

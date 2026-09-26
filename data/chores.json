@@ -1,34 +1,135 @@
 {
-  "_help": "who = kid ids (omit for everyone). days = weekdays 0 Sun … 6 Sat (omit for every day). part = morning | afternoon | evening. Bonus tasks need a parent's OK before coins land; rewards cost coins and also need a parent's OK.",
+  "_help": "Daily chores: who = kid ids (omit for both), days = weekdays 0 Sun … 6 Sat (omit for every day), part = morning | afternoon | evening. Daily chores pay 1 coin the moment they're ticked. Extra (bonus) chores pay 2 coins after a parent OKs them. Rewards cost coins and also need a parent's OK.",
   "coinName": "Kindness Coins",
   "chores": [
-    { "id": "make-bed", "title": "Make your bed", "icon": "🛏️", "coins": 1, "part": "morning" },
-    { "id": "teeth-am", "title": "Brush teeth", "icon": "🪥", "coins": 1, "part": "morning" },
-    { "id": "dressed", "title": "Get dressed & ready", "icon": "👟", "coins": 1, "part": "morning", "days": [1, 2, 3, 4, 5] },
-    { "id": "backpack", "title": "Unpack lunchbox & backpack", "icon": "🎒", "coins": 1, "part": "afternoon", "days": [1, 2, 3, 4, 5] },
-    { "id": "reading", "title": "Read for 20 minutes", "icon": "📚", "coins": 2, "part": "afternoon" },
-    { "id": "loki-evelynn", "title": "Feed Loki", "icon": "🐶", "coins": 2, "part": "evening", "who": ["evelynn"], "days": [1, 3, 5, 0] },
-    { "id": "loki-avery", "title": "Feed Loki", "icon": "🐶", "coins": 2, "part": "evening", "who": ["avery"], "days": [2, 4, 6] },
-    { "id": "dishes", "title": "Clear your dishes", "icon": "🍽️", "coins": 1, "part": "evening" },
-    { "id": "tidy-room", "title": "Tidy your room", "icon": "🧸", "coins": 3, "part": "afternoon", "days": [6] },
-    { "id": "laundry", "title": "Put away your laundry", "icon": "👕", "coins": 2, "part": "afternoon", "days": [0] },
-    { "id": "teeth-pm", "title": "Brush teeth & PJs", "icon": "🌙", "coins": 1, "part": "evening" }
+    {
+      "id": "make-bed",
+      "title": "Make your bed",
+      "icon": "🛏️",
+      "coins": 1,
+      "part": "morning"
+    },
+    {
+      "id": "ready-school",
+      "title": "Get ready for school without asking",
+      "icon": "🎒",
+      "coins": 1,
+      "part": "morning",
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "brush-teeth",
+      "title": "Brush your teeth",
+      "icon": "🪥",
+      "coins": 1,
+      "part": "morning"
+    },
+    {
+      "id": "dishes-dw",
+      "title": "Put your dishes in the dishwasher",
+      "icon": "🍽️",
+      "coins": 1,
+      "part": "evening"
+    }
   ],
   "bonus": [
-    { "id": "unload-dw", "title": "Unload the dishwasher", "icon": "🍽️", "coins": 3 },
-    { "id": "help-dinner", "title": "Help make dinner", "icon": "🍳", "coins": 3 },
-    { "id": "kind-sister", "title": "Do something kind for your sister", "icon": "💜", "coins": 2 },
-    { "id": "yard", "title": "Help with yard work", "icon": "🍂", "coins": 4 },
-    { "id": "car", "title": "Clean out the car", "icon": "🚗", "coins": 3 },
-    { "id": "loki-walk", "title": "Take Loki for a walk", "icon": "🦮", "coins": 2 },
-    { "id": "no-ask", "title": "Helped without being asked", "icon": "⭐", "coins": 3 }
+    {
+      "id": "clean-bedroom",
+      "title": "Clean your bedroom",
+      "icon": "🧸",
+      "coins": 2
+    },
+    {
+      "id": "put-away-laundry",
+      "title": "Put away your laundry",
+      "icon": "👕",
+      "coins": 2
+    },
+    {
+      "id": "clean-windows",
+      "title": "Clean the windows",
+      "icon": "🪟",
+      "coins": 2
+    },
+    {
+      "id": "take-out-trash",
+      "title": "Take out the trash",
+      "icon": "🗑️",
+      "coins": 2
+    },
+    {
+      "id": "put-away-dishes",
+      "title": "Put away the dishes",
+      "icon": "🥣",
+      "coins": 2
+    },
+    {
+      "id": "sister-laundry",
+      "title": "Help with your sister's laundry",
+      "icon": "🧺",
+      "coins": 2
+    },
+    {
+      "id": "feed-loki",
+      "title": "Feed Loki",
+      "icon": "🐶",
+      "coins": 2
+    },
+    {
+      "id": "vacuum",
+      "title": "Vacuum",
+      "icon": "🧹",
+      "coins": 2
+    },
+    {
+      "id": "wipe-counters",
+      "title": "Wipe down the counters",
+      "icon": "🧽",
+      "coins": 2
+    }
   ],
   "rewards": [
-    { "id": "screen-30", "title": "30 min extra screen time", "icon": "📱", "cost": 10 },
-    { "id": "pick-dinner", "title": "Pick what's for dinner", "icon": "🍕", "cost": 15 },
-    { "id": "stay-up", "title": "Stay up 30 min late", "icon": "🌙", "cost": 20 },
-    { "id": "movie-night", "title": "Choose family movie night", "icon": "🎬", "cost": 25 },
-    { "id": "ice-cream", "title": "Ice cream trip", "icon": "🍦", "cost": 40 },
-    { "id": "one-on-one", "title": "One-on-one date with Dad", "icon": "🎟️", "cost": 60 }
+    {
+      "id": "screen-30",
+      "title": "30 min extra screen time",
+      "icon": "📱",
+      "cost": 10
+    },
+    {
+      "id": "pick-dinner",
+      "title": "Pick what's for dinner",
+      "icon": "🍕",
+      "cost": 15
+    },
+    {
+      "id": "stay-up",
+      "title": "Stay up 30 min late",
+      "icon": "🌙",
+      "cost": 20
+    },
+    {
+      "id": "movie-night",
+      "title": "Choose family movie night",
+      "icon": "🎬",
+      "cost": 25
+    },
+    {
+      "id": "ice-cream",
+      "title": "Ice cream trip",
+      "icon": "🍦",
+      "cost": 40
+    },
+    {
+      "id": "one-on-one",
+      "title": "One-on-one date with Dad",
+      "icon": "🎟️",
+      "cost": 60
+    }
   ]
 }
