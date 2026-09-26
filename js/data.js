@@ -6,7 +6,7 @@ import { addDays, at, clock, parseYmd, ymd } from './util.js';
 const clockShort = (hhmm) => clock(hhmm, false);
 import { fetchMenu } from './linq.js';
 
-export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null };
+export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null, penguins: null };
 
 async function getJson(path) {
   const res = await fetch(path, { cache: 'no-cache' });
@@ -15,14 +15,15 @@ async function getJson(path) {
 }
 
 export async function loadConfig() {
-  const [family, school, calendar, chores, menus] = await Promise.all([
+  const [family, school, calendar, chores, menus, penguins] = await Promise.all([
     getJson('data/family.json'),
     getJson('data/school.json'),
     getJson('data/calendar.json'),
     getJson('data/chores.json'),
     getJson('data/menus.json').catch(() => ({ updated: null, schools: {} })),
+    getJson('data/penguins.json').catch(() => ({ games: [] })),
   ]);
-  Object.assign(cfg, { family, school, calendar, chores, menus });
+  Object.assign(cfg, { family, school, calendar, chores, menus, penguins });
 }
 
 export const kids = () => cfg.family.kids;
@@ -91,6 +92,19 @@ export function itemsOn(date) {
   for (const e of cfg.calendar.events || []) {
     if (e.date === key || (e.endDate && key >= e.date && key <= e.endDate)) out.push(toItem(e, date));
   }
+  for (const h of cfg.calendar.holidays || []) {
+    if (h.date === key) out.push({ ...toItem({ ...h, who: [] }, date), kind: 'holiday' });
+  }
+  for (const b of cfg.family.birthdays || []) {
+    if (key.slice(5) === b.date) {
+      const age = b.year ? date.getFullYear() - b.year : null;
+      const title = `${b.name}'s ${age ? ordinal(age) + ' ' : ''}birthday`;
+      out.push({ ...toItem({ title, icon: b.icon || '🎂', who: b.kid ? [b.kid] : [] }, date), kind: 'birthday' });
+    }
+  }
+  for (const g of cfg.penguins?.games || []) {
+    if (g.date === key) out.push({ ...toItem({ ...g, icon: '🏒', who: [] }, date), kind: 'watch' });
+  }
 
   // The same thing at the same time for both girls reads once, with both dots.
   const merged = [];
@@ -123,6 +137,34 @@ export function upcoming(days = 7, now = new Date()) {
     for (const it of itemsOn(d)) if (it.end > now) out.push({ ...it, date: d });
   }
   return out;
+}
+
+const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
+
+// ---- Countdowns -----------------------------------------------------------------------------------
+
+/** Six "days until" tiles: the girls' birthdays always, then the soonest four of everyone else's
+ *  birthdays and the major holidays (holidays with countdown: true). */
+export function countdowns(now = new Date(), total = 6) {
+  const today = parseYmd(ymd(now));
+  const days = (d) => Math.round((d - today) / 864e5);
+  const bday = (b) => {
+    const [m, dd] = b.date.split('-').map(Number);
+    let d = new Date(today.getFullYear(), m - 1, dd);
+    if (d < today) d = new Date(today.getFullYear() + 1, m - 1, dd);
+    return {
+      title: b.kid ? b.name : `${b.name}'s birthday`, icon: b.icon || '🎂', date: d, days: days(d),
+      turns: b.year ? d.getFullYear() - b.year : null, kid: b.kid || null, kind: 'birthday',
+    };
+  };
+  const bs = (cfg.family.birthdays || []).map(bday);
+  const pinned = bs.filter((b) => b.kid).sort((a, b) => a.days - b.days);
+  const hol = (cfg.calendar.holidays || []).filter((h) => h.countdown).map((h) => {
+    const d = parseYmd(h.date);
+    return { title: h.title, icon: h.icon, date: d, days: days(d), kind: 'holiday' };
+  }).filter((h) => h.days >= 0);
+  const rest = [...bs.filter((b) => !b.kid), ...hol].sort((a, b) => a.days - b.days).slice(0, total - pinned.length);
+  return [...pinned, ...rest];
 }
 
 // ---- Where the girls sleep ------------------------------------------------------------------------

@@ -2,11 +2,11 @@
 // a live landscape, the forecast, an "Up next" card with a running countdown, the agenda by day,
 // lunch, chores you can tick right here, the coin leaderboard, and countdowns to the big days.
 
-import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, lunchHeadline, weather, schoolDay, schoolOf, sleepOn, nextSwitch } from '../data.js';
+import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, lunchHeadline, weather, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
 import { card, header, stat, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
 import { sceneSvg } from '../scene.js';
-import { esc, greeting, longDate, clock, ymd, relDay, plural, dayPart, addDays, parseYmd, DOW3 } from '../util.js';
+import { esc, greeting, longDate, clock, ymd, relDay, plural, dayPart, addDays, parseYmd, DOW3, MONTH } from '../util.js';
 
 export const title = 'Home';
 
@@ -22,7 +22,7 @@ export function render() {
   });
   const totalDone = choreStats.reduce((s, c) => s + c.done, 0);
   const total = choreStats.reduce((s, c) => s + c.list.length, 0);
-  const next = nextCountdown(now);
+  const next = countdowns(now).sort((a, b) => a.days - b.days)[0];
 
   return `
   <section class="home-hero anim-fade-up">
@@ -33,7 +33,7 @@ export function render() {
       <div class="stat-row">
         ${stat(`${totalDone}/${total}`, 'Chores done', { hero: true })}
         ${ks.map((k) => stat(store.balance(k.id), `${k.name}'s coins`, { color: k.color })).join('')}
-        ${next ? stat(next.days, `Days to ${next.title}`) : ''}
+        ${next ? stat(next.days, `Days to ${next.kid ? `${next.title}'s birthday` : next.title}`) : ''}
       </div>
     </div>
     <div class="hh-scene" id="scene">
@@ -125,13 +125,27 @@ function sleepCard(now, i) {
     ${header('Tonight', { color: tonight.color, eyebrow: 'Where we’re sleeping' })}
     <div class="sleep-now" style="--c:${tonight.color}">
       <span class="sn-icon">${esc(tonight.icon)}</span>
-      <div><div class="sn-place">${esc(tonight.label)}</div>
+      <div class="sn-text"><div class="sn-place">${esc(tonight.label)}</div>
       <div class="sn-sub">${sw ? `${esc(sw.label)} starting ${esc(swWhen)}` : 'All week'}</div></div>
     </div>
+    ${weekendsLine(now)}
     <div class="nights">${nights.map((d, j) => {
       const s = sleepOn(d);
       return `<div class="night ${j === 0 ? 'today' : ''}" style="--c:${s?.color || 'var(--t4)'};--i:${j}"><span class="nt-d">${j === 0 ? 'Tonight' : DOW3[d.getDay()]}</span><span class="nt-i">${esc(s?.icon || '·')}</span><span class="nt-l">${esc(s?.label || '')}</span></div>`;
     }).join('')}</div>`, 'sleep-card', i, `--c:${tonight.color}`);
+}
+
+/** "This weekend Dad's · Next weekend Mom's Oct 2–4" — the question that actually gets asked. */
+function weekendsLine(now) {
+  const dow = now.getDay();
+  const thisFri = addDays(now, dow === 0 ? -2 : dow === 6 ? -1 : 5 - dow);
+  const fmt = (f) => `${MONTH[f.getMonth()].slice(0, 3)} ${f.getDate()}–${addDays(f, 2).getDate()}`;
+  const wk = [thisFri, addDays(thisFri, 7)].map((f, i) => {
+    const s = sleepOn(f);
+    const label = i === 0 ? (dow === 0 || dow >= 5 ? 'This weekend' : 'Weekend') : 'Next';
+    return s ? `<span class="wkd" style="--c:${s.color}"><b>${label}</b> ${esc(s.icon)} ${esc(s.label)} <i>${fmt(f)}</i></span>` : '';
+  });
+  return `<div class="weekends">${wk.join('')}</div>`;
 }
 
 /** The next few notable things beyond this week — games, parties, events (not routine practices). */
@@ -141,13 +155,13 @@ function comingCard(now, i) {
   for (let d = 0; d < 60 && out.length < 7; d++) {
     const day = addDays(now, d);
     for (const x of itemsOn(day)) {
-      if (x.kind === 'school' || x.kind === 'recurring') continue;
+      if (x.kind === 'school' || x.kind === 'recurring' || x.kind === 'watch') continue;
       if (!x.allDay && x.end < now) continue;
       out.push({ ...x, date: day });
     }
   }
   return card(`
-    ${header('Coming Up', { color: 'var(--blue)', href: '#/calendar', eyebrow: 'Games · parties · events' })}
+    ${header('Coming Up', { color: 'var(--blue)', href: '#/calendar', eyebrow: 'Games · parties · birthdays · holidays' })}
     ${out.slice(0, 7).map((x, j) => `
       <div class="cu-row anim-row ${x.kind}" style="--c:${whoColor(x.who, ks)};--i:${j}">
         <div class="cu-date"><span class="cu-dow">${DOW3[x.date.getDay()]}</span><span class="cu-day">${x.date.getDate()}</span></div>
@@ -160,7 +174,7 @@ function comingCard(now, i) {
 function upNextCard(now, i) {
   const ks = kids();
   // School only counts as "up next" when it's the next thing this morning, not two days out.
-  const list = upcoming(3, now).filter((x) => !x.allDay && x.start > now && (x.kind !== 'school' || x.start - now < 12 * 36e5));
+  const list = upcoming(3, now).filter((x) => !x.allDay && x.kind !== 'watch' && x.start > now && (x.kind !== 'school' || x.start - now < 12 * 36e5));
   const allDay = itemsOn(now).filter((x) => x.allDay);
   const n = list[0];
   const color = n ? whoColor(n.who, ks) : 'var(--acc)';
@@ -253,19 +267,19 @@ function leaderCard(i) {
     }).join('')}`, 'leader-card', i);
 }
 
-function nextCountdown(now) {
-  const t = ymd(now);
-  const c = (cfg.calendar.countdowns || []).filter((x) => x.date >= t).sort((a, b) => a.date.localeCompare(b.date))[0];
-  return c ? { ...c, days: Math.round((parseYmd(c.date) - parseYmd(t)) / 864e5) } : null;
-}
-
 function countdownCard(now, i) {
-  const t = ymd(now);
-  const list = (cfg.calendar.countdowns || []).filter((x) => x.date >= t).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4);
+  const ks = kids();
+  const list = countdowns(now);
   if (!list.length) return '';
   return card(`${header('Countdowns', { color: 'var(--lime)', eyebrow: 'Days until' })}
     <div class="cd-grid">${list.map((c, j) => {
-      const days = Math.round((parseYmd(c.date) - parseYmd(t)) / 864e5);
-      return `<div class="cd anim-row" style="--i:${j}"><span class="cd-i">${esc(c.icon || '📅')}</span><span class="cd-n" data-count="${days}">${days}</span><span class="cd-l">${days === 0 ? 'Today!' : esc(c.title)}</span></div>`;
+      const k = c.kid && ks.find((x) => x.id === c.kid);
+      const when = `${MONTH[c.date.getMonth()].slice(0, 3)} ${c.date.getDate()}`;
+      const label = c.days === 0 ? 'Today!' : k ? `${esc(k.name)} turns ${c.turns}` : esc(c.title);
+      const sub = k ? when : c.turns ? `turns ${c.turns} · ${when}` : when;
+      return `<div class="cd anim-row ${k ? 'kid' : c.kind}" style="--i:${j};${k ? `--c:${k.color}` : ''}">
+        <span class="cd-i">${k ? avatar(k, 'sm') : esc(c.icon)}</span>
+        <span class="cd-n" data-count="${c.days}">${c.days}</span>
+        <span class="cd-l">${label}</span><span class="cd-s">${sub}</span></div>`;
     }).join('')}</div>`, 'cd-card', i);
 }

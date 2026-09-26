@@ -32,8 +32,9 @@ leaderboard, and *days until* countdowns.
 
 All content is hand-edited JSON in `data/` — no code changes needed:
 
-- **`family.json`** — kids (name, emoji, color, school), location for weather, kiosk settings.
-- **`calendar.json`** — `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates), one-off `events` (`kind: "game"`, `tentative`), and `countdowns`. `who` is a list of kid ids; empty means the whole family.
+- **`family.json`** — kids (name, emoji, color, school), `birthdays` (the girls are pinned to Countdowns; everyone else competes for the other slots), location for weather, kiosk settings.
+- **`penguins.json`** — Penguins games from Matt's calendar, shown dimmed.
+- **`calendar.json`** — `holidays` (`countdown: true` = eligible for Countdowns), `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates), one-off `events` (`kind: "game"`, `tentative`). `who` is a list of kid ids; empty means the whole family.
 - **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates. **TODO:** fill `lastDay`, `noSchool` and `extraEarlyOut` from the ADM academic calendar.
 - **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
 - **`menus.json`** — generated; don't edit. A GitHub Action refreshes it every morning.

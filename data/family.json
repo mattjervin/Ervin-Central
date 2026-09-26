@@ -1,9 +1,26 @@
 {
   "family": "Ervin",
-  "location": { "name": "Adel, IA", "lat": 41.6144, "lon": -94.0169, "timezone": "America/Chicago" },
+  "location": {
+    "name": "Adel, IA",
+    "lat": 41.6144,
+    "lon": -94.0169,
+    "timezone": "America/Chicago"
+  },
   "kids": [
-    { "id": "evelynn", "name": "Evelynn", "emoji": "🦋", "color": "#b07eff", "school": "mv" },
-    { "id": "avery", "name": "Avery", "emoji": "🌻", "color": "#6ea8fe", "school": "ae" }
+    {
+      "id": "evelynn",
+      "name": "Evelynn",
+      "emoji": "🦋",
+      "color": "#b07eff",
+      "school": "mv"
+    },
+    {
+      "id": "avery",
+      "name": "Avery",
+      "emoji": "🌻",
+      "color": "#6ea8fe",
+      "school": "ae"
+    }
   ],
   "sync": {
     "_help": "JSONBin setup is per device (Admin → Sync), never in this public file. pollSeconds = how often a visible screen checks for other devices' changes.",
@@ -12,5 +29,53 @@
   "kiosk": {
     "idleReturnSeconds": 120,
     "keepAwake": true
-  }
+  },
+  "birthdays": [
+    {
+      "name": "Evelynn",
+      "kid": "evelynn",
+      "date": "06-13",
+      "year": 2017,
+      "icon": "🦋",
+      "always": true
+    },
+    {
+      "name": "Avery",
+      "kid": "avery",
+      "date": "06-05",
+      "year": 2020,
+      "icon": "🌻",
+      "always": true
+    },
+    {
+      "name": "Dad",
+      "date": "09-08",
+      "year": 1985,
+      "icon": "🎂"
+    },
+    {
+      "name": "Mom",
+      "date": "01-03",
+      "year": 1990,
+      "icon": "🎂"
+    },
+    {
+      "name": "Grandpa Rick",
+      "date": "06-28",
+      "year": 1949,
+      "icon": "🎂"
+    },
+    {
+      "name": "Aunt Danielle",
+      "date": "10-26",
+      "year": 1990,
+      "icon": "🎂"
+    },
+    {
+      "name": "Loki",
+      "date": "05-16",
+      "icon": "🐶"
+    }
+  ],
+  "_birthdays_help": "always = pinned to the Countdowns card (the girls). Everyone else competes with major holidays for the other 4 of 6 countdown slots. Birthdays also show on the calendar."
 }
