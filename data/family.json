@@ -58,23 +58,6 @@
       "date": "01-03",
       "year": 1990,
       "icon": "🎂"
-    },
-    {
-      "name": "Grandpa Rick",
-      "date": "06-28",
-      "year": 1949,
-      "icon": "🎂"
-    },
-    {
-      "name": "Aunt Danielle",
-      "date": "10-26",
-      "year": 1990,
-      "icon": "🎂"
-    },
-    {
-      "name": "Loki",
-      "date": "05-16",
-      "icon": "🐶"
     }
   ],
   "_birthdays_help": "always = pinned to the Countdowns card (the girls). Everyone else competes with major holidays for the other 4 of 6 countdown slots. Birthdays also show on the calendar."
