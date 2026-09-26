@@ -79,14 +79,15 @@ let unlockedUntil = 0;
 export const isParent = () => Date.now() < unlockedUntil;
 export function lockParent() { unlockedUntil = 0; document.body.classList.remove('parent'); }
 
-export function requireParent() {
-  if (isParent()) return Promise.resolve(true);
-  const creating = !store.state.settings.pinHash;
+/** Resolves true once a parent has entered the PIN. `reset` asks for a new PIN (change PIN). */
+export function requireParent({ reset = false } = {}) {
+  if (isParent() && !reset) return Promise.resolve(true);
+  const creating = reset || !store.pinHash;
   return new Promise((resolve) => {
     let entry = '';
     let first = null;
     const close = modal(`
-      <h3 class="sheet-title">${creating ? 'Create a parent PIN' : 'Parent PIN'}</h3>
+      <h3 class="sheet-title">${reset ? 'New parent PIN' : creating ? 'Create a parent PIN' : 'Parent PIN'}</h3>
       <p class="sheet-sub" id="pin-sub">${creating ? 'Pick 4 digits. Kids won’t see it.' : 'Enter the 4-digit PIN.'}</p>
       <div class="pin-dots" id="pin-dots">${'<span></span>'.repeat(4)}</div>
       <div class="pinpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((n) => n === '' ? '<span></span>' : `<button data-n="${n}">${n}</button>`).join('')}</div>
@@ -101,7 +102,7 @@ export function requireParent() {
           if (entry.length < 4) return;
           const h = await hashPin(entry);
           if (creating && !first) { first = h; entry = ''; dots(); sheet.querySelector('#pin-sub').textContent = 'Once more to confirm.'; return; }
-          if (creating ? h === first : h === store.state.settings.pinHash) {
+          if (creating ? h === first : h === store.pinHash) {
             if (creating) store.setPinHash(h);
             unlockedUntil = Date.now() + 5 * 60e3;
             document.body.classList.add('parent');
@@ -117,6 +118,27 @@ export function requireParent() {
     });
     $('#modal').addEventListener('click', function once(e) {
       if (e.target.id === 'modal' || e.target.closest('[data-close]')) { $('#modal').removeEventListener('click', once); resolve(false); }
+    });
+  });
+}
+
+/** Yes/no sheet. `danger` paints the confirm button red. */
+export function confirmSheet(title, body, { ok = 'Yes', danger = false, icon = '' } = {}) {
+  return new Promise((resolve) => {
+    let answered = false;
+    const done = (v) => { if (!answered) { answered = true; resolve(v); } };
+    modal(`
+      ${icon ? `<div class="sheet-icon">${icon}</div>` : ''}
+      <h3 class="sheet-title">${esc(title)}</h3>
+      <p class="sheet-sub">${body}</p>
+      <button class="btn wide ${danger ? 'danger' : 'ok'}" data-yes>${esc(ok)}</button>
+      <button class="btn ghost wide" data-close>Cancel</button>`, {
+      onMount(sheet, close) {
+        sheet.querySelector('[data-yes]').addEventListener('click', () => { done(true); close(); });
+      },
+    });
+    $('#modal').addEventListener('click', function once(e) {
+      if (e.target.id === 'modal' || e.target.closest('[data-close]')) { $('#modal').removeEventListener('click', once); done(false); }
     });
   });
 }

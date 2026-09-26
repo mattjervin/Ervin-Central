@@ -14,6 +14,10 @@ a wall-mounted touch screen. Visual language is ported from ErvOS (SwiftUI app a
   medical or custody details. Kids' family details live in Matt's Second Brain vault
   (`Family/Kids/`) — pull only schedule-level facts from there.
 - Coin balances are derived from the ledger in `store.js`; never store a balance.
+- State syncs to JSONBin (collection "Ervin Central": household / evelynn / avery bins). All
+  mutations are serializable ops through `apply()` — keep them idempotent (mint ids up front)
+  because the outbox replays them onto the latest bin before each PUT.
+- Never commit JSONBin keys or a setup link. The master key is only for scripts/setup-jsonbin.mjs.
 - Views export `title`, `render(params)` → HTML string, optional `mount(el, rerender)`. The
   router hands `mount` a fresh element each render, so binding listeners there is safe.
 

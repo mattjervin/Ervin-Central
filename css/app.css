@@ -342,6 +342,38 @@ body.parent .parent-btn .lock-closed { display: none; }
 .tool-row > span { font-weight: 800; color: var(--t0); margin-right: auto; }
 .ledger .btn.icon { min-width: 36px; min-height: 36px; font-size: 14px; }
 
+/* ---- Admin ----------------------------------------------------------------------------- */
+
+.admin-link { display: none; align-items: center; color: var(--t1); }
+body.parent .admin-link { display: inline-flex; }
+.sync-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent); }
+.sync-dot.warn { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 20%, transparent); }
+.sync-dot.err { background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 25%, transparent); }
+.sync-dot[hidden] { display: none; }
+.sync-state.ok { color: var(--good); font-weight: 700; }
+.sync-state.warn { color: var(--amber); font-weight: 700; }
+.sync-state.err { color: var(--red); font-weight: 700; }
+.locked { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px 0; text-align: center; }
+.btn.danger { background: color-mix(in srgb, var(--red) 18%, transparent); border-color: color-mix(in srgb, var(--red) 50%, transparent); color: var(--red); }
+.btn:disabled { opacity: 0.4; }
+input[type="text"], input[type="number"] {
+  min-height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--hair); background: rgba(0, 0, 0, 0.25);
+  color: var(--t0); font: 600 16px var(--sans); -webkit-user-select: text; user-select: text; min-width: 0; width: 100%;
+}
+input:focus { outline: 2px solid color-mix(in srgb, var(--acc) 60%, transparent); outline-offset: 1px; }
+.spend { display: flex; flex-direction: column; gap: 8px; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick .pill { min-height: 40px; padding: 0 14px; }
+.field-row { display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; }
+.connect { display: flex; flex-direction: column; gap: 10px; }
+.connect label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--t4); }
+.connect details { display: flex; flex-direction: column; gap: 10px; }
+.connect details[open] label { margin-top: 8px; }
+.connect summary { cursor: pointer; }
+.bin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bin-list li { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; }
+.bin-list code { overflow: hidden; text-overflow: ellipsis; }
+
 /* ---- Modal, PIN, toast ------------------------------------------------------------------- */
 
 .modal { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(2, 5, 9, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 16px; }
@@ -412,6 +444,8 @@ body.parent .parent-btn .lock-closed { display: none; }
   .specials { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .sp-v { font-size: 11px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .field-row { grid-template-columns: 90px 1fr; }
+  .field-row .btn { grid-column: 1 / -1; }
   .kp-btn { min-height: 56px; font-size: 16px; padding: 0 14px 0 10px; }
   .bal-val { font-size: 52px; }
 }

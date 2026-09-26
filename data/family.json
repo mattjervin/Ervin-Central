@@ -5,6 +5,10 @@
     { "id": "evelynn", "name": "Evelynn", "emoji": "🦋", "color": "#b07eff", "school": "mv" },
     { "id": "avery", "name": "Avery", "emoji": "🌻", "color": "#3dd8c5", "school": "ae" }
   ],
+  "sync": {
+    "_help": "JSONBin setup is per device (Admin → Sync), never in this public file. pollSeconds = how often a visible screen checks for other devices' changes.",
+    "pollSeconds": 60
+  },
   "kiosk": {
     "idleReturnSeconds": 120,
     "keepAwake": true

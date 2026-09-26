@@ -33,17 +33,54 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 - Ticking a daily chore gives its coins **immediately**; unticking takes them back.
 - **Bonus tasks** ("Unload the dishwasher") and **rewards** ("Pick what's for dinner") go into a
   *Waiting for a parent* queue on the Coins page.
-- Approving, adjusting, removing ledger rows and backups need the **parent PIN** (🔒 top right).
-  The first unlock on a device asks you to create one. Parent mode relocks after 5 minutes.
+- Approving and adjusting need the **parent PIN** (🔒 top right). The first unlock asks you to
+  create one; it's shared across devices once JSONBin is connected. Parent mode relocks after 5 min.
 - Balances are always the sum of the ledger, so every coin can be traced to a chore or approval.
 
-### Shared state (next step)
+### Parent Admin (`#/admin`)
 
-Right now chore check-offs and coins are saved **per device** (`localStorage`). An iPad and an
-iPhone won't see each other's coins yet. `js/store.js` isolates persistence behind a two-method
-`backend` (load/save) so a shared backend (Supabase, Firebase, or a tiny Cloudflare Worker) can
-drop in without touching the views. Until then, use one device as "the" chore chart, and back
-up from the Coins page.
+Unlock with the PIN, then **⚙︎ Admin** in the top bar (or bookmark `…/Ervin-Central/#/admin`):
+
+- **Spent offline** — record coins the girls spent in real life, with a reason (quick 5/10/20/50/All).
+- **Zero out coins** — adds one "cashed in" line that brings the balance to exactly 0; history stays.
+- **Wipe all history** — erases that girl's coins, requests and check-offs on every device.
+- Remove single ledger lines, change the PIN, back up / restore (restore merges, never doubles).
+- **Sync** — connect this device to JSONBin or share a setup link to another device.
+
+## Shared state — JSONBin
+
+Coins sync across devices through a JSONBin **collection** named *Ervin Central* with three
+private bins: **Household** (the parent PIN), **Evelynn** and **Avery**. One bin per girl keeps
+two iPads saving at the same time from colliding. Every change is queued on the device and
+replayed onto the latest copy of the bin before saving, so one device never overwrites
+another's coins, and a device that's offline catches up when it reconnects.
+
+### One-time setup
+
+1. In JSONBin → **API Keys**, copy your **X-Master-Key**.
+2. Also there, create an **Access Key** with only **Bins → Read** and **Bins → Update**
+   (no Create/Delete, no Collections). Name it "Ervin Central site".
+3. On your Mac:
+   ```bash
+   cd ~/Projects/ervin-central
+   JSONBIN_MASTER_KEY='…' JSONBIN_ACCESS_KEY='…' node scripts/setup-jsonbin.mjs
+   ```
+   It creates the collection and bins, saves the ids to `jsonbin/bins.local.json` (not
+   committed), and prints a **setup link**.
+4. Open that link on each family device (AirDrop or text it to yourself). Enter or create the
+   PIN and the device is connected. The green dot in the top bar means synced; amber is saving,
+   red is a problem (tap ⚙︎ Admin for details).
+
+Prefer the dashboard? Create the collection and three bins by hand using `jsonbin/*.json` as the
+contents, then enter the access key and bin ids under Admin → Sync → "enter the keys by hand".
+
+**The master key is never used by the website.** The access key lives only on family devices
+(via the setup link), never in this public repo. Anyone holding the access key could edit coin
+bins, so don't post the setup link anywhere public.
+
+**Request budget:** each visible screen checks for changes every `sync.pollSeconds` (60s) —
+about 2 requests/minute while the screen is on, plus 2 per tap. Raise `pollSeconds` in
+`data/family.json` if your JSONBin plan's request allowance runs tight.
 
 ## Kiosk behavior
 
@@ -76,10 +113,12 @@ index.html            Shell: rail/tab bar, top bar, modal + toast roots
 css/app.css           ErvOS palette, components, iPad/iPhone breakpoints
 js/app.js             Router, clock, kiosk behaviors
 js/data.js            Config loading, schedule engine, chores, menus, weather
-js/store.js           Chore check-offs, coin ledger, approvals (localStorage)
+js/store.js           Chore check-offs, coin ledger, approvals; JSONBin sync + outbox
 js/linq.js            LINQ Connect menu client (shared by browser + Action)
 js/ui.js              Card/header/stat/chip components, modal, toast, PIN pad
-js/views/*.js         One module per page: render() → HTML, mount() → events
+js/views/*.js         One module per page: render() → HTML, mount() → events (admin.js = #/admin)
+jsonbin/*.json        Starting contents for the three bins
+scripts/setup-jsonbin.mjs   Creates the JSONBin collection + bins, prints the setup link
 data/*.json           Family-editable content
 scripts/fetch-menus.mjs + .github/workflows/menus.yml   Nightly menu cache
 ```

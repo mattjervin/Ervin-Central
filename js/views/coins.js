@@ -11,7 +11,7 @@ export const title = ['Kindness', 'Coins'];
 
 export function render() {
   const ks = kids();
-  const pending = store.state.pending;
+  const pending = store.allPending();
   return `
   <div class="stack">
     <div class="balances">
@@ -57,9 +57,8 @@ export function render() {
             <button class="btn" data-adj="${k.id}" data-amt="-1">−1</button>
             <button class="btn" data-adj="${k.id}" data-amt="1">+1</button>
             <button class="btn" data-adj="${k.id}" data-amt="5">+5</button></div>`).join('')}
-          <div class="tool-row"><button class="btn ghost" data-export>⬇︎ Back up coins</button><button class="btn ghost" data-import>⬆︎ Restore</button>
+          <div class="tool-row"><a class="btn ghost" href="#/admin">⚙︎ Admin — spent offline, zero out, sync</a>
           ${isParent() ? '<button class="btn ghost" data-lock>🔒 Lock</button>' : ''}</div>
-          <p class="muted small">Coins are saved on this device. Back up before clearing Safari data.</p>
         </div>`)}
     </div>
   </div>`;
@@ -88,7 +87,7 @@ export function mount(root, rerender) {
     if (d.reward) return pickKidForReward(cfg.chores.rewards.find((r) => r.id === d.reward), rerender);
 
     // Everything below is parent-only.
-    const parentAction = d.approve || d.decline || d.adj || d.remove || 'export' in d || 'import' in d;
+    const parentAction = d.approve || d.decline || d.adj || d.remove;
     if ('lock' in d) { lockParent(); return rerender(); }
     if (!parentAction || !(await requireParent())) return;
 
@@ -97,8 +96,6 @@ export function mount(root, rerender) {
       if (d.decline) store.decline(d.decline);
       if (d.adj) store.adjust(d.adj, Number(d.amt));
       if (d.remove) store.removeEntry(d.remove);
-      if ('export' in d) exportBackup();
-      if ('import' in d) importBackup(rerender);
     } catch (err) {
       toast(esc(err.message), 'var(--red)');
     }
@@ -128,27 +125,4 @@ function pickKidForReward(r, rerender) {
       });
     },
   });
-}
-
-function exportBackup() {
-  const blob = new Blob([store.exportJson()], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `ervin-central-coins-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-function importBackup(rerender) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'application/json';
-  input.onchange = async () => {
-    try {
-      store.importJson(await input.files[0].text());
-      toast('Restored', 'var(--good)');
-      rerender();
-    } catch (err) { toast(esc(err.message), 'var(--red)'); }
-  };
-  input.click();
 }

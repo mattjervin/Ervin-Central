@@ -84,7 +84,7 @@ function synthesis(now, choreStats) {
   if (!left.length && choreStats.some((c) => c.list.length)) parts.push('Every chore is done — nice work');
   else if (left.length) parts.push(left.map((c) => `${c.k.name} has ${plural(c.left, 'chore')} left`).join(', '));
 
-  const pend = store.state.pending.length;
+  const pend = store.allPending().length;
   if (pend) parts.push(`${plural(pend, 'request')} waiting on a parent`);
   return parts.join(' · ') || 'A quiet day.';
 }
@@ -147,7 +147,7 @@ function choresCard(choreStats) {
 function coinsCard() {
   const ks = kids();
   const max = Math.max(1, ...ks.map((k) => store.balance(k.id)));
-  const pend = store.state.pending.length;
+  const pend = store.allPending().length;
   return card(`
     ${header(cfg.chores.coinName, { color: 'var(--coin)', href: '#/coins', badge: pend ? `${pend} waiting` : null, badgeColor: 'var(--amber)' })}
     ${ks.map((k) => {
