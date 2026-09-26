@@ -1,7 +1,9 @@
 // Loads the hand-edited config in data/*.json and derives what the views ask for: a day's
 // schedule, a kid's chores for a date, the lunch menu, the weather.
 
-import { addDays, at, parseYmd, ymd } from './util.js';
+import { addDays, at, clock, parseYmd, ymd } from './util.js';
+
+const clockShort = (hhmm) => clock(hhmm, false);
 import { fetchMenu } from './linq.js';
 
 export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null };
@@ -67,12 +69,15 @@ export function itemsOn(date) {
     block.names.push(s.short);
     blocks.set(sig, block);
   }
-  for (const { a, b, who, early, names } of blocks.values()) {
+  // One "School" row per day, spanning both girls' hours, so agendas don't list it twice.
+  const bl = [...blocks.values()];
+  if (bl.length) {
+    const early = bl.some((x) => x.early);
     out.push({
       title: early ? 'School · early out' : 'School',
-      detail: names.join(' · '),
-      icon: '🏫', who, kind: 'school',
-      start: at(date, a), end: at(date, b), allDay: false,
+      detail: bl.map((x) => `${x.names.join(' & ')} ${clockShort(x.a)}–${clockShort(x.b)}`).join(' · '),
+      icon: '🏫', who: bl.flatMap((x) => x.who), kind: 'school',
+      start: at(date, bl.map((x) => x.a).sort()[0]), end: at(date, bl.map((x) => x.b).sort().pop()), allDay: false,
     });
   }
 

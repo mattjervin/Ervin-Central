@@ -1,39 +1,84 @@
-// Web ports of ErvOS's building blocks (CardBox, SectionHeader, StatTile, TagChip, EmptyNote)
-// plus the touch-only pieces a wall display needs: a modal sheet, a toast, a PIN pad.
+// Ervin Central's building blocks, in the Catan companion's vocabulary: Cinzel page heroes with a
+// gradient key word, mono eyebrows, glass cards that animate in, choice pills, stat tiles with one
+// hero tile, hexagon avatars. Plus the touch-only pieces: modal sheet, toast, PIN pad.
 
 import { $, esc } from './util.js';
 import { store, hashPin } from './store.js';
 
-export const card = (body, cls = '') => `<section class="card ${cls}">${body}</section>`;
+/** Card. `i` staggers its entrance animation. */
+export const card = (body, cls = '', i = 0, style = '') => `<section class="card ${cls}" style="--i:${i};${style}">${body}</section>`;
 
-/** Colored marker + uppercase title + optional badge — ErvOS's SectionHeader. */
-export function header(title, { color = 'var(--acc)', badge, badgeColor, href } = {}) {
-  const b = badge != null ? `<span class="badge" style="--c:${badgeColor || color}">${esc(badge)}</span>` : '';
-  const t = href ? `<a class="sh-link" href="${href}">${esc(title)} <span aria-hidden="true">›</span></a>` : esc(title);
-  return `<header class="sh"><span class="sh-mark" style="background:${color}"></span><h2>${t}</h2>${b}</header>`;
+/** Page hero: eyebrow · Cinzel headline with a gradient key word · optional lede. */
+export function hero(eyebrow, lead, accent, lede = '', aside = '') {
+  return `<header class="page-hero">
+    <div class="ph-text">
+      <div class="eyebrow">${esc(eyebrow)}</div>
+      <h1 class="headline">${esc(lead)} <em>${esc(accent)}</em></h1>
+      ${lede ? `<p class="lede">${lede}</p>` : ''}
+    </div>${aside}
+  </header>`;
 }
 
-export const stat = (value, label, color) =>
-  `<div class="stat"><div class="stat-v" ${color ? `style="color:${color}"` : ''}>${esc(value)}</div><div class="stat-l">${esc(label)}</div></div>`;
+/** Card header: small hex marker, Cinzel title, optional badge and "see all" link. */
+export function header(title, { color = 'var(--acc)', badge, badgeColor, href, eyebrow } = {}) {
+  const b = badge != null ? `<span class="badge" style="--c:${badgeColor || color}">${esc(badge)}</span>` : '';
+  const more = href ? `<a class="sh-more" href="${href}">View <span aria-hidden="true">→</span></a>` : '';
+  return `<header class="sh" style="--c:${color}">
+    <span class="hexdot" aria-hidden="true"></span>
+    <div class="sh-text">${eyebrow ? `<div class="sh-eyebrow">${esc(eyebrow)}</div>` : ''}<h2>${esc(title)}</h2></div>
+    ${b}${more}
+  </header>`;
+}
+
+/** Stat tile. Numbers count up on first paint (see app.js animateCounts). */
+export function stat(value, label, { hero: isHero = false, color, sub } = {}) {
+  const n = typeof value === 'number';
+  return `<div class="stat-tile ${isHero ? 'hero' : ''}" ${color ? `style="--c:${color}"` : ''}>
+    <div class="sv" ${n ? `data-count="${value}"` : ''}>${esc(value)}</div>
+    <div class="sl">${esc(label)}</div>${sub ? `<div class="ss">${esc(sub)}</div>` : ''}
+  </div>`;
+}
 
 export const chip = (text, color = 'var(--t3)') => `<span class="chip" style="--c:${color}">${esc(text)}</span>`;
 
 export const empty = (text) => `<p class="empty">${esc(text)}</p>`;
 
-export const avatar = (k, size = '') => `<span class="avatar ${size}" style="--c:${k.color}" aria-hidden="true">${esc(k.emoji)}</span>`;
+/** Hexagon avatar in the kid's color. */
+export const avatar = (k, size = '') => `<span class="avatar ${size}" style="--c:${k.color}" aria-hidden="true"><span>${esc(k.emoji)}</span></span>`;
 
-/** "Evelynn · Avery" dots for an item's `who`; family items get the accent. */
+/** Color dots for an item's `who`; family items get the brand green. */
 export function whoDots(who, kids) {
   if (!who.length) return `<span class="dot" style="--c:var(--acc)" title="Family"></span>`;
   return who.map((id) => kids.find((k) => k.id === id)).filter(Boolean)
     .map((k) => `<span class="dot" style="--c:${k.color}" title="${esc(k.name)}"></span>`).join('');
 }
 
-/** Pill filter row. `current` is the active value, null = All. */
+/** Accent color for an item: one kid → her color, otherwise family green. */
+export function whoColor(who, kids) {
+  return who.length === 1 ? kids.find((k) => k.id === who[0])?.color || 'var(--acc)' : 'var(--acc)';
+}
+
+/** Choice-pill row. `current` is the active value, null = Everyone. */
 export function kidFilter(kids, current, { all = true } = {}) {
   const pill = (val, label, color) =>
-    `<button class="pill ${current === val ? 'on' : ''}" data-kid="${val ?? ''}" style="--c:${color}">${label}</button>`;
-  return `<div class="pills" role="tablist">${all ? pill(null, 'Everyone', 'var(--acc)') : ''}${kids.map((k) => pill(k.id, `${esc(k.emoji)} ${esc(k.name)}`, k.color)).join('')}</div>`;
+    `<button class="choice-pill ${current === val ? 'selected' : ''}" data-kid="${val ?? ''}" style="--c:${color}">${label}</button>`;
+  return `<div class="pills" role="tablist">${all ? pill(null, 'Everyone', 'var(--acc)') : ''}${kids.map((k) => pill(k.id, `<span class="pdot"></span>${esc(k.name)}`, k.color)).join('')}</div>`;
+}
+
+/** Generic segmented choice pills: [[value, label]]. */
+export function segmented(name, options, current) {
+  return `<div class="pills seg" data-seg="${name}">${options.map(([v, l]) =>
+    `<button class="choice-pill ${current === v ? 'selected' : ''}" data-val="${v}">${l}</button>`).join('')}</div>`;
+}
+
+/** SVG progress ring. */
+export function ring(frac, color, size = 64, stroke = 7, inner = '') {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return `<div class="ring" style="--c:${color};width:${size}px;height:${size}px">
+    <svg viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" class="ring-bg"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" class="ring-fg" style="stroke-dasharray:${c};--off:${c * (1 - Math.min(1, frac))};--full:${c}"/></svg>
+    <div class="ring-in">${inner}</div></div>`;
 }
 
 // ---- Toast ---------------------------------------------------------------------------------

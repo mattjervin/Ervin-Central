@@ -4,16 +4,26 @@ The Ervin family's digital signage — a calendar, school info (lunch menus for 
 chore chart, and **Kindness Coins** for doing chores and extra household tasks.
 
 Built as a plain static website so it runs on the kids' iPads and iPhones today and on a
-wall-mounted touch screen later. Its look and component vocabulary come from
-[ErvOS](https://github.com/mattjervin/ErvOS): the same dark palette, heavy system type,
-colored section markers, stat tiles and the serif wordmark.
+wall-mounted touch screen later.
+
+**Look & feel.** Built on the Catan companion's design system, recast in green: Cinzel
+headlines with a shimmering gradient key word, mono eyebrow labels, glass cards, choice pills,
+stat tiles with one hero tile, hexagon avatars and a fading hex-grid background. Motion is part of
+the design: a sticky top nav whose active pill slides between tabs and tightens as you scroll,
+drifting ambient light and fireflies, staggered card entrances, count-up numbers, spring
+check-offs, and a Home landscape where the sun and moon track the real time of day.
+
+**Layout ideas from DAKboard:** a big clock over the scene, a 7-day forecast strip, an
+*Up next* card with a live countdown, an agenda grouped by day, Agenda / rolling-Week / Month
+calendar views with a per-kid color legend, chore columns you can tick from Home, a coin
+leaderboard, and *days until* countdowns.
 
 ## Pages
 
 | Page | What it shows | Where the data comes from |
 |---|---|---|
-| **Home** | Greeting, clock, weather, one-line summary of the day, today's schedule, lunch, chore progress, coin balances | Everything below |
-| **Calendar** | Week view, filterable by kid, with school hours, early-outs, specials and weather | `data/calendar.json` + `data/school.json` |
+| **Home** | Clock over a live landscape, forecast, Up next + countdown, 5-day agenda, lunch, tap-to-finish chores, leaderboard, countdowns | Everything below |
+| **Calendar** | Agenda, rolling Week and Month views, filterable by kid, with school hours, early-outs, specials and weather | `data/calendar.json` + `data/school.json` |
 | **School** | Hours, specials, and the week's lunch/breakfast menu per girl | `data/school.json` + ADM's LINQ Connect menus |
 | **Chores** | Big tap tiles by morning / after school / evening; bonus tasks | `data/chores.json` |
 | **Coins** | Balances, 7-day earnings, reward shop, parent approvals, history | The on-device ledger |
@@ -23,7 +33,7 @@ colored section markers, stat tiles and the serif wordmark.
 All content is hand-edited JSON in `data/` — no code changes needed:
 
 - **`family.json`** — kids (name, emoji, color, school), location for weather, kiosk settings.
-- **`calendar.json`** — `recurring` weekly items and one-off `events`. `who` is a list of kid ids; empty means the whole family.
+- **`calendar.json`** — `recurring` weekly items, one-off `events`, and `countdowns` (big "days until" tiles). `who` is a list of kid ids; empty means the whole family.
 - **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates. **TODO:** fill `lastDay`, `noSchool` and `extraEarlyOut` from the ADM academic calendar.
 - **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
 - **`menus.json`** — generated; don't edit. A GitHub Action refreshes it every morning.
@@ -110,12 +120,13 @@ addresses, medical info or contact details. Keep it that way when adding data.
 
 ```
 index.html            Shell: rail/tab bar, top bar, modal + toast roots
-css/app.css           ErvOS palette, components, iPad/iPhone breakpoints
+css/app.css           Design tokens, components, motion, iPad/iPhone breakpoints
 js/app.js             Router, clock, kiosk behaviors
 js/data.js            Config loading, schedule engine, chores, menus, weather
 js/store.js           Chore check-offs, coin ledger, approvals; JSONBin sync + outbox
 js/linq.js            LINQ Connect menu client (shared by browser + Action)
-js/ui.js              Card/header/stat/chip components, modal, toast, PIN pad
+js/ui.js              Hero/card/header/stat/pill/ring components, modal, toast, PIN pad
+js/scene.js           Home's time-of-day landscape (SVG)
 js/views/*.js         One module per page: render() → HTML, mount() → events (admin.js = #/admin)
 jsonbin/*.json        Starting contents for the three bins
 scripts/setup-jsonbin.mjs   Creates the JSONBin collection + bins, prints the setup link

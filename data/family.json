@@ -3,7 +3,7 @@
   "location": { "name": "Adel, IA", "lat": 41.6144, "lon": -94.0169, "timezone": "America/Chicago" },
   "kids": [
     { "id": "evelynn", "name": "Evelynn", "emoji": "🦋", "color": "#b07eff", "school": "mv" },
-    { "id": "avery", "name": "Avery", "emoji": "🌻", "color": "#3dd8c5", "school": "ae" }
+    { "id": "avery", "name": "Avery", "emoji": "🌻", "color": "#6ea8fe", "school": "ae" }
   ],
   "sync": {
     "_help": "JSONBin setup is per device (Admin → Sync), never in this public file. pollSeconds = how often a visible screen checks for other devices' changes.",

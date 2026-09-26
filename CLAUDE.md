@@ -2,13 +2,16 @@
 
 Family digital-signage site for Matt's two daughters (Evelynn, Meadow View Elementary; Avery,
 Adel Elementary — ADM Community Schools, Adel IA). Static site on GitHub Pages; future target is
-a wall-mounted touch screen. Visual language is ported from ErvOS (SwiftUI app at
-`~/Library/CloudStorage/OneDrive-LifeCareServices/Work Brain/App Dev/ErvOS`, `Theme.swift`).
+a wall-mounted touch screen. Visual language follows Matt's Catan companion
+(`~/Projects/catan/index.html`) recast in green — NOT ErvOS (Matt dropped that direction). Layout
+ideas come from DAKboard family boards. Matt likes live motion and the sticky top nav.
 
 ## Rules
 - No build step, no framework, no npm dependencies. ES modules loaded directly by the browser.
 - Every interpolated value in a view goes through `esc()`.
-- Touch first: tap targets ≥ 44px (primary actions 56px+). No hover-only affordances.
+- Touch first: tap targets ≥ 44px (primary actions 48px+). No hover-only affordances.
+- Green (`--acc`) is the brand/family color; each kid keeps her own color (Evelynn purple, Avery blue); coins are gold.
+- Entrance animations run only when arriving on a page (`.view.settled` disables them on tap re-renders). Respect `prefers-reduced-motion`.
 - Content changes go in `data/*.json`, not code.
 - The site is public: never add teacher names, pickup numbers, addresses, phone numbers,
   medical or custody details. Kids' family details live in Matt's Second Brain vault

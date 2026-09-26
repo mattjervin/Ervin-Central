@@ -1,11 +1,15 @@
 {
-  "_help": "who = list of kid ids, or [] for the whole family. days = weekdays (0 Sun … 6 Sat). Times are 24h HH:MM. Omit start for an all-day item.",
+  "_help": "who = list of kid ids, or [] for the whole family. days = weekdays (0 Sun … 6 Sat). Times are 24h HH:MM. Omit start for an all-day item. countdowns = big 'days until' tiles on Home (DAKboard-style).",
   "recurring": [
     {
       "title": "Soccer practice",
       "icon": "⚽",
-      "who": ["avery"],
-      "days": [1],
+      "who": [
+        "avery"
+      ],
+      "days": [
+        1
+      ],
       "start": "18:00",
       "end": "19:00",
       "from": "2026-08-24",
@@ -14,17 +18,27 @@
     {
       "title": "Soccer game day",
       "icon": "⚽",
-      "who": ["avery"],
-      "days": [6],
+      "who": [
+        "avery"
+      ],
+      "days": [
+        6
+      ],
       "from": "2026-09-12",
       "until": "2026-10-31",
-      "except": ["2026-10-24"]
+      "except": [
+        "2026-10-24"
+      ]
     },
     {
       "title": "Soccer game day",
       "icon": "⚽",
-      "who": ["evelynn"],
-      "days": [6],
+      "who": [
+        "evelynn"
+      ],
+      "days": [
+        6
+      ],
       "from": "2026-09-12",
       "until": "2026-10-31"
     }
@@ -33,8 +47,27 @@
     {
       "title": "Shoot the Moon tournament (optional)",
       "icon": "🏆",
-      "who": ["evelynn"],
+      "who": [
+        "evelynn"
+      ],
       "date": "2026-10-24"
+    }
+  ],
+  "countdowns": [
+    {
+      "title": "Halloween",
+      "icon": "🎃",
+      "date": "2026-10-31"
+    },
+    {
+      "title": "Thanksgiving",
+      "icon": "🦃",
+      "date": "2026-11-26"
+    },
+    {
+      "title": "Christmas",
+      "icon": "🎄",
+      "date": "2026-12-25"
     }
   ]
 }

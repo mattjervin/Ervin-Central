@@ -9,14 +9,14 @@
 
 import { cfg, kids } from '../data.js';
 import { store } from '../store.js';
-import { card, header, avatar, toast, isParent, requireParent, lockParent, confirmSheet, empty } from '../ui.js';
+import { card, hero, header, avatar, toast, isParent, requireParent, lockParent, confirmSheet, empty } from '../ui.js';
 import { esc, relDay, clock } from '../util.js';
 
-export const title = ['Parent', 'Admin'];
+export const title = 'Admin';
 
 export function render() {
   if (!isParent()) {
-    return card(`
+    return hero('Parents only', 'Parent', 'admin') + card(`
       <div class="locked">
         <div class="sheet-icon">🔒</div>
         <h3 class="sheet-title">Parents only</h3>
@@ -25,9 +25,10 @@ export function render() {
       </div>`);
   }
   return `
+  ${hero('Parents only', 'Parent', 'admin', 'Record coins spent offline, zero out or wipe a balance, and manage sync.')}
   <div class="stack">
-    <div class="grid two">${kids().map(kidAdmin).join('')}</div>
-    <div class="grid two">
+    <div class="cols two">${kids().map(kidAdmin).join('')}</div>
+    <div class="cols two">
       ${syncCard()}
       ${card(`
         ${header('PIN & backup', { color: 'var(--t3)' })}
@@ -46,15 +47,15 @@ function kidAdmin(k) {
   const bal = store.balance(k.id);
   const recent = store.history(k.id, 6);
   return card(`
-    <div class="kid-head" style="--c:${k.color}">${avatar(k, 'lg')}
-      <div><div class="kid-name">${esc(k.name)}</div><div class="kid-school">${store.pendingFor(k.id).length} waiting · ${store.history(k.id, 1e6).length} entries</div></div>
-      <div class="kid-bal"><span>🪙</span>${bal}</div>
+    <div class="kid-banner">${avatar(k, 'lg')}
+      <div><div class="eyebrow" style="color:${k.color}">${store.pendingFor(k.id).length} waiting · ${store.history(k.id, 1e6).length} entries</div><div class="kid-name">${esc(k.name)}</div></div>
+      <div class="col-bal"><span class="cb-l">Balance</span><span class="cb-v">🪙 <b>${bal}</b></span></div>
     </div>
 
     ${header('Spent offline', { color: 'var(--coin)' })}
     <form class="spend" data-spend="${k.id}">
-      <div class="quick">${[5, 10, 20, 50].map((n) => `<button type="button" class="pill" data-quick="${n}">${n}</button>`).join('')}
-        <button type="button" class="pill" data-quick="${bal}">All ${bal}</button></div>
+      <div class="quick">${[5, 10, 20, 50].map((n) => `<button type="button" class="choice-pill" data-quick="${n}">${n}</button>`).join('')}
+        <button type="button" class="choice-pill" data-quick="${bal}">All ${bal}</button></div>
       <div class="field-row">
         <input name="amount" type="number" inputmode="numeric" min="1" placeholder="Coins" required>
         <input name="reason" type="text" placeholder="What for? (Target trip…)" maxlength="60">
@@ -75,7 +76,7 @@ function kidAdmin(k) {
         <span class="row-main"><span class="row-title">${esc(e.reason)}</span><span class="row-sub">${relDay(new Date(e.ts))} ${clock(new Date(e.ts))}</span></span>
         <span class="amt ${e.amount < 0 ? 'neg' : ''}">${e.amount > 0 ? '+' : ''}${e.amount}</span>
         <button class="btn icon ghost" data-remove="${e.id}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : empty('Nothing yet.')}
-  `, 'kid-card');
+  `, 'kid-card', 0, `--c:${k.color}`);
 }
 
 function syncCard() {

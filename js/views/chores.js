@@ -1,89 +1,93 @@
-// Chores — each girl taps her face, then taps a chore to tick it off. Coins land instantly for
-// daily chores; bonus tasks go to a parent to OK first (see Coins → Waiting).
+// Chores — DAKboard's family chore chart: every girl gets her own column, tap a chore to finish it
+// and the coins pop out. Bonus tasks go to a parent to OK first (see Coins → Waiting).
 
 import { cfg, kids, kid as kidById, choresFor } from '../data.js';
 import { store } from '../store.js';
-import { card, header, avatar, toast, coinBurst, empty } from '../ui.js';
+import { card, hero, header, avatar, toast, coinBurst, empty, ring } from '../ui.js';
 import { esc, ymd, dayPart } from '../util.js';
 
-export const title = ['Chore', 'Chart'];
+export const title = 'Chores';
 
-const PARTS = [['morning', '🌅 Morning'], ['afternoon', '☀️ After school'], ['evening', '🌙 Evening']];
+const PARTS = [['morning', '🌅', 'Morning'], ['afternoon', '☀️', 'After school'], ['evening', '🌙', 'Evening']];
 
 export function render(params) {
   const ks = kids();
-  const sel = params[0] && kidById(params[0]) ? [kidById(params[0])] : ks;
+  const one = params[0] && kidById(params[0]);
+  const sel = one ? [one] : ks;
+  const today = ymd();
+  const left = sel.reduce((s, k) => s + choresFor(k.id).filter((c) => !store.isDone(today, c.id, k.id)).length, 0);
+
   return `
-  <div class="stack">
-    <div class="kid-picker">
-      <a class="kp-btn ${sel.length > 1 ? 'on' : ''}" href="#/chores" style="--c:var(--acc)"><span class="avatar">👨‍👧‍👧</span>Everyone</a>
-      ${ks.map((k) => `<a class="kp-btn ${sel.length === 1 && sel[0].id === k.id ? 'on' : ''}" href="#/chores/${k.id}" style="--c:${k.color}">${avatar(k)}${esc(k.name)}</a>`).join('')}
+  ${hero(one ? `${one.name}'s chart` : 'Family chore chart', 'Chore', 'chart', left ? `${left} left today. Tap a chore when it’s done — coins land right away.` : 'Everything’s done today. Nice work! 🎉')}
+  <div class="toolbar anim-fade-up">
+    <div class="pills">
+      <a class="choice-pill ${!one ? 'selected' : ''}" href="#/chores" style="--c:var(--acc)">Everyone</a>
+      ${ks.map((k) => `<a class="choice-pill kid-pill ${one?.id === k.id ? 'selected' : ''}" href="#/chores/${k.id}" style="--c:${k.color}">${avatar(k, 'xs')}${esc(k.name)}</a>`).join('')}
     </div>
-    <div class="grid ${sel.length > 1 ? 'two' : ''}">${sel.map((k) => kidColumn(k, sel.length === 1)).join('')}</div>
-  </div>`;
+  </div>
+  <div class="cols ${sel.length > 1 ? 'two' : ''}">${sel.map((k, i) => column(k, i)).join('')}</div>
+  ${bonus(sel, sel.length + 1)}`;
 }
 
-function kidColumn(k, solo) {
+function column(k, i) {
   const today = ymd();
   const list = choresFor(k.id);
-  const done = list.filter((c) => store.isDone(today, c.id, k.id)).length;
-  const earnedToday = list.filter((c) => store.isDone(today, c.id, k.id)).reduce((s, c) => s + c.coins, 0);
+  const doneList = list.filter((c) => store.isDone(today, c.id, k.id));
+  const earned = doneList.reduce((s, c) => s + c.coins, 0);
+  const frac = list.length ? doneList.length / list.length : 1;
   const now = dayPart();
-  const pct = list.length ? Math.round((done / list.length) * 100) : 100;
 
-  const groups = PARTS.map(([part, label]) => {
+  const groups = PARTS.map(([part, icon, label]) => {
     const items = list.filter((c) => (c.part || 'morning') === part);
     if (!items.length) return '';
     return `
       <div class="part ${part === now ? 'now' : ''}">
-        <div class="part-l">${label}${part === now ? '<span class="now-tag">now</span>' : ''}</div>
-        <div class="tiles">${items.map((c) => tile(k, c, store.isDone(today, c.id, k.id))).join('')}</div>
+        <div class="part-l">${icon} ${label}${part === now ? '<span class="now-tag">Now</span>' : ''}</div>
+        <div class="tiles">${items.map((c, j) => tile(k, c, store.isDone(today, c.id, k.id), j)).join('')}</div>
       </div>`;
   }).join('');
 
-  const pending = store.pendingFor(k.id).filter((p) => p.type === 'bonus');
-  const bonus = cfg.chores.bonus.map((b) => {
-    const waiting = pending.filter((p) => p.ref === b.id).length;
-    return `<button class="tile bonus" data-bonus="${b.id}" data-kid="${k.id}" style="--c:${k.color}">
-      <span class="t-icon">${esc(b.icon)}</span><span class="t-title">${esc(b.title)}</span>
-      <span class="t-coins">+${b.coins}</span>${waiting ? `<span class="t-wait">⏳ ${waiting} waiting</span>` : ''}</button>`;
-  }).join('');
-
   return card(`
-    <div class="kid-head" style="--c:${k.color}">
-      ${avatar(k, 'lg')}
-      <div><div class="kid-name">${esc(k.name)}</div><div class="kid-school">${done} of ${list.length} done · 🪙 ${earnedToday} today</div></div>
-      <div class="kid-bal"><span>🪙</span>${store.balance(k.id)}</div>
+    <div class="col-head">
+      ${ring(frac, k.color, 84, 8, `<span class="ring-pct">${Math.round(frac * 100)}%</span>`)}
+      <div class="col-id">${avatar(k, 'lg')}<div><div class="kid-name">${esc(k.name)}</div><div class="kid-sub">${doneList.length} of ${list.length} done · 🪙 +${earned} today</div></div></div>
+      <div class="col-bal"><span class="cb-l">Coins</span><span class="cb-v">🪙 <b data-count="${store.balance(k.id)}">${store.balance(k.id)}</b></span></div>
     </div>
-    <div class="bar big" style="--c:${k.color}"><span style="width:${pct}%"></span></div>
-    ${pct === 100 && list.length ? `<div class="all-done" style="--c:${k.color}">🎉 All done today, ${esc(k.name)}!</div>` : ''}
+    ${frac === 1 && list.length ? `<div class="all-done">🎉 All done today, ${esc(k.name)}!</div>` : ''}
     ${groups || empty('No chores today.')}
-    ${header('Earn extra coins', { color: 'var(--coin)' })}
-    <p class="muted">Did something extra? Tap it — a parent will check and send your coins.</p>
-    <div class="tiles ${solo ? '' : 'compact'}">${bonus}</div>
-  `, 'kid-card');
+  `, 'kid-col', i, `--c:${k.color}`);
 }
 
-function tile(k, c, done) {
-  return `<button class="tile ${done ? 'done' : ''}" data-chore="${c.id}" data-kid="${k.id}" style="--c:${k.color}" aria-pressed="${done}">
-    <span class="t-check">${done ? '✓' : ''}</span>
+function tile(k, c, done, j) {
+  return `<button class="tile ${done ? 'done' : ''}" data-chore="${c.id}" data-kid="${k.id}" aria-pressed="${done}" style="--i:${j}">
+    <span class="t-check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
     <span class="t-icon">${esc(c.icon)}</span>
     <span class="t-title">${esc(c.title)}</span>
-    <span class="t-coins">+${c.coins}</span>
+    <span class="t-coins">🪙 +${c.coins}</span>
   </button>`;
+}
+
+function bonus(sel, i) {
+  return card(`
+    ${header('Earn extra coins', { color: 'var(--coin)', eyebrow: 'Bonus tasks · a parent checks, then coins land' })}
+    <div class="bonus-grid">${cfg.chores.bonus.map((b, j) => `
+      <div class="bonus anim-row" style="--i:${j}">
+        <span class="b-icon">${esc(b.icon)}</span>
+        <span class="b-main"><span class="b-title">${esc(b.title)}</span><span class="b-coins">🪙 +${b.coins}</span></span>
+        <span class="b-who">${sel.map((k) => {
+          const waiting = store.pendingFor(k.id).filter((p) => p.type === 'bonus' && p.ref === b.id).length;
+          return `<button class="b-btn" data-bonus="${b.id}" data-kid="${k.id}" style="--c:${k.color}" aria-label="${esc(k.name)} did this">${avatar(k, 'sm')}${waiting ? `<span class="b-wait">${waiting}</span>` : ''}</button>`;
+        }).join('')}</span>
+      </div>`).join('')}</div>`, 'bonus-card', i);
 }
 
 export function mount(root, rerender) {
   root.addEventListener('click', (e) => {
     const t = e.target.closest('[data-chore]');
     if (t) {
-      const k = kidById(t.dataset.kid);
       const chore = cfg.chores.chores.find((c) => c.id === t.dataset.chore);
-      const nowDone = store.toggleChore(chore, k.id);
-      if (nowDone) {
-        const r = t.getBoundingClientRect();
-        coinBurst(r.left + r.width / 2, r.top, chore.coins);
-      }
+      const on = store.toggleChore(chore, t.dataset.kid);
+      if (on) { const r = t.getBoundingClientRect(); coinBurst(r.left + r.width / 2, r.top, chore.coins); }
       rerender();
       return;
     }
