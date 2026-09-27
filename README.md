@@ -14,7 +14,7 @@ drifting ambient light and fireflies, staggered card entrances, count-up numbers
 check-offs, and a Home landscape where the sun and moon track the real time of day.
 
 **Phone first.** Most viewing is on phones (the girls, Mom, Dad), so Home leads with a short live
-landscape that carries the greeting, clock and weather ("64° · Cloudy"), then **Today**: each girl's
+landscape that carries the greeting, clock and weather ("64° · Cloudy"), then *What to wear* (from the feels-like forecast) and **Today**: each girl's
 school hours or no-school reason, specials (👟 PE — sneakers), activities with a countdown to the
 next one, lunch on school days, and a peek at tomorrow. Where the girls sleep, what's coming up, a
 4-day forecast and countdowns follow; the coin leaderboard and chore chart sit at the bottom.
@@ -37,6 +37,7 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 - **`calendar.json`** — `holidays` as yearly rules (`"12-25"`, `"4th-thu-11"`, `"last-mon-05"`, `"easter"`, `"election"`; lunar ones list `dates`) so they never run out — `countdown: true` = eligible for Countdowns; `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates; `schoolDays: true` skips breaks), one-off `events` (`kind: "game"`, `tentative`). `who` is a list of kid ids; empty means the whole family.
 - **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates: `noSchool` (breaks, workdays) and `extraEarlyOut` (non-Friday early outs like conferences), each `{ date, label }`, copied from the ADM academic calendar PDF (`year.source`). Replace them each summer when ADM posts the next year.
 - **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
+- **`wear.json`** — the *What to wear* rules under the Home banner (T-shirt / long sleeves / sweater, shorts or pants, light jacket to peel off, warm or winter coat, rain jacket, snow gear, sunscreen), keyed on the day's feels-like high and low, rain chance, snow and wind. First matching rule per group wins; after 3pm it shows tomorrow's.
 - **`menus.json`** — generated; don't edit. The weekly calendar sync refreshes it from Matt's Mac (LINQ blocks GitHub's servers, so the Action is manual-only).
 
 ## How Kindness Coins work

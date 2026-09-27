@@ -3,7 +3,7 @@
 // lunch) and a peek at tomorrow. Then where the girls sleep, what's coming up, a 4-day forecast,
 // countdowns, and — last, since chores aren't the point — the coin leaderboard and chore chart.
 
-import { cfg, kids, itemsOn, choresFor, menuRange, weather, lastWeather, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { cfg, kids, itemsOn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
 import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
 import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
@@ -35,6 +35,7 @@ export function render() {
       </div>
     </div>
   </section>
+  <section class="wear" id="wear" hidden></section>
 
   <div class="board">
     ${todayCard(now, 0)}
@@ -57,6 +58,7 @@ export function mount(root, rerender) {
     if (nw) nw.innerHTML = `<div class="hh-temp"><span class="wx-i">${w.now.icon}</span>${w.now.temp}°</div>
       <div class="hh-sky">${esc(skyLabel(w.now.code, h < rise || h > set))}</div>
       <div class="hh-hilo">H ${w.days[0].hi}° · L ${w.days[0].lo}°</div>`;
+    wearStrip(root.querySelector('#wear'), w, now);
     const f = root.querySelector('#wx4');
     if (f) f.innerHTML = w.days.slice(0, 4).map((d, i) => {
       const dt = parseYmd(d.date);
@@ -91,6 +93,20 @@ export function minute(root) {
 }
 
 const sceneOpts = () => ({ sun: cfg.family.location.sun, weather: lastWeather()?.now });
+
+/** "What to wear today" under the banner — tomorrow's once it's mid-afternoon (clothes get picked the night before). */
+function wearStrip(el, w, now) {
+  if (!el) return;
+  const tmr = now.getHours() >= 15;
+  const d = w.days[tmr ? 1 : 0];
+  const fits = d ? whatToWear(d) : [];
+  if (!fits.length) return;
+  el.innerHTML = `
+    <div class="wear-h"><span class="sh-eyebrow">What to wear ${tmr ? 'tomorrow' : 'today'}</span>
+      <span class="wear-why">Feels ${d.feelsLo}° → ${d.feelsHi}°${d.rain >= 30 ? ` · 💧${d.rain}%` : ''}${d.wind >= 20 ? ` · 💨${d.wind} mph` : ''}</span></div>
+    <div class="wear-items">${fits.map((f) => `<span class="wear-it"><span class="wi">${esc(f.icon)}</span>${esc(f.text)}</span>`).join('')}</div>`;
+  el.hidden = false;
+}
 
 // ---- Today ------------------------------------------------------------------------------------
 

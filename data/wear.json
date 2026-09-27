@@ -1,0 +1,22 @@
+{
+  "_help": "What to wear, shown under the Home banner. Uses the day's FEELS-LIKE temps (°F): hi = warmest (recess), lo = coldest (the walk to school). For each group the FIRST rule whose `when` all match wins; a group with no match shows nothing. when keys: hiMin/hiMax, loMin/loMax, swingMin (hi − lo), rainMin (% chance), snow (true = snow in the forecast), windMin (mph). Edit freely — no code changes needed.",
+  "rules": [
+    { "group": "top", "icon": "👕", "text": "T-shirt", "when": { "hiMin": 70 } },
+    { "group": "top", "icon": "👚", "text": "Long sleeves", "when": { "hiMin": 55 } },
+    { "group": "top", "icon": "🧶", "text": "Sweater or sweatshirt", "when": {} },
+
+    { "group": "bottom", "icon": "🩳", "text": "Shorts or a skirt", "when": { "hiMin": 72, "loMin": 55 } },
+    { "group": "bottom", "icon": "👖", "text": "Pants or leggings", "when": {} },
+
+    { "group": "coat", "icon": "🧤", "text": "Winter coat, hat & gloves", "when": { "loMax": 32 } },
+    { "group": "coat", "icon": "🧥", "text": "Warm jacket", "when": { "loMax": 45 } },
+    { "group": "coat", "icon": "🧥", "text": "Light jacket — take it off later", "when": { "loMax": 60, "swingMin": 10 } },
+    { "group": "coat", "icon": "🧥", "text": "Light jacket", "when": { "loMax": 58 } },
+    { "group": "coat", "icon": "🧥", "text": "Light jacket — it's windy", "when": { "loMax": 68, "windMin": 20 } },
+
+    { "group": "wet", "icon": "🥾", "text": "Snow boots & snow pants", "when": { "snow": true } },
+    { "group": "wet", "icon": "☔", "text": "Rain jacket", "when": { "rainMin": 40, "loMin": 33 } },
+
+    { "group": "sun", "icon": "🧢", "text": "Sunscreen & a hat", "when": { "hiMin": 85 } }
+  ]
+}

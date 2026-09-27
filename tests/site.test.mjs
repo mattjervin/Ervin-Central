@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { cfg, schoolDay, itemsOn, sleepOn, countdowns, ruleDate, holidaysIn } from '../js/data.js';
+import { cfg, schoolDay, itemsOn, sleepOn, countdowns, ruleDate, holidaysIn, whatToWear } from '../js/data.js';
 import { applyOp } from '../js/store.js';
 import { sunTimes, skyKind } from '../js/scene.js';
 import { ymd } from '../js/util.js';
@@ -11,7 +11,7 @@ import { ymd } from '../js/util.js';
 const json = async (f) => JSON.parse(await readFile(new URL(`../data/${f}`, import.meta.url), 'utf8'));
 Object.assign(cfg, {
   family: await json('family.json'), school: await json('school.json'), calendar: await json('calendar.json'),
-  chores: await json('chores.json'), menus: { schools: {} },
+  chores: await json('chores.json'), menus: { schools: {} }, wear: await json('wear.json'),
 });
 const d = (s) => new Date(`${s}T12:00`);
 
@@ -122,4 +122,15 @@ test('school-only recurring items skip breaks', () => {
   assert.equal(pe('2026-11-23'), true);  // Mon, school
   assert.equal(pe('2026-11-25'), false); // Wed, Thanksgiving break
   assert.equal(pe('2027-03-15'), false); // spring break
+});
+
+test('what to wear follows the feels-like temps, rain and snow', () => {
+  const wear = (day) => whatToWear(day).map((r) => r.text);
+  assert.deepEqual(wear({ feelsHi: 84, feelsLo: 66, rain: 10, code: 1, wind: 5 }), ['T-shirt', 'Shorts or a skirt']);
+  assert.deepEqual(wear({ feelsHi: 88, feelsLo: 70, rain: 0, code: 0 }), ['T-shirt', 'Shorts or a skirt', 'Sunscreen & a hat']);
+  assert.ok(wear({ feelsHi: 68, feelsLo: 50, rain: 10, code: 2 }).includes('Light jacket — take it off later'));
+  assert.ok(wear({ feelsHi: 60, feelsLo: 52, rain: 70, code: 61 }).includes('Rain jacket'));
+  const winter = wear({ feelsHi: 25, feelsLo: 10, rain: 60, code: 73 });
+  assert.ok(winter.includes('Winter coat, hat & gloves') && winter.includes('Snow boots & snow pants') && winter.includes('Sweater or sweatshirt'));
+  assert.ok(!winter.includes('Rain jacket'));
 });

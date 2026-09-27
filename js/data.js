@@ -6,7 +6,7 @@ import { addDays, at, clock, parseYmd, ymd } from './util.js';
 const clockShort = (hhmm) => clock(hhmm, false);
 import { fetchMenu } from './linq.js';
 
-export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null };
+export const cfg = { family: null, school: null, calendar: null, chores: null, menus: null, wear: null };
 
 async function getJson(path) {
   const res = await fetch(path, { cache: 'no-cache' });
@@ -15,14 +15,15 @@ async function getJson(path) {
 }
 
 export async function loadConfig() {
-  const [family, school, calendar, chores, menus] = await Promise.all([
+  const [family, school, calendar, chores, menus, wear] = await Promise.all([
     getJson('data/family.json'),
     getJson('data/school.json'),
     getJson('data/calendar.json'),
     getJson('data/chores.json'),
     getJson('data/menus.json').catch(() => ({ updated: null, schools: {} })),
+    getJson('data/wear.json').catch(() => ({ rules: [] })),
   ]);
-  Object.assign(cfg, { family, school, calendar, chores, menus });
+  Object.assign(cfg, { family, school, calendar, chores, menus, wear });
 }
 
 export const kids = () => cfg.family.kids;
@@ -319,7 +320,8 @@ export async function weather() {
   if (wxCache && Date.now() - wxCache.at < 20 * 60e3) return wxCache.data;
   const { lat, lon, timezone } = cfg.family.location;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max` +
+    `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max` +
+    `&wind_speed_unit=mph` +
     `&temperature_unit=fahrenheit&timezone=${encodeURIComponent(timezone)}&forecast_days=7`;
   const res = await fetch(url, { signal: AbortSignal.timeout(10e3) });
   if (!res.ok) throw new Error(`Weather ${res.status}`);
@@ -329,10 +331,29 @@ export async function weather() {
     days: j.daily.time.map((t, i) => ({
       date: t, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]),
       rain: j.daily.precipitation_probability_max[i], code: j.daily.weather_code[i], ...wx(j.daily.weather_code[i]),
+      feelsHi: Math.round(j.daily.apparent_temperature_max[i]), feelsLo: Math.round(j.daily.apparent_temperature_min[i]),
+      wind: Math.round(j.daily.wind_speed_10m_max[i]),
     })),
   };
   wxCache = { at: Date.now(), data };
   return data;
+}
+
+// ---- What to wear -------------------------------------------------------------------------
+
+const SNOW = [71, 73, 75, 77, 85, 86];
+
+/** Outfit for one forecast day, from the rules in data/wear.json: [{ group, icon, text }]. */
+export function whatToWear(day) {
+  const hi = day.feelsHi ?? day.hi, lo = day.feelsLo ?? day.lo;
+  const f = { hi, lo, swing: hi - lo, rain: day.rain ?? 0, snow: SNOW.includes(day.code), wind: day.wind ?? 0 };
+  const ok = (w) => (w.hiMin == null || f.hi >= w.hiMin) && (w.hiMax == null || f.hi <= w.hiMax)
+    && (w.loMin == null || f.lo >= w.loMin) && (w.loMax == null || f.lo <= w.loMax)
+    && (w.swingMin == null || f.swing >= w.swingMin) && (w.rainMin == null || f.rain >= w.rainMin)
+    && (w.windMin == null || f.wind >= w.windMin) && (w.snow == null || f.snow === w.snow);
+  const out = new Map();
+  for (const r of cfg.wear?.rules || []) if (!out.has(r.group) && ok(r.when || {})) out.set(r.group, r);
+  return [...out.values()];
 }
 
 /** Last weather we fetched, without waiting (the Home scene repaints every minute from this). */

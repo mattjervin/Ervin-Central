@@ -375,6 +375,16 @@ body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: non
 @keyframes fogdrift { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
 @keyframes lightning { 0%, 90%, 92%, 95%, 100% { opacity: 0; } 91% { opacity: 0.4; } 93.5% { opacity: 0.25; } }
 
+/* What to wear — right under the banner, where the weather is */
+.wear { margin-top: 10px; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 1px solid rgba(110, 168, 254, 0.28); display: flex; flex-direction: column; gap: 8px; animation: cardIn 0.5s var(--glide) backwards; }
+.view.settled .wear { animation: none; }
+.wear-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.wear-h .sh-eyebrow { color: var(--blue); }
+.wear-why { font-size: 12px; font-weight: 600; color: var(--t3); }
+.wear-items { display: flex; flex-wrap: wrap; gap: 6px; }
+.wear-it { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px 4px 8px; border-radius: 99px; font-weight: 700; font-size: 14px; color: var(--t0); background: rgba(110, 168, 254, 0.1); border: 1px solid rgba(110, 168, 254, 0.25); }
+.wi { font-size: 20px; line-height: 1; }
+
 .fc-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .fc {
   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; border-radius: 16px;
