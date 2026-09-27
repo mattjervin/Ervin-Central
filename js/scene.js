@@ -41,6 +41,14 @@ export function skyKind(code) {
   return 'clear';
 }
 
+/** The word under the temperature: Sunny / Cloudy / Rainy / Snowy… */
+export function skyLabel(code, night = false) {
+  return {
+    clear: night ? 'Clear' : 'Sunny', partly: 'Partly cloudy', cloudy: 'Cloudy', fog: 'Foggy',
+    rain: code >= 51 && code <= 57 ? 'Drizzly' : 'Rainy', snow: 'Snowy', storm: 'Stormy',
+  }[skyKind(code)];
+}
+
 const SKY = {
   night: ['#040b08', '#0a1c14', '#0d2419'],
   dawn: ['#0b1d19', '#1d3b31', '#6b4a2a'],
@@ -63,15 +71,15 @@ const cloud = (x, y, s, cls, d) =>
 
 function cloudLayer(kind, ph) {
   if (kind === 'clear') {
-    return ph === 'day' || ph === 'dawn' ? cloud(120, 70, 1, '', 0) + cloud(420, 48, 0.9, 'slow', -30) : '';
+    return ph === 'day' || ph === 'dawn' ? cloud(120, 150, 1, '', 0) + cloud(420, 132, 0.9, 'slow', -30) : '';
   }
   if (kind === 'partly') {
-    return [[90, 60, 1.1, '', 0], [300, 40, 0.9, 'slow', -20], [470, 80, 1.2, '', -45], [200, 95, 0.7, 'slow', -70]]
+    return [[90, 140, 1.1, '', 0], [300, 125, 0.9, 'slow', -20], [470, 160, 1.2, '', -45], [200, 172, 0.7, 'slow', -70]]
       .map(([x, y, s, c, d]) => cloud(x, y, s, `${c} puffy`, d)).join('');
   }
   // Overcast: a heavy deck of big, darker clouds.
   return Array.from({ length: 8 }, (_, i) =>
-    cloud(rnd(i + 200) * 600, 20 + rnd(i + 210) * 80, 1.3 + rnd(i + 220) * 0.9, `heavy ${i % 2 ? 'slow' : ''}`, -(rnd(i + 230) * 90).toFixed(1))).join('');
+    cloud(rnd(i + 200) * 600, 100 + rnd(i + 210) * 80, 1.3 + rnd(i + 220) * 0.9, `heavy ${i % 2 ? 'slow' : ''}`, -(rnd(i + 230) * 90).toFixed(1))).join('');
 }
 
 function precip(kind) {
@@ -107,7 +115,7 @@ export function sceneSvg(now = new Date(), opts = {}) {
   const { rise, set } = sunT0;
   const sunT = (h - rise) / (set - rise);
   const moonT = ((h - set + 24) % 24) / (24 - set + rise);
-  const arc = (t) => ({ x: lerp(40, 560, t), y: 230 - Math.sin(Math.PI * t) * 175 });
+  const arc = (t) => ({ x: lerp(40, 560, t), y: 232 - Math.sin(Math.PI * t) * 100 }); // low arc: wide banners crop the top
   const sunUp = sunT > -0.02 && sunT < 1.02;
   const sun = arc(Math.min(1, Math.max(0, sunT)));
   const moon = arc(Math.min(1, Math.max(0, moonT)));
@@ -116,7 +124,7 @@ export function sceneSvg(now = new Date(), opts = {}) {
   const hidden = overcast ? 'veiled' : ''; // sun/moon dimmed behind the cloud deck
 
   const stars = dark && !overcast ? Array.from({ length: 34 }, (_, i) => {
-    const x = rnd(i) * 600, y = rnd(i + 99) * 150, r = 0.6 + rnd(i + 7) * 1.2;
+    const x = rnd(i) * 600, y = rnd(i + 99) * 190, r = 0.6 + rnd(i + 7) * 1.2;
     return `<circle class="star" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" style="--d:${(rnd(i + 3) * 4).toFixed(2)}s"/>`;
   }).join('') : '';
 

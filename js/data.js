@@ -328,7 +328,7 @@ export async function weather() {
     now: { temp: Math.round(j.current.temperature_2m), code: j.current.weather_code, ...wx(j.current.weather_code) },
     days: j.daily.time.map((t, i) => ({
       date: t, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]),
-      rain: j.daily.precipitation_probability_max[i], ...wx(j.daily.weather_code[i]),
+      rain: j.daily.precipitation_probability_max[i], code: j.daily.weather_code[i], ...wx(j.daily.weather_code[i]),
     })),
   };
   wxCache = { at: Date.now(), data };

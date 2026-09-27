@@ -13,16 +13,17 @@ the design: a sticky top nav whose active pill slides between tabs and tightens 
 drifting ambient light and fireflies, staggered card entrances, count-up numbers, spring
 check-offs, and a Home landscape where the sun and moon track the real time of day.
 
-**Layout ideas from DAKboard:** a big clock over the scene, a 7-day forecast strip, an
-*Up next* card with a live countdown, an agenda grouped by day, Agenda / rolling-Week / Month
-calendar views with a per-kid color legend, chore columns you can tick from Home, a coin
-leaderboard, and *days until* countdowns.
+**Phone first.** Most viewing is on phones (the girls, Mom, Dad), so Home leads with a short live
+landscape that carries the greeting, clock and weather ("64° · Cloudy"), then **Today**: each girl's
+school hours or no-school reason, specials (👟 PE — sneakers), activities with a countdown to the
+next one, lunch on school days, and a peek at tomorrow. Where the girls sleep, what's coming up, a
+4-day forecast and countdowns follow; the coin leaderboard and chore chart sit at the bottom.
 
 ## Pages
 
 | Page | What it shows | Where the data comes from |
 |---|---|---|
-| **Home** | Clock over a live landscape, forecast, Up next + countdown, 5-day agenda, **Tonight** (where the girls sleep + the week of nights), lunch, tap-to-finish chores, **Coming up** (games, parties), leaderboard, countdowns | Everything below |
+| **Home** | Landscape banner (greeting, clock, weather), **Today** per girl (school, specials, activities, lunch) + tomorrow, **Tonight** (where the girls sleep + the week of nights), **Coming up**, 4-day weather, countdowns, leaderboard, tap-to-finish chores | Everything below |
 | **Calendar** | Agenda, rolling Week and Month views, filterable by kid, with school hours, early-outs, specials and weather | `data/calendar.json` + `data/school.json` |
 | **School** | Hours, specials, and the week's lunch/breakfast menu per girl | `data/school.json` + ADM's LINQ Connect menus |
 | **Chores** | Big tap tiles by morning / after school / evening; bonus tasks | `data/chores.json` |

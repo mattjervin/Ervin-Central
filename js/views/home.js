@@ -1,12 +1,13 @@
-// Home — the wall display's resting screen. Laid out like a DAKboard family board: a big clock over
-// a live landscape, the forecast, an "Up next" card with a running countdown, the agenda by day,
-// lunch, chores you can tick right here, the coin leaderboard, and countdowns to the big days.
+// Home — phone first. A short live landscape carries the greeting, clock and weather; right under it
+// is Today: each girl's day (school hours, specials, activities with a countdown to the next one,
+// lunch) and a peek at tomorrow. Then where the girls sleep, what's coming up, a 4-day forecast,
+// countdowns, and — last, since chores aren't the point — the coin leaderboard and chore chart.
 
-import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, weather, lastWeather, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { cfg, kids, itemsOn, choresFor, menuRange, weather, lastWeather, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
-import { card, header, stat, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
-import { sceneSvg } from '../scene.js';
-import { esc, greeting, longDate, clock, ymd, relDay, plural, dayPart, addDays, parseYmd, DOW3, MONTH } from '../util.js';
+import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
+import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
+import { esc, greeting, clock, ymd, relDay, plural, dayPart, addDays, parseYmd, DOW, DOW3, MONTH } from '../util.js';
 
 export const title = 'Home';
 
@@ -14,68 +15,65 @@ export function render() {
   const now = new Date();
   const today = ymd(now);
   const ks = kids();
-
   const choreStats = ks.map((k) => {
     const list = choresFor(k.id, now);
     const done = list.filter((c) => store.isDone(today, c.id, k.id)).length;
     return { k, list, done, left: list.length - done };
   });
-  const totalDone = choreStats.reduce((s, c) => s + c.done, 0);
-  const total = choreStats.reduce((s, c) => s + c.list.length, 0);
-  const next = countdowns(now)[0];
 
   return `
-  <section class="home-hero anim-fade-up">
-    <div class="hh-text">
-      <div class="eyebrow">${esc(longDate(now))}</div>
-      <h1 class="headline">${esc(greeting(now))}, <em>${esc(cfg.family.family)}s</em></h1>
-      <p class="lede">${synthesis(now, choreStats)}</p>
-      <div class="stat-row">
-        ${stat(`${totalDone}/${total}`, 'Chores done', { hero: true })}
-        ${ks.map((k) => stat(store.balance(k.id), `${k.name}'s coins`, { color: k.color })).join('')}
-        ${next ? stat(next.days, `Days to ${next.kid ? `${next.title}'s birthday` : next.title}`) : ''}
+  <section class="home-hero anim-fade-up" id="scene">
+    ${sceneSvg(now, sceneOpts())}
+    <div class="hh-overlay">
+      <div class="hh-greet">
+        <div class="eyebrow">${esc(`${DOW[now.getDay()]} · ${MONTH[now.getMonth()].slice(0, 3)} ${now.getDate()}`)}</div>
+        <h1 class="headline">${esc(greeting(now))},<br><em>${esc(cfg.family.family)}s</em></h1>
       </div>
-    </div>
-    <div class="hh-scene" id="scene">
-      ${sceneSvg(now, sceneOpts())}
-      <div class="scene-overlay">
+      <div class="hh-now">
         <div class="big-clock" data-clock="long"></div>
-        <div class="now-wx" id="now-wx"></div>
+        <div class="hh-wx" id="now-wx"></div>
       </div>
     </div>
   </section>
 
-  <div class="forecast" id="forecast"></div>
-
   <div class="board">
-    ${upNextCard(now, 0)}
-    ${agendaCard(now, 1)}
-    ${sleepCard(now, 2)}
-    ${choresCard(choreStats, 3)}
-    ${card(`${header('School Lunch', { color: 'var(--amber)', href: '#/school' })}<div id="home-lunch"><p class="empty">Loading menu…</p></div>`, 'lunch', 4)}
-    ${comingCard(now, 5)}
-    ${leaderCard(6)}
-    ${countdownCard(now, 7)}
+    ${todayCard(now, 0)}
+    ${sleepCard(now, 1)}
+    ${comingCard(now, 2)}
+    ${card(`${header('Weather', { color: 'var(--blue)', eyebrow: 'Next 4 days' })}<div class="fc-row" id="wx4"><p class="empty">Loading forecast…</p></div>`, 'wx-card', 3)}
+    ${countdownCard(now, 4)}
+    ${leaderCard(5)}
+    ${choresCard(choreStats, 6)}
   </div>`;
 }
 
 export function mount(root, rerender) {
   weather().then((w) => {
     minute(root); // paint the live weather into the sky
-    const now = root.querySelector('#now-wx');
-    if (now) now.innerHTML = `<span class="wx-i">${w.now.icon}</span><span class="wx-t">${w.now.temp}°</span><span class="wx-l">${esc(w.now.label)} · ${w.days[0].hi}° / ${w.days[0].lo}°</span>`;
-    const f = root.querySelector('#forecast');
-    if (f) f.innerHTML = w.days.slice(0, 7).map((d, i) => {
+    const now = new Date();
+    const { rise, set } = sunTimes(now, cfg.family.location.sun);
+    const h = now.getHours() + now.getMinutes() / 60;
+    const nw = root.querySelector('#now-wx');
+    if (nw) nw.innerHTML = `<div class="hh-temp"><span class="wx-i">${w.now.icon}</span>${w.now.temp}°</div>
+      <div class="hh-sky">${esc(skyLabel(w.now.code, h < rise || h > set))}</div>
+      <div class="hh-hilo">H ${w.days[0].hi}° · L ${w.days[0].lo}°</div>`;
+    const f = root.querySelector('#wx4');
+    if (f) f.innerHTML = w.days.slice(0, 4).map((d, i) => {
       const dt = parseYmd(d.date);
       return `<div class="fc ${i === 0 ? 'today' : ''}" style="--i:${i}"><span class="fc-d">${i === 0 ? 'Today' : DOW3[dt.getDay()]}</span><span class="fc-i">${d.icon}</span>
-        <span class="fc-t"><b>${d.hi}°</b> ${d.lo}°</span>${d.rain >= 30 ? `<span class="fc-r">💧${d.rain}%</span>` : '<span class="fc-r"></span>'}</div>`;
+        <span class="fc-l">${esc(skyLabel(d.code, false))}</span>
+        <span class="fc-t"><b>${d.hi}°</b> ${d.lo}°</span><span class="fc-r">${d.rain >= 20 ? `💧${d.rain}%` : ''}</span></div>`;
     }).join('');
-  }).catch(() => {});
+  }).catch(() => {
+    const f = root.querySelector('#wx4');
+    if (f) f.innerHTML = empty('Forecast unavailable right now.');
+  });
 
-  const slot = root.querySelector('#home-lunch');
-  if (slot) lunchBody(new Date()).then((html) => { slot.innerHTML = html; });
+  for (const slot of root.querySelectorAll('[data-lunch]')) {
+    lunchLine(parseYmd(slot.dataset.lunch)).then((html) => { slot.innerHTML = html; if (!html) slot.remove(); });
+  }
 
-  // Tap a chore right from the board (DAKboard-style).
+  // Tap a chore right from the board.
   root.addEventListener('click', (e) => {
     const t = e.target.closest('[data-chore]');
     if (!t) return;
@@ -94,25 +92,96 @@ export function minute(root) {
 
 const sceneOpts = () => ({ sun: cfg.family.location.sun, weather: lastWeather()?.now });
 
-// ---- Synthesis -------------------------------------------------------------------------------
+// ---- Today ------------------------------------------------------------------------------------
 
-function synthesis(now, choreStats) {
-  const parts = [];
+const PE = /\bPE\b/;
+
+/** School hours / no-school reason and today's specials, as "need to know" chips. */
+function schoolChips(k, date) {
+  const s = schoolOf(k);
+  const sd = schoolDay(k.school, date);
+  const out = [];
+  if (sd.type !== 'none') {
+    const [a, b] = sd.type === 'early' ? s.early : s.full;
+    out.push(chip(`🏫 ${clock(a, false)}–${clock(b)}${sd.type === 'early' ? ' · early out' : ''}${sd.note ? ` · ${sd.note}` : ''}`, k.color));
+    const sp = s.specials?.[date.getDay()];
+    if (sp) out.push(chip(PE.test(sp) ? `👟 ${sp} — sneakers` : `🎨 ${sp}`, 'var(--lime)'));
+  } else if (sd.note) {
+    out.push(chip(`🎒 No school · ${sd.note}`, 'var(--acc)'));
+  }
+  return out;
+}
+
+/** A girl's own calendar items for `date` (not school, not family-wide), minus reminders the chips cover. */
+function kidItems(k, date) {
+  const sp = schoolDay(k.school, date).type !== 'none' ? schoolOf(k).specials?.[date.getDay()] : null;
+  return itemsOn(date).filter((x) => x.who.includes(k.id) && x.kind !== 'school' && x.kind !== 'noschool'
+    && !(sp && PE.test(sp) && PE.test(x.title))); // "Avery PE Day" is already the 👟 chip
+}
+
+function todayCard(now, i) {
   const ks = kids();
-  const days = ks.map((k) => schoolDay(k.school, now));
-  if (days.every((d) => d.type === 'none')) parts.push(days[0].reason === 'Weekend' ? 'No school today' : esc(days[0].reason));
-  else if (days.some((d) => d.type === 'early')) parts.push(`<b>Early out</b> — ${ks.map((k) => `${esc(k.name)} ${clock(schoolOf(k).early[1])}`).join(', ')}`);
+  const family = itemsOn(now).filter((x) => !x.who.length && x.kind !== 'school');
+  const count = family.length + ks.reduce((s, k) => s + kidItems(k, now).length, 0);
+  const tomorrow = addDays(now, 1);
+  const schoolToday = ks.some((k) => schoolDay(k.school, now).type !== 'none');
+  const schoolTomorrow = ks.some((k) => schoolDay(k.school, tomorrow).type !== 'none');
 
-  const nx = upcoming(1, now).find((i) => i.kind !== 'school' && !i.allDay && i.start > now);
-  if (nx) parts.push(`<b>${esc(nx.title)}</b> at ${clock(nx.start)}`);
+  const cols = ks.map((k) => {
+    const items = kidItems(k, now);
+    const next = items.find((x) => !x.allDay && x.start > now);
+    const rows = items.map((x, j) => {
+      const on = !x.allDay && x.start <= now && x.end > now;
+      const past = !x.allDay && x.end <= now && !on;
+      const state = on ? 'on' : past ? 'past' : x === next ? 'next' : '';
+      return `<div class="td-row anim-row ${state}" style="--i:${j}">
+        <span class="td-t">${x.allDay ? 'All day' : esc(clock(x.start))}</span>
+        <span class="td-i">${esc(x.icon)}</span>
+        <span class="td-main"><b>${esc(x.title)}</b>${x.detail || (!x.allDay && x.end > x.start) ? `<small>${esc([x.allDay ? '' : `until ${clock(x.end)}`, x.detail].filter(Boolean).join(' · '))}</small>` : ''}</span>
+        ${on ? '<span class="td-in now">Now</span>' : x === next ? `<span class="td-in">in <b data-until="${+x.start}"></b></span>` : ''}
+      </div>`;
+    }).join('');
+    const chips = schoolChips(k, now);
+    return `
+      <div class="td-kid" style="--c:${esc(k.color)}">
+        <a class="td-head" href="#/calendar">${avatar(k, 'sm')}<span>${esc(k.name)}</span></a>
+        ${chips.length ? `<div class="td-know">${chips.join('')}</div>` : ''}
+        ${rows || `<p class="td-free">${chips.length ? 'Nothing else on the calendar.' : 'Free day 🎉'}</p>`}
+      </div>`;
+  }).join('');
 
-  const left = choreStats.filter((c) => c.left);
-  if (!left.length && choreStats.some((c) => c.list.length)) parts.push('every chore is done 🎉');
-  else if (left.length) parts.push(left.map((c) => `${esc(c.k.name)} has ${plural(c.left, 'chore')} left`).join(', '));
+  const tm = ks.map((k) => {
+    const bits = [
+      ...schoolChips(k, tomorrow),
+      ...kidItems(k, tomorrow).map((x) => chip(`${x.icon} ${x.title}${x.allDay ? '' : ` ${clock(x.start)}`}`, k.color)),
+    ];
+    return `<div class="tm-kid" style="--c:${esc(k.color)}">${avatar(k, 'xs')}<div class="tm-bits">${bits.join('') || '<span class="muted small">Nothing yet</span>'}</div></div>`;
+  }).join('');
+  const tmFamily = itemsOn(tomorrow).filter((x) => !x.who.length && x.kind !== 'school');
 
-  const pend = store.allPending().length;
-  if (pend) parts.push(`${plural(pend, 'request')} waiting on a parent`);
-  return parts.join(' · ') || 'A quiet day.';
+  return card(`
+    ${header('Today', { eyebrow: count ? `${plural(count, 'thing')} on the calendar` : 'Nothing on the calendar' })}
+    ${family.length ? `<div class="td-family">${family.map((x) => chip(`${x.icon} ${x.title}${x.allDay ? '' : ` · ${clock(x.start)}`}`, 'var(--acc)')).join('')}</div>` : ''}
+    <div class="td-cols">${cols}</div>
+    ${schoolToday && now.getHours() < 13 ? `<div class="td-lunch" data-lunch="${ymd(now)}"></div>` : ''}
+    <div class="td-tomorrow">
+      <div class="sh-eyebrow">Tomorrow · ${esc(DOW[tomorrow.getDay()])}</div>
+      ${tmFamily.length ? `<div class="td-family">${tmFamily.map((x) => chip(`${x.icon} ${x.title}`, 'var(--acc)')).join('')}</div>` : ''}
+      ${tm}
+      ${schoolTomorrow ? `<div class="td-lunch" data-lunch="${ymd(tomorrow)}"></div>` : ''}
+    </div>`, 'today-card', i);
+}
+
+/** "🍱 Lunch · Mini Corn Dogs" with the sides underneath — one menu for both girls. */
+async function lunchLine(day) {
+  const [{ menu }] = await menuRange(cfg.school.lunch.source, day, 1);
+  const lunch = menu?.lunch || [];
+  const hot = lunch.find((m) => /hot/i.test(m.label)) || lunch[0];
+  if (!hot?.main?.length) return `<span class="lh-icon">🍱</span><div><div class="lk">Lunch</div><div class="lm muted">Menu not posted yet</div></div>`;
+  const sides = hot.sides.flatMap((x) => x.items);
+  return `<span class="lh-icon">🍱</span>
+    <div><div class="lk">Hot lunch</div><div class="lm">${esc(hot.main[0])}</div>${sides.length ? `<div class="ls">${esc(sides.join(' · '))}</div>` : ''}</div>
+    <a class="sh-more" href="#/school">Menu <span aria-hidden="true">→</span></a>`;
 }
 
 // ---- Cards ------------------------------------------------------------------------------------
@@ -174,72 +243,21 @@ function comingCard(now, i) {
       </div>`).join('') || empty('Nothing on the books yet.')}`, 'coming-card', i);
 }
 
-function upNextCard(now, i) {
-  const ks = kids();
-  // School only counts as "up next" when it's the next thing this morning, not two days out.
-  const list = upcoming(3, now).filter((x) => !x.allDay && x.start > now && (x.kind !== 'school' || x.start - now < 12 * 36e5));
-  const allDay = itemsOn(now).filter((x) => x.allDay);
-  const n = list[0];
-  const color = n ? whoColor(n.who, ks) : 'var(--acc)';
-  const body = n ? `
-    <div class="upnext" style="--c:${esc(color)}">
-      <div class="un-icon">${esc(n.icon)}</div>
-      <div class="un-main">
-        <div class="un-title">${esc(n.title)}</div>
-        <div class="un-when">${esc(relDay(n.date, now))} · ${clock(n.start)}${n.end > n.start ? ` – ${clock(n.end)}` : ''}</div>
-        ${n.detail ? `<div class="un-sub">${esc(n.detail)}</div>` : ''}
-        <div class="un-who">${whoDots(n.who, ks)}<span>${esc(n.who.length ? n.who.map((id) => ks.find((k) => k.id === id)?.name).join(' & ') : 'Family')}</span></div>
-      </div>
-      <div class="un-count"><span class="un-in">in</span><span class="un-t" data-until="${+n.start}"></span></div>
-    </div>
-    ${list.slice(1, 5).map((x, j) => `
-      <div class="un-later anim-row" style="--i:${j}"><span class="ul-t">${esc(relDay(x.date, now) === 'Today' ? clock(x.start) : `${DOW3[x.date.getDay()]} ${clock(x.start, false)}`)}</span>
-        <span class="ul-n">${esc(x.icon)} ${esc(x.title)}</span><span class="row-dots">${whoDots(x.who, ks)}</span></div>`).join('')}`
-    : empty('Nothing scheduled in the next few days.');
+function leaderCard(i) {
+  const ks = [...kids()].sort((a, b) => store.balance(b.id) - store.balance(a.id));
+  const max = Math.max(1, ...ks.map((k) => store.balance(k.id)));
+  const pend = store.allPending().length;
   return card(`
-    ${header('Up Next', { eyebrow: allDay.length ? `Today: ${allDay.map((a) => a.title).join(' · ')}` : 'Coming up' })}
-    ${body}`, 'upnext-card', i);
-}
-
-function agendaCard(now, i) {
-  const ks = kids();
-  const days = Array.from({ length: 5 }, (_, d) => addDays(now, d));
-  const blocks = days.map((d) => {
-    const items = itemsOn(d).filter((x) => d.getDate() !== now.getDate() || x.allDay || x.end > now);
-    return `
-      <div class="ag-day">
-        <div class="ag-head"><span class="ag-dow">${esc(relDay(d, now))}</span><span class="ag-date">${d.getMonth() + 1}/${d.getDate()}</span></div>
-        ${items.length ? items.map((x, j) => `
-          <div class="ag-item anim-row ${x.kind}" style="--c:${esc(whoColor(x.who, ks))};--i:${j}">
-            <span class="ag-t">${x.allDay ? 'All day' : clock(x.start, false)}</span>
-            <span class="ag-n">${esc(x.icon)} ${esc(x.title)}</span>
-            <span class="row-dots">${whoDots(x.who, ks)}</span>
-          </div>`).join('') : '<div class="ag-free">Nothing planned</div>'}
-      </div>`;
-  }).join('');
-  return card(`${header('Agenda', { href: '#/calendar', eyebrow: 'Next 5 days' })}<div class="agenda">${blocks}</div>`, 'agenda-card', i);
-}
-
-/** One menu for both girls — ADM's elementaries serve the same lunch. After 1pm, look ahead. */
-async function lunchBody(now) {
-  const ks = kids();
-  const day = new Date(now);
-  if (now.getHours() >= 13) day.setDate(day.getDate() + 1);
-  for (let i = 0; i < 7 && ks.every((k) => schoolDay(k.school, day).type === 'none'); i++) day.setDate(day.getDate() + 1);
-  const [{ menu }] = await menuRange(cfg.school.lunch.source, day, 1);
-  const lunch = menu?.lunch || [];
-  const hot = lunch.find((m) => /hot/i.test(m.label)) || lunch[0];
-  const others = lunch.filter((m) => m !== hot);
-  const sides = hot?.sides.flatMap((x) => x.items) || [];
-  return `
-    <div class="sh-eyebrow lunch-when">${esc(relDay(day, now))} · ${esc(cfg.school.lunch.label || 'School lunch')}</div>
-    <div class="lunch-hero anim-row">
-      <span class="lh-icon">🍱</span>
-      <div><div class="lk">Hot lunch</div><div class="lm">${esc(hot?.main?.[0] || 'Menu not posted yet')}</div></div>
-      <span class="lh-kids">${ks.map((k) => avatar(k, 'xs')).join('')}</span>
-    </div>
-    ${sides.length ? `<div class="meal-sides">${sides.map((x) => chip(x, 'var(--amber)')).join('')}</div>` : ''}
-    ${others.map((m) => `<div class="lunch-alt"><span class="meal-l">${esc(m.label)}</span>${m.main.map((x) => chip(x.replace(/\s*\(.*\)\s*$/, ''))).join('')}</div>`).join('')}`;
+    ${header('Leaderboard', { color: 'var(--coin)', href: '#/coins', eyebrow: cfg.chores.coinName, badge: pend ? `${pend} waiting` : null, badgeColor: 'var(--amber)' })}
+    ${ks.map((k, r) => {
+      const b = store.balance(k.id);
+      const week = store.earnedByDay(k.id, 7).reduce((s, d) => s + d.sum, 0);
+      return `<div class="lb-row anim-row" style="--c:${esc(k.color)};--i:${r}">
+        <span class="lb-rank">${r === 0 && b > 0 ? '👑' : r + 1}</span>${avatar(k)}
+        <div class="lb-main"><div class="lb-name">${esc(k.name)}<span>+${week} this week</span></div>
+          <div class="bar coin"><span style="--w:${Math.max(3, (b / max) * 100)}%"></span></div></div>
+        <span class="lb-val">🪙 <b data-count="${b}">${b}</b></span></div>`;
+    }).join('')}`, 'leader-card', i);
 }
 
 function choresCard(choreStats, i) {
@@ -259,23 +277,6 @@ function choresCard(choreStats, i) {
       </div>`;
   }).join('');
   return card(`${header('Chores', { href: '#/chores', eyebrow: `${part === 'morning' ? 'This morning' : part === 'afternoon' ? 'After school' : 'This evening'} · tap to finish` })}<div class="hc-cols">${cols}</div>`, 'chores-card', i);
-}
-
-function leaderCard(i) {
-  const ks = [...kids()].sort((a, b) => store.balance(b.id) - store.balance(a.id));
-  const max = Math.max(1, ...ks.map((k) => store.balance(k.id)));
-  const pend = store.allPending().length;
-  return card(`
-    ${header('Leaderboard', { color: 'var(--coin)', href: '#/coins', eyebrow: cfg.chores.coinName, badge: pend ? `${pend} waiting` : null, badgeColor: 'var(--amber)' })}
-    ${ks.map((k, r) => {
-      const b = store.balance(k.id);
-      const week = store.earnedByDay(k.id, 7).reduce((s, d) => s + d.sum, 0);
-      return `<div class="lb-row anim-row" style="--c:${esc(k.color)};--i:${r}">
-        <span class="lb-rank">${r === 0 && b > 0 ? '👑' : r + 1}</span>${avatar(k)}
-        <div class="lb-main"><div class="lb-name">${esc(k.name)}<span>+${week} this week</span></div>
-          <div class="bar coin"><span style="--w:${Math.max(3, (b / max) * 100)}%"></span></div></div>
-        <span class="lb-val">🪙 <b data-count="${b}">${b}</b></span></div>`;
-    }).join('')}`, 'leader-card', i);
 }
 
 function countdownCard(now, i) {

@@ -26,6 +26,7 @@ function render() {
   const { name, params } = parseHash();
   const view = ROUTES[name];
   document.title = name === 'home' ? 'Ervin Central' : `${view.title} · Ervin Central`;
+  document.body.dataset.route = name;
   $$('#tabs a').forEach((a) => a.classList.toggle('on', a.dataset.route === name));
   moveGlider();
 
