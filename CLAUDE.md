@@ -28,7 +28,7 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   last `--accept`; copy them into `data/calendar.json` under the privacy rule above (drop street
   addresses — keep a place name like "Island Park · Field 3"; skip anything medical, counseling,
   legal, parents' own plans, and custody "Matt/Brigitte Day/Weekend" entries, which `sleep` already
-  covers). ADM closures come from the district PDF into `school.json`, and
+  covers). Soccer games are always titled "Evie Soccer Game" / "Avery Soccer Game" (no opponent). ADM closures come from the district PDF into `school.json`, and
   `scripts/adm-to-kids-calendar.js` pushes them to the Kids calendar. Holidays are yearly rules in
   `calendar.json`, not dated entries.
 - Run `node --test 'tests/*.test.mjs'` after touching `js/data.js`, `js/scene.js` or `js/store.js`.
