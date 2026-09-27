@@ -200,5 +200,25 @@
     "_help": "Both elementary schools serve the same menu, so the site shows one. source = which school's LINQ menu to read.",
     "source": "mv",
     "label": "ADM Elementary"
+  },
+  "specialHints": {
+    "_help": "Icon + reminder for each special, used in the Today pill (\"👟 PE — sneakers\"). Matched by word in the specials text.",
+    "PE": {
+      "icon": "👟",
+      "hint": "sneakers"
+    },
+    "Library": {
+      "icon": "📚",
+      "hint": "library book"
+    },
+    "Music": {
+      "icon": "🎵"
+    },
+    "Art": {
+      "icon": "🎨"
+    },
+    "Computer Science": {
+      "icon": "💻"
+    }
   }
 }

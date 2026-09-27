@@ -132,10 +132,18 @@ function dayChips(ks, date) {
   return { same, family: same ? chip(texts[0], 'var(--acc)') : '', kid: (k) => (same ? '' : chip(dayText(dayType(k, date)), k.color)) };
 }
 
-/** Today's specials for one girl (her color) — "👟 Art & PE — sneakers". */
+/** Today's specials for one girl (her color) — "🎨👟 Art & PE — sneakers", "🎵📚 Music & Library — library book".
+ *  Icons and reminders come from school.json specialHints. */
 function specialsChip(k, date) {
   const sp = schoolDay(k.school, date).type !== 'none' ? schoolOf(k).specials?.[date.getDay()] : null;
-  return sp ? chip(PE.test(sp) ? `👟 ${sp} — sneakers` : `🎨 ${sp}`, k.color) : '';
+  if (!sp) return '';
+  const hits = Object.entries(cfg.school.specialHints || {})
+    .filter(([name]) => name !== '_help' && new RegExp(`\\b${name}\\b`, 'i').test(sp))
+    .sort(([a], [b]) => sp.search(new RegExp(a, 'i')) - sp.search(new RegExp(b, 'i'))) // icons in the order the day lists them
+    .map(([, h]) => h);
+  const icons = hits.map((h) => h.icon).join('') || '🎨';
+  const hints = hits.map((h) => h.hint).filter(Boolean);
+  return chip(`${icons} ${sp}${hints.length ? ` — ${hints.join(', ')}` : ''}`, k.color);
 }
 
 /** Family-wide calendar items, minus the holiday the day-type chip already names. */
