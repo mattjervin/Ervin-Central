@@ -63,13 +63,14 @@
       "name": "Evelynn",
       "emoji": "🦋",
       "color": "#ff8c42",
-      "school": "mv"
+      "school": "mv",
+      "art": "assets/butterfly-orange.svg"
     },
     {
       "id": "avery",
       "name": "Avery",
       "emoji": "🌻",
-      "color": "#6ea8fe",
+      "color": "#fde047",
       "school": "ae"
     }
   ],
@@ -87,7 +88,7 @@
       "kid": "evelynn",
       "date": "06-13",
       "year": 2017,
-      "icon": "🦋"
+      "icon": "🎂"
     },
     {
       "name": "Avery",
@@ -109,5 +110,6 @@
       "icon": "🎂"
     }
   ],
-  "_birthdays_help": "Birthdays with a kid id (the girls) are always pinned to the Countdowns card. Everyone else competes with major holidays for the other 4 of 6 countdown slots. Birthdays also show on the calendar."
+  "_birthdays_help": "Birthdays with a kid id (the girls) are always pinned to the Countdowns card. Everyone else competes with major holidays for the other 4 of 6 countdown slots. Birthdays also show on the calendar.",
+  "_kids_help": "color = the girl's own color everywhere (Evelynn orange, Avery yellow); green is the whole family. art = an image used in her hexagon avatar instead of the emoji (Evelynn's orange butterfly)."
 }

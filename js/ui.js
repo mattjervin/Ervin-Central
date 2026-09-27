@@ -44,7 +44,7 @@ export const chip = (text, color = 'var(--t3)') => `<span class="chip" style="--
 export const empty = (text) => `<p class="empty">${esc(text)}</p>`;
 
 /** Hexagon avatar in the kid's color. */
-export const avatar = (k, size = '') => `<span class="avatar ${size}" style="--c:${esc(k.color)}" aria-hidden="true"><span>${esc(k.emoji)}</span></span>`;
+export const avatar = (k, size = '') => `<span class="avatar ${size}" style="--c:${esc(k.color)}" aria-hidden="true"><span>${k.art ? `<img src="${esc(k.art)}" alt="">` : esc(k.emoji)}</span></span>`;
 
 /** Color dots for an item's `who`; family items get the brand green. */
 export function whoDots(who, kids) {

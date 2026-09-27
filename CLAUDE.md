@@ -10,7 +10,10 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
 - No build step, no framework, no npm dependencies. ES modules loaded directly by the browser.
 - Every interpolated value in a view goes through `esc()`.
 - Touch first: tap targets ≥ 44px (primary actions 48px+). No hover-only affordances.
-- Green (`--acc`) is the brand/family color; each kid keeps her own color (Evelynn orange, Avery blue; Mom's nights rose so they don't clash with orange); coins are gold.
+- Colors: green (`--acc`) = the whole family / both girls / generic (weather, what to wear, lunch —
+  it's the same menu at both schools, the day type, holidays). Evelynn orange (her avatar is an orange
+  butterfly, `assets/butterfly-orange.svg`), Avery yellow. Dad blue and Mom pink appear only on
+  where-they-sleep UI; the Tonight card takes tonight's parent color. Coins are gold.
 - Entrance animations run only when arriving on a page (`.view.settled` disables them on tap re-renders). Respect `prefers-reduced-motion`.
 - Content changes go in `data/*.json`, not code.
 - The site is public: never add teacher names, pickup numbers, home/party addresses, phone

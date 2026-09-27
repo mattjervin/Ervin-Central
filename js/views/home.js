@@ -3,7 +3,7 @@
 // lunch) and a peek at tomorrow. Then where the girls sleep, what's coming up, a 4-day forecast,
 // countdowns, and — last, since chores aren't the point — the coin leaderboard and chore chart.
 
-import { cfg, kids, itemsOn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { cfg, kids, itemsOn, holidaysIn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
 import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
 import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
@@ -41,7 +41,7 @@ export function render() {
     ${todayCard(now, 0)}
     ${sleepCard(now, 1)}
     ${comingCard(now, 2)}
-    ${card(`${header('Weather', { color: 'var(--blue)', eyebrow: 'Next 4 days' })}<div class="fc-row" id="wx4"><p class="empty">Loading forecast…</p></div>`, 'wx-card', 3)}
+    ${card(`${header('Weather', { color: 'var(--acc)', eyebrow: 'Next 4 days' })}<div class="fc-row" id="wx4"><p class="empty">Loading forecast…</p></div>`, 'wx-card', 3)}
     ${countdownCard(now, 4)}
     ${leaderCard(5)}
     ${choresCard(choreStats, 6)}
@@ -112,21 +112,37 @@ function wearStrip(el, w, now) {
 
 const PE = /\bPE\b/;
 
-/** School hours / no-school reason and today's specials, as "need to know" chips. */
-function schoolChips(k, date) {
-  const s = schoolOf(k);
+/** What kind of day it is for one girl — school times are nearly the same for both, so no hours:
+ *  School Day (early outs and conferences noted), Holiday (a dayOff holiday), Stay at Home Day
+ *  (weekends), or Daycare Day (any other weekday without school — breaks, workdays, summer). */
+function dayType(k, date) {
   const sd = schoolDay(k.school, date);
-  const out = [];
-  if (sd.type !== 'none') {
-    const [a, b] = sd.type === 'early' ? s.early : s.full;
-    out.push(chip(`🏫 ${clock(a, false)}–${clock(b)}${sd.type === 'early' ? ' · early out' : ''}${sd.note ? ` · ${sd.note}` : ''}`, k.color));
-    const sp = s.specials?.[date.getDay()];
-    if (sp) out.push(chip(PE.test(sp) ? `👟 ${sp} — sneakers` : `🎨 ${sp}`, 'var(--lime)'));
-  } else if (sd.note) {
-    out.push(chip(`🎒 No school · ${sd.note}`, 'var(--acc)'));
-  }
-  return out;
+  const hol = holidaysIn(date.getFullYear()).find((h) => h.dayOff && h.date === ymd(date));
+  if (sd.type !== 'none') return { icon: '🏫', label: 'School Day', note: [sd.type === 'early' ? 'early out' : '', sd.note].filter(Boolean).join(' · ') };
+  if (hol) return { icon: hol.icon, label: 'Holiday', note: hol.title };
+  if (date.getDay() === 0 || date.getDay() === 6) return { icon: '🛋️', label: 'Stay at Home Day', note: '' };
+  return { icon: '🧸', label: 'Daycare Day', note: sd.note || (sd.reason === 'Summer break' ? 'Summer break' : '') };
 }
+const dayText = (t) => `${t.icon} ${t.label}${t.note ? ` · ${t.note}` : ''}`;
+
+/** The day type once for both girls (green) when it's the same, otherwise per girl in her color. */
+function dayChips(ks, date) {
+  const texts = ks.map((k) => dayText(dayType(k, date)));
+  const same = texts.every((t) => t === texts[0]);
+  return { same, family: same ? chip(texts[0], 'var(--acc)') : '', kid: (k) => (same ? '' : chip(dayText(dayType(k, date)), k.color)) };
+}
+
+/** Today's specials for one girl (her color) — "👟 Art & PE — sneakers". */
+function specialsChip(k, date) {
+  const sp = schoolDay(k.school, date).type !== 'none' ? schoolOf(k).specials?.[date.getDay()] : null;
+  return sp ? chip(PE.test(sp) ? `👟 ${sp} — sneakers` : `🎨 ${sp}`, k.color) : '';
+}
+
+/** Family-wide calendar items, minus the holiday the day-type chip already names. */
+const familyItems = (date) => {
+  const hol = holidaysIn(date.getFullYear()).find((h) => h.dayOff && h.date === ymd(date));
+  return itemsOn(date).filter((x) => !x.who.length && x.kind !== 'school' && !(hol && x.kind === 'holiday' && x.title === hol.title));
+};
 
 /** A girl's own calendar items for `date` (not school, not family-wide), minus reminders the chips cover. */
 function kidItems(k, date) {
@@ -137,11 +153,14 @@ function kidItems(k, date) {
 
 function todayCard(now, i) {
   const ks = kids();
-  const family = itemsOn(now).filter((x) => !x.who.length && x.kind !== 'school');
-  const count = family.length + ks.reduce((s, k) => s + kidItems(k, now).length, 0);
   const tomorrow = addDays(now, 1);
+  const family = familyItems(now);
+  const count = family.length + ks.reduce((s, k) => s + kidItems(k, now).length, 0);
   const schoolToday = ks.some((k) => schoolDay(k.school, now).type !== 'none');
   const schoolTomorrow = ks.some((k) => schoolDay(k.school, tomorrow).type !== 'none');
+  const dayNow = dayChips(ks, now);
+  const dayTmr = dayChips(ks, tomorrow);
+  const famChips = (list, withTime) => list.map((x) => chip(`${x.icon} ${x.title}${withTime && !x.allDay ? ` · ${clock(x.start)}` : ''}`, 'var(--acc)'));
 
   const cols = ks.map((k) => {
     const items = kidItems(k, now);
@@ -157,32 +176,31 @@ function todayCard(now, i) {
         ${on ? '<span class="td-in now">Now</span>' : x === next ? `<span class="td-in">in <b data-until="${+x.start}"></b></span>` : ''}
       </div>`;
     }).join('');
-    const chips = schoolChips(k, now);
+    const chips = [dayNow.kid(k), specialsChip(k, now)].filter(Boolean);
     return `
       <div class="td-kid" style="--c:${esc(k.color)}">
         <a class="td-head" href="#/calendar">${avatar(k, 'sm')}<span>${esc(k.name)}</span></a>
         ${chips.length ? `<div class="td-know">${chips.join('')}</div>` : ''}
-        ${rows || `<p class="td-free">${chips.length ? 'Nothing else on the calendar.' : 'Free day 🎉'}</p>`}
+        ${rows || '<p class="td-free">Nothing on the calendar.</p>'}
       </div>`;
   }).join('');
 
   const tm = ks.map((k) => {
     const bits = [
-      ...schoolChips(k, tomorrow),
+      dayTmr.kid(k), specialsChip(k, tomorrow),
       ...kidItems(k, tomorrow).map((x) => chip(`${x.icon} ${x.title}${x.allDay ? '' : ` ${clock(x.start)}`}`, k.color)),
-    ];
+    ].filter(Boolean);
     return `<div class="tm-kid" style="--c:${esc(k.color)}">${avatar(k, 'xs')}<div class="tm-bits">${bits.join('') || '<span class="muted small">Nothing yet</span>'}</div></div>`;
   }).join('');
-  const tmFamily = itemsOn(tomorrow).filter((x) => !x.who.length && x.kind !== 'school');
 
   return card(`
     ${header('Today', { eyebrow: count ? `${plural(count, 'thing')} on the calendar` : 'Nothing on the calendar' })}
-    ${family.length ? `<div class="td-family">${family.map((x) => chip(`${x.icon} ${x.title}${x.allDay ? '' : ` · ${clock(x.start)}`}`, 'var(--acc)')).join('')}</div>` : ''}
+    <div class="td-family">${[dayNow.family, ...famChips(family, true)].join('')}</div>
     <div class="td-cols">${cols}</div>
     ${schoolToday && now.getHours() < 13 ? `<div class="td-lunch" data-lunch="${ymd(now)}"></div>` : ''}
     <div class="td-tomorrow">
       <div class="sh-eyebrow">Tomorrow · ${esc(DOW[tomorrow.getDay()])}</div>
-      ${tmFamily.length ? `<div class="td-family">${tmFamily.map((x) => chip(`${x.icon} ${x.title}`, 'var(--acc)')).join('')}</div>` : ''}
+      <div class="td-family">${[dayTmr.family, ...famChips(familyItems(tomorrow), false)].join('')}</div>
       ${tm}
       ${schoolTomorrow ? `<div class="td-lunch" data-lunch="${ymd(tomorrow)}"></div>` : ''}
     </div>`, 'today-card', i);
@@ -249,7 +267,7 @@ function comingCard(now, i) {
     }
   }
   return card(`
-    ${header('Coming Up', { color: 'var(--blue)', href: '#/calendar', eyebrow: 'Games · parties · days off · holidays' })}
+    ${header('Coming Up', { color: 'var(--acc)', href: '#/calendar', eyebrow: 'Games · parties · days off · holidays' })}
     ${out.slice(0, 7).map((x, j) => `
       <div class="cu-row anim-row ${x.kind}" style="--c:${esc(whoColor(x.who, ks))};--i:${j}">
         <div class="cu-date"><span class="cu-dow">${DOW3[x.date.getDay()]}</span><span class="cu-day">${x.date.getDate()}</span></div>
@@ -299,7 +317,7 @@ function countdownCard(now, i) {
   const ks = kids();
   const list = countdowns(now);
   if (!list.length) return '';
-  return card(`${header('Countdowns', { color: 'var(--lime)', eyebrow: 'Days until' })}
+  return card(`${header('Countdowns', { color: 'var(--acc)', eyebrow: 'Days until' })}
     <div class="cd-grid">${list.map((c, j) => {
       const k = c.kid && ks.find((x) => x.id === c.kid);
       const when = `${MONTH[c.date.getMonth()].slice(0, 3)} ${c.date.getDate()}`;

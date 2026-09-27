@@ -203,14 +203,14 @@ export function ruleDate(rule, y) {
 
 const holidayCache = new Map();
 
-/** Every holiday that falls in year `y`: [{ title, icon, date: 'YYYY-MM-DD', countdown }]. */
+/** Every holiday that falls in year `y`: [{ title, icon, date: 'YYYY-MM-DD', countdown, dayOff }]. */
 export function holidaysIn(y) {
   if (holidayCache.has(y)) return holidayCache.get(y);
   const out = [];
   for (const h of cfg.calendar.holidays || []) {
     const dates = h.rule ? [ruleDate(h.rule, y)].filter(Boolean).map((d) => ymd(d))
       : [...(h.dates || []), ...(h.date ? [h.date] : [])].filter((d) => d.startsWith(`${y}-`));
-    for (const date of dates) out.push({ title: h.title, icon: h.icon || '📅', date, countdown: Boolean(h.countdown) });
+    for (const date of dates) out.push({ title: h.title, icon: h.icon || '📅', date, countdown: Boolean(h.countdown), dayOff: Boolean(h.dayOff) });
   }
   holidayCache.set(y, out);
   return out;

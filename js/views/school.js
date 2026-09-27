@@ -68,7 +68,7 @@ function kidCard(k, i) {
 /** One menu for both girls — the two elementaries serve the same food. */
 function menuCard(start, i) {
   return card(`
-    ${header(meal === 'lunch' ? 'Lunch menu' : 'Breakfast menu', { color: 'var(--amber)', eyebrow: `Week of ${MONTH[start.getMonth()].slice(0, 3)} ${start.getDate()} · same menu at both schools` })}
+    ${header(meal === 'lunch' ? 'Lunch menu' : 'Breakfast menu', { color: 'var(--acc)', eyebrow: `Week of ${MONTH[start.getMonth()].slice(0, 3)} ${start.getDate()} · same menu at both schools` })}
     <div class="menu-week wide" data-menu data-start="${ymd(start)}"><p class="empty">Loading menu…</p></div>`, 'menu-card', i);
 }
 
@@ -84,7 +84,7 @@ async function fillMenu(el) {
     const meals = menu?.[meal] || [];
     const body = off.type === 'none' ? `<span class="muted">${esc(off.reason)}</span>`
       : meals.length ? meals.map((m) => meal === 'lunch' && !/hot/i.test(m.label) && !m.sides.length ? `
-          <div class="meal alt"><span class="meal-l">${esc(m.label)}</span>${m.main.map((x) => chip(x.replace(/\s*\(.*\)\s*$/, ''), 'var(--amber)')).join('')}</div>` : `
+          <div class="meal alt"><span class="meal-l">${esc(m.label)}</span>${m.main.map((x) => chip(x.replace(/\s*\(.*\)\s*$/, ''), 'var(--acc)')).join('')}</div>` : `
           <div class="meal">
             ${meal === 'lunch' ? `<span class="meal-l">${esc(m.label)}</span>` : ''}
             ${m.main.map((x) => `<div class="meal-main">${esc(x)}</div>`).join('')}
