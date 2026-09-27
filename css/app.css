@@ -354,6 +354,24 @@ body.parent .parent-btn .lock-closed { display: none; }
 @keyframes pulse { to { transform: scale(1.14); opacity: 0.75; } }
 @keyframes flicker { 0%, 48%, 52%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
 
+/* Weather over the scene (see scene.js skyKind) */
+.cloud.puffy { fill: rgba(235, 250, 242, 0.13); }
+.cloud.heavy { fill: rgba(150, 170, 160, 0.22); animation-duration: 140s; }
+.cloud.heavy.slow { animation-duration: 190s; }
+.sky-fog .cloud.heavy { fill: rgba(200, 215, 208, 0.1); }
+.veiled { opacity: 0.3; }
+.sky-rain .veiled, .sky-storm .veiled, .sky-snow .veiled, .sky-fog .veiled { opacity: 0.12; }
+.rain line { stroke: rgba(190, 225, 255, 0.45); stroke-width: 1.2; stroke-linecap: round; animation: rainfall var(--t) linear infinite; animation-delay: var(--d); }
+.sky-storm .rain line { stroke: rgba(190, 225, 255, 0.6); }
+.snow circle { fill: #f3fff7; opacity: 0.85; animation: snowfall var(--t) linear infinite; animation-delay: var(--d); }
+.snowcap { fill: #e8f5ec; opacity: 0.8; }
+.fog rect { fill: rgba(220, 236, 229, 0.09); animation: fogdrift 36s ease-in-out infinite alternate; animation-delay: var(--d); }
+.lightning { fill: #f5fbff; opacity: 0; animation: lightning 9s infinite; }
+@keyframes rainfall { from { transform: translate(24px, -320px); } to { transform: translate(0, 0); } }
+@keyframes snowfall { from { transform: translate(calc(var(--dx) * -1), -320px); } 50% { transform: translate(var(--dx), -160px); } to { transform: translate(calc(var(--dx) * -1), 0); } }
+@keyframes fogdrift { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
+@keyframes lightning { 0%, 90%, 92%, 95%, 100% { opacity: 0; } 91% { opacity: 0.4; } 93.5% { opacity: 0.25; } }
+
 .forecast { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
 .forecast:empty { display: none; }
 .fc {
@@ -820,7 +838,12 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
   .night { padding: 4px 0; }
   .nt-l { display: none; }
   .nt-i { font-size: 14px; }
-  .col-head { flex-wrap: wrap; }
+  /* Chore column header: ring + name on one row, the coin balance tucked underneath */
+  .col-head { flex-wrap: wrap; gap: 10px 14px; }
+  .col-head .ring { width: 64px !important; height: 64px !important; }
+  .col-id { flex: 1 1 160px; }
+  .col-id .kid-name { font-size: 22px; overflow-wrap: anywhere; }
+  .col-bal { flex-direction: row; align-items: baseline; gap: 8px; margin-left: 0; width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

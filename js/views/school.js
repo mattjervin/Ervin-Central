@@ -36,6 +36,13 @@ export function render() {
   <p class="footnote">Menus from LINQ Connect — subject to change.</p>`;
 }
 
+/** [1,2,3,4] → "Mon–Thu", [5] → "Friday", [1,3] → "Mon, Wed". */
+function dayRange(days) {
+  if (days.length === 1) return DOW[days[0]];
+  const run = days.every((d, i) => !i || d === days[i - 1] + 1);
+  return run ? `${DOW3[days[0]]}–${DOW3[days[days.length - 1]]}` : days.map((d) => DOW3[d]).join(', ');
+}
+
 function kidCard(k, i) {
   const s = schoolOf(k);
   const now = new Date();
@@ -44,16 +51,16 @@ function kidCard(k, i) {
   const sp = s.specials?.[now.getDay()];
 
   return card(`
-    <div class="kid-banner">${avatar(k, 'lg')}<div><div class="eyebrow" style="color:${k.color}">${esc(s.name)}</div><div class="kid-name">${esc(k.name)}</div></div></div>
+    <div class="kid-banner">${avatar(k, 'lg')}<div><div class="eyebrow" style="color:${esc(k.color)}">${esc(s.name)}</div><div class="kid-name">${esc(k.name)}</div></div></div>
     <div class="stat-row">
       ${stat(todayHours, today.type === 'early' ? 'Today · early out' : 'Today', { hero: true, color: k.color })}
-      ${stat(clock(s.full[1], false), 'Mon–Thu out')}
-      ${stat(clock(s.early[1], false), 'Friday out')}
+      ${stat(clock(s.full[1], false), `${dayRange([1, 2, 3, 4, 5].filter((d) => !s.earlyWeekdays.includes(d)))} out`)}
+      ${s.earlyWeekdays.length ? stat(clock(s.early[1], false), `${dayRange(s.earlyWeekdays)} out`) : ''}
       ${s.lunchTime ? stat(clock(s.lunchTime, false), 'Lunch time') : ''}
     </div>
     ${s.specials ? `
       ${header('Specials', { color: k.color, eyebrow: sp && today.type !== 'none' ? `Today: ${sp}${/PE/.test(sp) ? ' — wear sneakers 👟' : ''}` : 'Weekly rotation' })}
-      <div class="specials">${[1, 2, 3, 4, 5].map((d) => `<div class="sp ${d === now.getDay() ? 'today' : ''}" style="--c:${k.color}"><span class="sp-d">${DOW3[d]}</span><span class="sp-v">${esc(s.specials[d] || '—')}</span></div>`).join('')}</div>` : ''}
+      <div class="specials">${[1, 2, 3, 4, 5].map((d) => `<div class="sp ${d === now.getDay() ? 'today' : ''}" style="--c:${esc(k.color)}"><span class="sp-d">${DOW3[d]}</span><span class="sp-v">${esc(s.specials[d] || '—')}</span></div>`).join('')}</div>` : ''}
     ${s.notes?.length ? `<ul class="notes">${s.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
   `, 'kid-card', i);
 }

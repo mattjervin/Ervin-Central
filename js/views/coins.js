@@ -24,7 +24,7 @@ export function render() {
       const max = Math.max(1, ...week.map((d) => d.sum));
       const nextReward = cfg.chores.rewards.filter((r) => r.cost > bal).sort((a, b) => a.cost - b.cost)[0];
       return `
-      <div class="purse anim-card" style="--c:${k.color};--i:${i}">
+      <div class="purse anim-card" style="--c:${esc(k.color)};--i:${i}">
         ${i === 0 && bal > 0 ? '<span class="crown">👑</span>' : ''}
         ${avatar(k, 'xl')}
         <div class="purse-name">${esc(k.name)}</div>
@@ -39,7 +39,7 @@ export function render() {
     ${header('Waiting for a parent', { color: 'var(--amber)', badge: pending.length, eyebrow: 'Tap ✓ to approve' })}
     ${pending.map((p, j) => {
       const k = kidById(p.kid);
-      return `<div class="pend anim-row" style="--c:${k.color};--i:${j}">
+      return `<div class="pend anim-row" style="--c:${esc(k.color)};--i:${j}">
         <span class="pend-i">${esc(p.icon)}</span>
         <span class="pend-main"><span class="pend-t">${esc(k.name)} · ${esc(p.title)}</span><span class="pend-s">${p.type === 'reward' ? 'wants to spend' : 'earned'} ${Math.abs(p.amount)} coins · ${relDay(new Date(p.ts))} ${clock(new Date(p.ts))}</span></span>
         <span class="pend-amt ${p.amount < 0 ? 'neg' : ''}">${p.amount > 0 ? '+' : ''}${p.amount}</span>
@@ -60,7 +60,7 @@ export function render() {
     ${card(`${header('History', { color: 'var(--t3)', eyebrow: 'Every coin, explained' })}${history()}`, '', 3)}
     ${card(`
       ${header('Quick adjust', { color: 'var(--red)', eyebrow: 'Parents only' })}
-      ${ks.map((k) => `<div class="adj-row" style="--c:${k.color}">${avatar(k)}<span>${esc(k.name)}</span>
+      ${ks.map((k) => `<div class="adj-row" style="--c:${esc(k.color)}">${avatar(k)}<span>${esc(k.name)}</span>
         <button class="btn" data-adj="${k.id}" data-amt="-1">−1</button>
         <button class="btn" data-adj="${k.id}" data-amt="1">+1</button>
         <button class="btn" data-adj="${k.id}" data-amt="5">+5</button></div>`).join('')}
@@ -74,7 +74,7 @@ function history() {
   if (!rows.length) return empty('No coins yet — go tick off a chore!');
   return rows.map((e, j) => {
     const k = kidById(e.kid);
-    return `<div class="hist anim-row" style="--c:${k?.color};--i:${Math.min(j, 12)}">
+    return `<div class="hist anim-row" style="--c:${esc(k?.color)};--i:${Math.min(j, 12)}">
       <span class="hist-i">${esc(e.icon || '🪙')}</span>
       <span class="hist-main"><span class="hist-t">${esc(e.reason)}</span><span class="hist-s"><span class="dot"></span>${esc(k?.name || e.kid)} · ${relDay(new Date(e.ts))}</span></span>
       <span class="hist-amt ${e.amount < 0 ? 'neg' : ''}">${e.amount > 0 ? '+' : ''}${e.amount}</span>
@@ -115,7 +115,7 @@ function pickKidForReward(r, rerender) {
     <p class="sheet-sub">Who’s it for?</p>
     <div class="who-pick">${ks.map((k) => {
       const can = store.balance(k.id) >= r.cost;
-      return `<button class="who-btn ${can ? '' : 'disabled'}" data-for="${k.id}" style="--c:${k.color}" ${can ? '' : 'disabled'}>${avatar(k, 'lg')}<b>${esc(k.name)}</b><small>${can ? `has ${store.balance(k.id)}` : `needs ${r.cost - store.balance(k.id)} more`}</small></button>`;
+      return `<button class="who-btn ${can ? '' : 'disabled'}" data-for="${k.id}" style="--c:${esc(k.color)}" ${can ? '' : 'disabled'}>${avatar(k, 'lg')}<b>${esc(k.name)}</b><small>${can ? `has ${store.balance(k.id)}` : `needs ${r.cost - store.balance(k.id)} more`}</small></button>`;
     }).join('')}</div>
     <button class="btn ghost wide" data-close>Never mind</button>`, {
     onMount(sheet, close) {

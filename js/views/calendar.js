@@ -17,7 +17,7 @@ const time = (i) => (i.allDay ? 'All day' : `${clock(i.start)}${i.end > i.start 
 /** "🏡 Dad's" pill for the night of `d`. */
 function sleepTag(d, cls) {
   const s = sleepOn(d);
-  return s ? `<span class="${cls}" style="--c:${s.color}">${esc(s.icon)} ${esc(s.label)}</span>` : '';
+  return s ? `<span class="${cls}" style="--c:${esc(s.color)}">${esc(s.icon)} ${esc(s.label)}</span>` : '';
 }
 
 export function render() {
@@ -26,7 +26,7 @@ export function render() {
   const { label, body } = view === 'month' ? month(today) : view === 'agenda' ? agenda(today) : week(today);
 
   return `
-  ${hero('Family calendar', 'What’s', 'happening', `${ks.map((k) => `<span class="legend" style="--c:${k.color}"><span class="pdot"></span>${esc(k.name)}</span>`).join('')}<span class="legend" style="--c:var(--acc)"><span class="pdot"></span>Family</span>`)}
+  ${hero('Family calendar', 'What’s', 'happening', `${ks.map((k) => `<span class="legend" style="--c:${esc(k.color)}"><span class="pdot"></span>${esc(k.name)}</span>`).join('')}<span class="legend" style="--c:var(--acc)"><span class="pdot"></span>Family</span>`)}
   <div class="toolbar anim-fade-up">
     ${segmented('view', [['agenda', 'Agenda'], ['week', 'Week'], ['month', 'Month']], view)}
     ${kidFilter(ks, who)}
@@ -59,11 +59,11 @@ function week(today) {
         ${sleepTag(d, 'wk-sleep')}
         <div class="wk-items">
           ${items.map((x) => `
-            <div class="ev ${x.kind}" style="--c:${whoColor(x.who, ks)}">
+            <div class="ev ${x.kind}" style="--c:${esc(whoColor(x.who, ks))}">
               <span class="ev-t">${esc(x.icon)} ${esc(x.title)}</span><span class="ev-time">${time(x)}</span>
               ${x.who.length > 1 ? `<span class="ev-dots">${whoDots(x.who, ks)}</span>` : ''}
             </div>`).join('') || '<div class="ev-free">Free</div>'}
-          ${specials.map(({ k, sp }) => `<div class="special" style="--c:${k.color}">${esc(k.name)} · ${esc(sp)}</div>`).join('')}
+          ${specials.map(({ k, sp }) => `<div class="special" style="--c:${esc(k.color)}">${esc(k.name)} · ${esc(sp)}</div>`).join('')}
         </div>
       </div>`;
   }).join('');
@@ -83,7 +83,7 @@ function agenda(today) {
     return card(`
       <div class="agl-head"><span class="agl-day">${esc(relDay(d, today))}</span>${sleepTag(d, 'agl-sleep')}<span class="agl-date">${DOW[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}</span></div>
       ${items.map((x, j) => `
-        <div class="agl-item anim-row ${x.kind}" style="--c:${whoColor(x.who, ks)};--i:${j}">
+        <div class="agl-item anim-row ${x.kind}" style="--c:${esc(whoColor(x.who, ks))};--i:${j}">
           <span class="agl-time">${x.allDay ? 'All day' : clock(x.start)}</span>
           <span class="agl-icon">${esc(x.icon)}</span>
           <span class="agl-main"><span class="agl-title">${esc(x.title)}</span><span class="agl-sub">${esc([x.detail, x.allDay ? '' : time(x)].filter(Boolean).join(' · '))}</span></span>
@@ -107,9 +107,9 @@ function month(today) {
     return `
       <button class="mo-cell ${out ? 'out' : ''} ${ymd(d) === ymd(today) ? 'today' : ''}" data-day="${ymd(d)}" style="--i:${Math.min(i, 20)}">
         <span class="mo-num">${d.getDate()}</span>${school ? '<span class="mo-school" title="School day">🏫</span>' : ''}
-        <span class="mo-evs">${items.slice(0, 3).map((x) => `<span class="mo-ev" style="--c:${whoColor(x.who, ks)}">${esc(x.icon)} ${esc(x.title)}</span>`).join('')}
+        <span class="mo-evs">${items.slice(0, 3).map((x) => `<span class="mo-ev" style="--c:${esc(whoColor(x.who, ks))}">${esc(x.icon)} ${esc(x.title)}</span>`).join('')}
         ${items.length > 3 ? `<span class="mo-more">+${items.length - 3} more</span>` : ''}</span>
-        ${(() => { const s = sleepOn(d); return s ? `<span class="mo-sleep" style="--c:${s.color}" title="${esc(s.label)}"></span>` : ''; })()}
+        ${(() => { const s = sleepOn(d); return s ? `<span class="mo-sleep" style="--c:${esc(s.color)}" title="${esc(s.label)}"></span>` : ''; })()}
       </button>`;
   }).join('');
   const label = `${MONTH[first.getMonth()]} ${first.getFullYear()}`;
@@ -125,7 +125,7 @@ function dayDetail(key) {
     <h3 class="sheet-title">${DOW[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}</h3>
     ${sleepTag(d, 'agl-sleep')}
     <div class="sheet-list">${items.map((x) => `
-      <div class="agl-item" style="--c:${whoColor(x.who, ks)}"><span class="agl-time">${x.allDay ? 'All day' : clock(x.start)}</span><span class="agl-icon">${esc(x.icon)}</span>
+      <div class="agl-item" style="--c:${esc(whoColor(x.who, ks))}"><span class="agl-time">${x.allDay ? 'All day' : clock(x.start)}</span><span class="agl-icon">${esc(x.icon)}</span>
       <span class="agl-main"><span class="agl-title">${esc(x.title)}</span><span class="agl-sub">${esc(x.detail || time(x))}</span></span><span class="row-dots">${whoDots(x.who, ks)}</span></div>`).join('') || '<p class="empty">Nothing planned.</p>'}</div>
     <button class="btn ghost wide" data-close>Close</button>`);
 }

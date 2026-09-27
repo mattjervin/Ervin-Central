@@ -21,9 +21,9 @@ export function hero(eyebrow, lead, accent, lede = '', aside = '') {
 
 /** Card header: small hex marker, Cinzel title, optional badge and "see all" link. */
 export function header(title, { color = 'var(--acc)', badge, badgeColor, href, eyebrow } = {}) {
-  const b = badge != null ? `<span class="badge" style="--c:${badgeColor || color}">${esc(badge)}</span>` : '';
+  const b = badge != null ? `<span class="badge" style="--c:${esc(badgeColor || color)}">${esc(badge)}</span>` : '';
   const more = href ? `<a class="sh-more" href="${href}">View <span aria-hidden="true">→</span></a>` : '';
-  return `<header class="sh" style="--c:${color}">
+  return `<header class="sh" style="--c:${esc(color)}">
     <span class="hexdot" aria-hidden="true"></span>
     <div class="sh-text">${eyebrow ? `<div class="sh-eyebrow">${esc(eyebrow)}</div>` : ''}<h2>${esc(title)}</h2></div>
     ${b}${more}
@@ -33,24 +33,24 @@ export function header(title, { color = 'var(--acc)', badge, badgeColor, href, e
 /** Stat tile. Numbers count up on first paint (see app.js animateCounts). */
 export function stat(value, label, { hero: isHero = false, color, sub } = {}) {
   const n = typeof value === 'number';
-  return `<div class="stat-tile ${isHero ? 'hero' : ''}" ${color ? `style="--c:${color}"` : ''}>
+  return `<div class="stat-tile ${isHero ? 'hero' : ''}" ${color ? `style="--c:${esc(color)}"` : ''}>
     <div class="sv" ${n ? `data-count="${value}"` : ''}>${esc(value)}</div>
     <div class="sl">${esc(label)}</div>${sub ? `<div class="ss">${esc(sub)}</div>` : ''}
   </div>`;
 }
 
-export const chip = (text, color = 'var(--t3)') => `<span class="chip" style="--c:${color}">${esc(text)}</span>`;
+export const chip = (text, color = 'var(--t3)') => `<span class="chip" style="--c:${esc(color)}">${esc(text)}</span>`;
 
 export const empty = (text) => `<p class="empty">${esc(text)}</p>`;
 
 /** Hexagon avatar in the kid's color. */
-export const avatar = (k, size = '') => `<span class="avatar ${size}" style="--c:${k.color}" aria-hidden="true"><span>${esc(k.emoji)}</span></span>`;
+export const avatar = (k, size = '') => `<span class="avatar ${size}" style="--c:${esc(k.color)}" aria-hidden="true"><span>${esc(k.emoji)}</span></span>`;
 
 /** Color dots for an item's `who`; family items get the brand green. */
 export function whoDots(who, kids) {
   if (!who.length) return `<span class="dot" style="--c:var(--acc)" title="Family"></span>`;
   return who.map((id) => kids.find((k) => k.id === id)).filter(Boolean)
-    .map((k) => `<span class="dot" style="--c:${k.color}" title="${esc(k.name)}"></span>`).join('');
+    .map((k) => `<span class="dot" style="--c:${esc(k.color)}" title="${esc(k.name)}"></span>`).join('');
 }
 
 /** Accent color for an item: one kid → her color, otherwise family green. */
@@ -61,7 +61,7 @@ export function whoColor(who, kids) {
 /** Choice-pill row. `current` is the active value, null = Everyone. */
 export function kidFilter(kids, current, { all = true } = {}) {
   const pill = (val, label, color) =>
-    `<button class="choice-pill ${current === val ? 'selected' : ''}" data-kid="${val ?? ''}" style="--c:${color}">${label}</button>`;
+    `<button class="choice-pill ${current === val ? 'selected' : ''}" data-kid="${val ?? ''}" style="--c:${esc(color)}">${label}</button>`;
   return `<div class="pills" role="tablist">${all ? pill(null, 'Everyone', 'var(--acc)') : ''}${kids.map((k) => pill(k.id, `<span class="pdot"></span>${esc(k.name)}`, k.color)).join('')}</div>`;
 }
 
@@ -75,7 +75,7 @@ export function segmented(name, options, current) {
 export function ring(frac, color, size = 64, stroke = 7, inner = '') {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  return `<div class="ring" style="--c:${color};width:${size}px;height:${size}px">
+  return `<div class="ring" style="--c:${esc(color)};width:${size}px;height:${size}px">
     <svg viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" class="ring-bg"/>
     <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke-width="${stroke}" class="ring-fg" style="stroke-dasharray:${c};--off:${c * (1 - Math.min(1, frac))};--full:${c}"/></svg>
     <div class="ring-in">${inner}</div></div>`;
@@ -106,11 +106,23 @@ export function coinBurst(x, y, amount) {
 
 // ---- Modal sheet ---------------------------------------------------------------------------
 
-export function modal(html, { onMount } = {}) {
+let closeOpen = null; // the sheet on screen now, so opening another one cancels it cleanly
+
+/** Bottom sheet. `onClose` runs once however it closes (✕, backdrop, idle, or a newer sheet). */
+export function modal(html, { onMount, onClose } = {}) {
+  closeOpen?.();
   const root = $('#modal');
   root.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
   root.classList.add('open');
-  const close = () => { root.classList.remove('open'); root.innerHTML = ''; };
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    if (closeOpen === close) closeOpen = null;
+    root.classList.remove('open'); root.innerHTML = ''; root.onclick = null;
+    onClose?.();
+  };
+  closeOpen = close;
   root.onclick = (e) => { if (e.target === root || e.target.closest('[data-close]')) close(); };
   onMount?.(root.firstElementChild, close);
   return close;
@@ -131,6 +143,7 @@ export function requireParent({ reset = false } = {}) {
   return new Promise((resolve) => {
     let entry = '';
     let first = null;
+    let ok = false;
     const close = modal(`
       <h3 class="sheet-title">${reset ? 'New parent PIN' : creating ? 'Create a parent PIN' : 'Parent PIN'}</h3>
       <p class="sheet-sub" id="pin-sub">${creating ? 'Pick 4 digits. Kids won’t see it.' : 'Enter the 4-digit PIN.'}</p>
@@ -151,7 +164,7 @@ export function requireParent({ reset = false } = {}) {
             if (creating) store.setPinHash(h);
             unlockedUntil = Date.now() + 5 * 60e3;
             document.body.classList.add('parent');
-            close(); resolve(true);
+            ok = true; close();
           } else {
             sheet.querySelector('#pin-dots').classList.add('shake');
             setTimeout(() => sheet.querySelector('#pin-dots')?.classList.remove('shake'), 400);
@@ -160,9 +173,7 @@ export function requireParent({ reset = false } = {}) {
           }
         });
       },
-    });
-    $('#modal').addEventListener('click', function once(e) {
-      if (e.target.id === 'modal' || e.target.closest('[data-close]')) { $('#modal').removeEventListener('click', once); resolve(false); }
+      onClose: () => resolve(ok),
     });
   });
 }
@@ -170,8 +181,7 @@ export function requireParent({ reset = false } = {}) {
 /** Yes/no sheet. `danger` paints the confirm button red. */
 export function confirmSheet(title, body, { ok = 'Yes', danger = false, icon = '' } = {}) {
   return new Promise((resolve) => {
-    let answered = false;
-    const done = (v) => { if (!answered) { answered = true; resolve(v); } };
+    let yes = false;
     modal(`
       ${icon ? `<div class="sheet-icon">${icon}</div>` : ''}
       <h3 class="sheet-title">${esc(title)}</h3>
@@ -179,11 +189,9 @@ export function confirmSheet(title, body, { ok = 'Yes', danger = false, icon = '
       <button class="btn wide ${danger ? 'danger' : 'ok'}" data-yes>${esc(ok)}</button>
       <button class="btn ghost wide" data-close>Cancel</button>`, {
       onMount(sheet, close) {
-        sheet.querySelector('[data-yes]').addEventListener('click', () => { done(true); close(); });
+        sheet.querySelector('[data-yes]').addEventListener('click', () => { yes = true; close(); });
       },
-    });
-    $('#modal').addEventListener('click', function once(e) {
-      if (e.target.id === 'modal' || e.target.closest('[data-close]')) { $('#modal').removeEventListener('click', once); done(false); }
+      onClose: () => resolve(yes),
     });
   });
 }

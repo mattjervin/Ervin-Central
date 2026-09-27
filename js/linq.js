@@ -69,7 +69,7 @@ export function normalize(raw) {
 export async function fetchMenu({ districtId, buildingId, start, end, headers = {} }) {
   const url = `${API}?buildingId=${buildingId}&districtId=${districtId}` +
     `&startDate=${linqFromIso(start)}&endDate=${linqFromIso(end)}`;
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(15e3) });
   if (!res.ok) throw new Error(`LINQ ${res.status}`);
   return normalize(await res.json());
 }

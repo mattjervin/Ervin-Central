@@ -1,4 +1,4 @@
-// Caches every published breakfast/lunch menu (LINQ usually posts ~2 months ahead) for every school in data/school.json into
+// Caches every published breakfast/lunch menu (LINQ usually posts ~2 months ahead) for the lunch.source school into
 // data/menus.json. Run nightly by .github/workflows/menus.yml so the site still has menus if the
 // live LINQ call ever fails from a kid's iPad. Usage: node scripts/fetch-menus.mjs
 import { readFile, writeFile } from 'node:fs/promises';
@@ -20,7 +20,8 @@ const headers = {
 };
 
 const out = { updated: new Date().toISOString(), schools: {} };
-for (const [key, s] of Object.entries(school.schools)) {
+// Both elementaries serve the same menu, so only the school the site reads (lunch.source) is cached.
+for (const [key, s] of Object.entries(school.schools).filter(([k]) => k === school.lunch.source)) {
   out.schools[key] = await fetchMenu({
     districtId: school.district.linq.districtId,
     buildingId: s.buildingId,

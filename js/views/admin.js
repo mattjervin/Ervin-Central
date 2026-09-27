@@ -48,7 +48,7 @@ function kidAdmin(k) {
   const recent = store.history(k.id, 6);
   return card(`
     <div class="kid-banner">${avatar(k, 'lg')}
-      <div><div class="eyebrow" style="color:${k.color}">${store.pendingFor(k.id).length} waiting · ${store.history(k.id, 1e6).length} entries</div><div class="kid-name">${esc(k.name)}</div></div>
+      <div><div class="eyebrow" style="color:${esc(k.color)}">${store.pendingFor(k.id).length} waiting · ${store.history(k.id, 1e6).length} entries</div><div class="kid-name">${esc(k.name)}</div></div>
       <div class="col-bal"><span class="cb-l">Balance</span><span class="cb-v">🪙 <b>${bal}</b></span></div>
     </div>
 
@@ -76,7 +76,7 @@ function kidAdmin(k) {
         <span class="row-main"><span class="row-title">${esc(e.reason)}</span><span class="row-sub">${relDay(new Date(e.ts))} ${clock(new Date(e.ts))}</span></span>
         <span class="amt ${e.amount < 0 ? 'neg' : ''}">${e.amount > 0 ? '+' : ''}${e.amount}</span>
         <button class="btn icon ghost" data-remove="${e.id}" aria-label="Remove">✕</button></li>`).join('')}</ul>` : empty('Nothing yet.')}
-  `, 'kid-card', 0, `--c:${k.color}`);
+  `, 'kid-card', 0, `--c:${esc(k.color)}`);
 }
 
 function syncCard() {

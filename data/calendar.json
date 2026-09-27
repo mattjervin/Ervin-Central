@@ -1,5 +1,5 @@
 {
-  "_help": "Synced by hand from the Kids calendar on Matt's Mac (2026-09-26). who = kid ids, [] = whole family. days = weekdays (0 Sun … 6 Sat). Times 24h HH:MM; omit start for all-day. except = dates a recurring item is cancelled. tentative = show with a '?'. holidays show on the calendar; countdown: true makes one eligible for the Countdowns card (with birthdays from family.json). Keep private items (medical, counseling, addresses) out of this public file.",
+  "_help": "Synced by hand from the Kids calendar on Matt's Mac (2026-09-26). who = kid ids, [] = whole family. days = weekdays (0 Sun … 6 Sat). Times 24h HH:MM; omit start for all-day. except = dates a recurring item is cancelled; schoolDays: true = only on days that kid has school (skips breaks and workdays). tentative = show with a '?'. holidays repeat every year by `rule`: \"MM-DD\" (fixed date), \"3rd-mon-01\" / \"last-mon-05\" (nth weekday of a month), \"easter\" or \"election\"; lunar ones (Hanukkah) list `dates` instead, and a one-off can use `date`. Holidays show on the calendar; countdown: true makes one eligible for the Countdowns card (with birthdays from family.json). Keep private items (medical, counseling, addresses) out of this public file.",
   "sleep": {
     "_help": "Where the girls sleep each night. The night of a date belongs to whoever has that day. Mon/Wed = mom, Tue/Thu = dad, Fri–Sun alternate weekends starting from weekendAnchor. overrides beat the pattern (holidays, swaps).",
     "places": {
@@ -160,7 +160,8 @@
       "start": "06:30",
       "end": "06:45",
       "from": "2026-08-24",
-      "until": "2027-05-27"
+      "until": "2027-05-27",
+      "schoolDays": true
     }
   ],
   "events": [
@@ -314,118 +315,130 @@
   ],
   "holidays": [
     {
-      "title": "Indigenous Peoples' Day",
-      "icon": "🍂",
-      "date": "2026-10-12"
-    },
-    {
-      "title": "Halloween",
-      "icon": "🎃",
-      "date": "2026-10-31",
-      "countdown": true
-    },
-    {
-      "title": "Clocks fall back",
-      "icon": "🕰️",
-      "date": "2026-11-01"
-    },
-    {
-      "title": "Election Day",
-      "icon": "🗳️",
-      "date": "2026-11-03"
-    },
-    {
-      "title": "Veterans Day",
-      "icon": "🇺🇸",
-      "date": "2026-11-11"
-    },
-    {
-      "title": "Thanksgiving",
-      "icon": "🦃",
-      "date": "2026-11-26",
-      "countdown": true
-    },
-    {
-      "title": "Hanukkah begins",
-      "icon": "🕎",
-      "date": "2026-12-05"
-    },
-    {
-      "title": "Christmas Eve",
-      "icon": "✨",
-      "date": "2026-12-24"
-    },
-    {
-      "title": "Christmas",
-      "icon": "🎄",
-      "date": "2026-12-25",
-      "countdown": true
-    },
-    {
-      "title": "New Year's Eve",
-      "icon": "🎆",
-      "date": "2026-12-31"
-    },
-    {
       "title": "New Year's Day",
       "icon": "🥳",
-      "date": "2027-01-01",
+      "rule": "01-01",
       "countdown": true
     },
     {
       "title": "MLK Day",
       "icon": "✊",
-      "date": "2027-01-18"
+      "rule": "3rd-mon-01"
     },
     {
       "title": "Valentine's Day",
       "icon": "💝",
-      "date": "2027-02-14",
+      "rule": "02-14",
       "countdown": true
     },
     {
       "title": "Presidents' Day",
       "icon": "🇺🇸",
-      "date": "2027-02-15"
+      "rule": "3rd-mon-02"
     },
     {
       "title": "Clocks spring forward",
       "icon": "🕰️",
-      "date": "2027-03-14"
+      "rule": "2nd-sun-03"
     },
     {
       "title": "St. Patrick's Day",
       "icon": "☘️",
-      "date": "2027-03-17"
+      "rule": "03-17"
     },
     {
       "title": "Easter",
       "icon": "🐣",
-      "date": "2027-03-28",
+      "rule": "easter",
       "countdown": true
     },
     {
       "title": "Mother's Day",
       "icon": "💐",
-      "date": "2027-05-09",
+      "rule": "2nd-sun-05",
       "countdown": true
     },
     {
       "title": "Memorial Day",
       "icon": "🇺🇸",
-      "date": "2027-05-31"
+      "rule": "last-mon-05"
     },
     {
       "title": "Father's Day",
       "icon": "👔",
-      "date": "2027-06-20",
+      "rule": "3rd-sun-06",
       "countdown": true
     },
     {
       "title": "Fourth of July",
       "icon": "🎇",
-      "date": "2027-07-04",
+      "rule": "07-04",
       "countdown": true
+    },
+    {
+      "title": "Labor Day",
+      "icon": "🛠️",
+      "rule": "1st-mon-09"
+    },
+    {
+      "title": "Indigenous Peoples' Day",
+      "icon": "🍂",
+      "rule": "2nd-mon-10"
+    },
+    {
+      "title": "Halloween",
+      "icon": "🎃",
+      "rule": "10-31",
+      "countdown": true
+    },
+    {
+      "title": "Clocks fall back",
+      "icon": "🕰️",
+      "rule": "1st-sun-11"
+    },
+    {
+      "title": "Election Day",
+      "icon": "🗳️",
+      "rule": "election"
+    },
+    {
+      "title": "Veterans Day",
+      "icon": "🇺🇸",
+      "rule": "11-11"
+    },
+    {
+      "title": "Thanksgiving",
+      "icon": "🦃",
+      "rule": "4th-thu-11",
+      "countdown": true
+    },
+    {
+      "title": "Christmas Eve",
+      "icon": "✨",
+      "rule": "12-24"
+    },
+    {
+      "title": "Christmas",
+      "icon": "🎄",
+      "rule": "12-25",
+      "countdown": true
+    },
+    {
+      "title": "New Year's Eve",
+      "icon": "🎆",
+      "rule": "12-31"
+    },
+    {
+      "title": "Hanukkah begins",
+      "icon": "🕎",
+      "dates": [
+        "2026-12-05",
+        "2027-12-25",
+        "2028-12-13",
+        "2029-12-02",
+        "2030-12-21",
+        "2031-12-10"
+      ]
     }
   ]
 }

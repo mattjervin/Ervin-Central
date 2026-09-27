@@ -115,9 +115,16 @@ function mutate(bin, op) {
 
 // ---- JSONBin -------------------------------------------------------------------------------
 
+/** 4xx = wrong key or bin id (retrying won't help); anything else is worth another try. */
+function httpError(what, code) {
+  const err = new Error(code >= 400 && code < 500 && code !== 429 ? `JSONBin ${what} ${code} — check the key in Admin → Sync` : `JSONBin ${what} ${code}`);
+  err.fatal = code >= 400 && code < 500 && code !== 429;
+  return err;
+}
+
 async function getBin(id) {
   const res = await fetch(`${API}${id}/latest`, { headers: { 'X-Access-Key': sync.accessKey, 'X-Bin-Meta': 'false' }, cache: 'no-store' });
-  if (!res.ok) throw new Error(`JSONBin read ${res.status}`);
+  if (!res.ok) throw httpError('read', res.status);
   return res.json();
 }
 
@@ -127,7 +134,7 @@ async function putBin(id, doc) {
     headers: { 'Content-Type': 'application/json', 'X-Access-Key': sync.accessKey },
     body: JSON.stringify(doc),
   });
-  if (!res.ok) throw new Error(`JSONBin save ${res.status}`);
+  if (!res.ok) throw httpError('save', res.status);
   return (await res.json()).record;
 }
 
@@ -140,6 +147,7 @@ function withOutbox(bin, remote) {
 
 let flushing = null;
 let retryTimer = null;
+let flushes = 0; // bumped after every successful save, so a pull that started earlier can tell it's stale
 
 function flush() {
   if (!sync) return Promise.resolve();
@@ -154,6 +162,7 @@ function flush() {
         const saved = await putBin(sync.bins[bin], fresh);
         outbox = outbox.filter((o) => !batch.includes(o));
         docs[bin] = withOutbox(bin, saved);
+        flushes++;
         saveLocal();
       }
       status.error = null;
@@ -161,7 +170,7 @@ function flush() {
     } catch (err) {
       status.error = err.message;
       clearTimeout(retryTimer);
-      retryTimer = setTimeout(flush, 20e3);
+      if (!err.fatal) retryTimer = setTimeout(flush, 20e3);
     } finally {
       status.busy = false; flushing = null;
       notify('remote');
@@ -296,9 +305,11 @@ export const store = {
   /** Pull every bin. Remote wins, with this device's unsent ops re-applied on top. */
   async pull() {
     if (!sync || flushing) return;
+    const seen = flushes;
     try {
       const bins = ['household', ...kidIds];
       const got = await Promise.all(bins.map((b) => getBin(sync.bins[b])));
+      if (flushes !== seen || flushing) return; // a save landed mid-pull; this copy predates it
       const before = JSON.stringify(docs);
       bins.forEach((b, i) => { docs[b] = withOutbox(b, { ...(b === 'household' ? blankHousehold() : blankKid(b)), ...got[i] }); });
       saveLocal();
@@ -342,6 +353,9 @@ export const store = {
 
   hasLocalActivity() { return kidIds.some((k) => docs[k].ledger.length || docs[k].pending.length); },
 };
+
+/** For tests: the op reducer on its own. */
+export { apply as applyOp };
 
 /** SHA-256 of the PIN. Keeps kids from reading it out of a bin; it is not real security. */
 export async function hashPin(pin) {

@@ -18,15 +18,22 @@ export function render(params) {
   const left = sel.reduce((s, k) => s + choresFor(k.id).filter((c) => !store.isDone(today, c.id, k.id)).length, 0);
 
   return `
-  ${hero(one ? `${one.name}'s chart` : 'Family chore chart', 'Chore', 'chart', left ? `${left} daily chore${left === 1 ? '' : 's'} left today. Tap one when it’s done — the coin lands right away. Extra chores earn 2.` : 'Everything’s done today. Nice work! 🎉')}
+  ${hero(one ? `${one.name}'s chart` : 'Family chore chart', 'Chore', 'chart', left ? `${left} daily chore${left === 1 ? '' : 's'} left today. Tap one when it’s done — the coin lands right away.${bonusPay()}` : 'Everything’s done today. Nice work! 🎉')}
   <div class="toolbar anim-fade-up">
     <div class="pills">
       <a class="choice-pill ${!one ? 'selected' : ''}" href="#/chores" style="--c:var(--acc)">Everyone</a>
-      ${ks.map((k) => `<a class="choice-pill kid-pill ${one?.id === k.id ? 'selected' : ''}" href="#/chores/${k.id}" style="--c:${k.color}">${avatar(k, 'xs')}${esc(k.name)}</a>`).join('')}
+      ${ks.map((k) => `<a class="choice-pill kid-pill ${one?.id === k.id ? 'selected' : ''}" href="#/chores/${k.id}" style="--c:${esc(k.color)}">${avatar(k, 'xs')}${esc(k.name)}</a>`).join('')}
     </div>
   </div>
   <div class="cols ${sel.length > 1 ? 'two' : ''}">${sel.map((k, i) => column(k, i)).join('')}</div>
   ${bonus(sel, sel.length + 1)}`;
+}
+
+/** " Extra chores earn 2." — from chores.json, so changing a bonus's coins changes the copy. */
+function bonusPay() {
+  const pays = [...new Set(cfg.chores.bonus.map((b) => b.coins))].sort((a, b) => a - b);
+  if (!pays.length) return '';
+  return ` Extra chores earn ${pays.length === 1 ? pays[0] : `${pays[0]}–${pays[pays.length - 1]}`}.`;
 }
 
 function column(k, i) {
@@ -55,7 +62,7 @@ function column(k, i) {
     </div>
     ${frac === 1 && list.length ? `<div class="all-done">🎉 All done today, ${esc(k.name)}!</div>` : ''}
     ${groups || empty('No chores today.')}
-  `, 'kid-col', i, `--c:${k.color}`);
+  `, 'kid-col', i, `--c:${esc(k.color)}`);
 }
 
 function tile(k, c, done, j) {
@@ -76,7 +83,7 @@ function bonus(sel, i) {
         <span class="b-main"><span class="b-title">${esc(b.title)}</span><span class="b-coins">🪙 +${b.coins}</span></span>
         <span class="b-who">${sel.map((k) => {
           const waiting = store.pendingFor(k.id).filter((p) => p.type === 'bonus' && p.ref === b.id).length;
-          return `<button class="b-btn" data-bonus="${b.id}" data-kid="${k.id}" style="--c:${k.color}" aria-label="${esc(k.name)} did this">${avatar(k, 'sm')}${waiting ? `<span class="b-wait">${waiting}</span>` : ''}</button>`;
+          return `<button class="b-btn" data-bonus="${b.id}" data-kid="${k.id}" style="--c:${esc(k.color)}" aria-label="${esc(k.name)} did this">${avatar(k, 'sm')}${waiting ? `<span class="b-wait">${waiting}</span>` : ''}</button>`;
         }).join('')}</span>
       </div>`).join('')}</div>`, 'bonus-card', i);
 }

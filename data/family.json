@@ -4,7 +4,58 @@
     "name": "Adel, IA",
     "lat": 41.6144,
     "lon": -94.0169,
-    "timezone": "America/Chicago"
+    "timezone": "America/Chicago",
+    "sun": {
+      "_help": "Average sunrise / sunset for Des Moines around the 15th of each month (local clock time, DST included). The Home landscape blends between months so the sky shifts a little every day.",
+      "1": [
+        "07:35",
+        "17:05"
+      ],
+      "2": [
+        "07:08",
+        "17:45"
+      ],
+      "3": [
+        "07:22",
+        "19:15"
+      ],
+      "4": [
+        "06:37",
+        "19:50"
+      ],
+      "5": [
+        "05:58",
+        "20:22"
+      ],
+      "6": [
+        "05:37",
+        "20:47"
+      ],
+      "7": [
+        "05:50",
+        "20:44"
+      ],
+      "8": [
+        "06:20",
+        "20:08"
+      ],
+      "9": [
+        "06:52",
+        "19:17"
+      ],
+      "10": [
+        "07:25",
+        "18:28"
+      ],
+      "11": [
+        "07:05",
+        "16:55"
+      ],
+      "12": [
+        "07:32",
+        "16:45"
+      ]
+    }
   },
   "kids": [
     {
@@ -36,16 +87,14 @@
       "kid": "evelynn",
       "date": "06-13",
       "year": 2017,
-      "icon": "🦋",
-      "always": true
+      "icon": "🦋"
     },
     {
       "name": "Avery",
       "kid": "avery",
       "date": "06-05",
       "year": 2020,
-      "icon": "🌻",
-      "always": true
+      "icon": "🌻"
     },
     {
       "name": "Dad",
@@ -60,5 +109,5 @@
       "icon": "🎂"
     }
   ],
-  "_birthdays_help": "always = pinned to the Countdowns card (the girls). Everyone else competes with major holidays for the other 4 of 6 countdown slots. Birthdays also show on the calendar."
+  "_birthdays_help": "Birthdays with a kid id (the girls) are always pinned to the Countdowns card. Everyone else competes with major holidays for the other 4 of 6 countdown slots. Birthdays also show on the calendar."
 }

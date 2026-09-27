@@ -31,7 +31,14 @@ export const schoolOf = (k) => cfg.school.schools[k.school];
 
 // ---- School days -------------------------------------------------------------------------
 
-/** { type: 'full' | 'early' | 'none', reason } for one school on one day. */
+/** Find `key` in a list of "YYYY-MM-DD" strings or { date, label } objects. */
+const dayEntry = (list, key) => {
+  const hit = (list || []).find((n) => (typeof n === 'string' ? n : n.date) === key);
+  return hit && (typeof hit === 'string' ? { date: hit } : hit);
+};
+
+/** { type: 'full' | 'early' | 'none', reason, note } for one school on one day.
+ *  `note` is set only for days the district calendar calls out (breaks, workdays, conferences). */
 export function schoolDay(schoolKey, date) {
   const y = cfg.school.year;
   const s = cfg.school.schools[schoolKey];
@@ -39,13 +46,16 @@ export function schoolDay(schoolKey, date) {
   const dow = date.getDay();
   if (dow === 0 || dow === 6) return { type: 'none', reason: 'Weekend' };
   if (key < y.firstDay || key > y.lastDay) return { type: 'none', reason: 'Summer break' };
-  const off = y.noSchool.find((n) => (typeof n === 'string' ? n : n.date) === key);
-  if (off) return { type: 'none', reason: typeof off === 'string' ? 'No school' : off.label || 'No school' };
-  if (y.firstDaysEarlyOut.includes(key) || y.extraEarlyOut.includes(key) || s.earlyWeekdays.includes(dow)) {
-    return { type: 'early', reason: 'Early out' };
-  }
+  const off = dayEntry(y.noSchool, key);
+  if (off) return { type: 'none', reason: off.label || 'No school', note: off.label || 'No school' };
+  const early = dayEntry(y.firstDaysEarlyOut, key) || dayEntry(y.extraEarlyOut, key);
+  if (early) return { type: 'early', reason: 'Early out', note: early.label || '' };
+  if (s.earlyWeekdays.includes(dow)) return { type: 'early', reason: 'Early out' };
   return { type: 'full' };
 }
+
+/** Weekday before `date` (Fri for a Mon), to tell the first day of a break from the rest. */
+const prevWeekday = (date) => addDays(date, date.getDay() === 1 ? -3 : -1);
 
 // ---- Schedule ----------------------------------------------------------------------------
 
@@ -58,9 +68,18 @@ export function itemsOn(date) {
 
   // School, merged when both girls share the same hours so the agenda doesn't say it twice.
   const blocks = new Map();
+  const offs = new Map(); // district no-school days (breaks, workdays), one row per reason
+  let note = '';
   for (const k of kids()) {
     const day = schoolDay(k.school, date);
-    if (day.type === 'none') continue;
+    if (day.type === 'none') {
+      if (!day.note) continue;
+      const o = offs.get(day.note) || { who: [], first: schoolDay(k.school, prevWeekday(date)).note !== day.note };
+      o.who.push(k.id);
+      offs.set(day.note, o);
+      continue;
+    }
+    if (day.note) note = day.note;
     const s = schoolOf(k);
     const [a, b] = day.type === 'early' ? s.early : s.full;
     const sig = `${a}-${b}`;
@@ -74,11 +93,15 @@ export function itemsOn(date) {
   if (bl.length) {
     const early = bl.some((x) => x.early);
     out.push({
-      title: early ? 'School · early out' : 'School',
+      title: `School${early ? ' · early out' : ''}${note ? ` · ${note}` : ''}`,
       detail: bl.map((x) => `${x.names.join(' & ')} ${clockShort(x.a)}–${clockShort(x.b)}`).join(' · '),
       icon: '🏫', who: bl.flatMap((x) => x.who), kind: 'school',
       start: at(date, bl.map((x) => x.a).sort()[0]), end: at(date, bl.map((x) => x.b).sort().pop()), allDay: false,
     });
+  }
+  for (const [reason, o] of offs) {
+    // `firstOfRun` lets Coming Up show a week-long break once instead of five times.
+    out.push({ ...toItem({ title: `No school · ${reason}`, icon: '🎒', who: o.who }, date), kind: 'noschool', firstOfRun: o.first });
   }
 
   for (const r of cfg.calendar.recurring || []) {
@@ -86,13 +109,15 @@ export function itemsOn(date) {
     if (r.from && key < r.from) continue;
     if (r.until && key > r.until) continue;
     if (r.except?.includes(key)) continue;
+    // schoolDays: only when (one of) its kids actually has school that day — PE day, not on a break.
+    if (r.schoolDays && !kids().some((k) => (!r.who?.length || r.who.includes(k.id)) && schoolDay(k.school, date).type !== 'none')) continue;
     out.push(toItem(r, date));
   }
   for (const e of cfg.calendar.events || []) {
     if (e.date === key || (e.endDate && key >= e.date && key <= e.endDate)) out.push(toItem(e, date));
   }
-  for (const h of cfg.calendar.holidays || []) {
-    if (h.date === key) out.push({ ...toItem({ ...h, who: [] }, date), kind: 'holiday' });
+  for (const h of holidaysIn(date.getFullYear())) {
+    if (h.date === key) out.push({ ...toItem({ title: h.title, icon: h.icon, who: [] }, date), kind: 'holiday' });
   }
   for (const b of cfg.family.birthdays || []) {
     if (key.slice(5) === b.date) {
@@ -137,6 +162,59 @@ export function upcoming(days = 7, now = new Date()) {
 
 const ordinal = (n) => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 
+// ---- Holidays -----------------------------------------------------------------------------------
+// calendar.json lists each holiday once with a yearly rule, so the site never runs out of them.
+
+const DOWS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+/** Easter Sunday (Anonymous Gregorian algorithm). */
+function easter(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  return new Date(y, month - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
+
+/** "3rd-mon-01", "last-mon-05", "01-01", "easter", "election" → Date in year `y` (null if unknown). */
+export function ruleDate(rule, y) {
+  if (rule === 'easter') return easter(y);
+  if (rule === 'election') { // the Tuesday after the first Monday in November
+    const d = new Date(y, 10, 1);
+    while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+    return addDays(d, 1);
+  }
+  let m = /^(\d\d)-(\d\d)$/.exec(rule);
+  if (m) return new Date(y, Number(m[1]) - 1, Number(m[2]));
+  m = /^(1st|2nd|3rd|4th|5th|last)-(sun|mon|tue|wed|thu|fri|sat)-(\d\d)$/.exec(rule);
+  if (!m) return null;
+  const month = Number(m[3]) - 1;
+  const dow = DOWS.indexOf(m[2]);
+  if (m[1] === 'last') {
+    const d = new Date(y, month + 1, 0);
+    while (d.getDay() !== dow) d.setDate(d.getDate() - 1);
+    return d;
+  }
+  const d = new Date(y, month, 1);
+  while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+  return addDays(d, 7 * (parseInt(m[1], 10) - 1));
+}
+
+const holidayCache = new Map();
+
+/** Every holiday that falls in year `y`: [{ title, icon, date: 'YYYY-MM-DD', countdown }]. */
+export function holidaysIn(y) {
+  if (holidayCache.has(y)) return holidayCache.get(y);
+  const out = [];
+  for (const h of cfg.calendar.holidays || []) {
+    const dates = h.rule ? [ruleDate(h.rule, y)].filter(Boolean).map((d) => ymd(d))
+      : [...(h.dates || []), ...(h.date ? [h.date] : [])].filter((d) => d.startsWith(`${y}-`));
+    for (const date of dates) out.push({ title: h.title, icon: h.icon || '📅', date, countdown: Boolean(h.countdown) });
+  }
+  holidayCache.set(y, out);
+  return out;
+}
+
 // ---- Countdowns -----------------------------------------------------------------------------------
 
 /** Six "days until" tiles, soonest first. The girls' birthdays are always included; the other four
@@ -155,10 +233,10 @@ export function countdowns(now = new Date(), total = 6) {
   };
   const bs = (cfg.family.birthdays || []).map(bday);
   const pinned = bs.filter((b) => b.kid).sort((a, b) => a.days - b.days);
-  const hol = (cfg.calendar.holidays || []).filter((h) => h.countdown).map((h) => {
+  const hol = [...holidaysIn(today.getFullYear()), ...holidaysIn(today.getFullYear() + 1)].filter((h) => h.countdown).map((h) => {
     const d = parseYmd(h.date);
     return { title: h.title, icon: h.icon, date: d, days: days(d), kind: 'holiday' };
-  }).filter((h) => h.days >= 0);
+  }).filter((h, i, all) => h.days >= 0 && all.findIndex((x) => x.title === h.title && x.days >= 0) === i); // next one only
   const rest = [...bs.filter((b) => !b.kid), ...hol].sort((a, b) => a.days - b.days).slice(0, total - pinned.length);
   return [...pinned, ...rest].sort((a, b) => a.days - b.days); // soonest first, wherever the girls land
 }
@@ -227,13 +305,6 @@ export async function menuRange(schoolKey, start, n = 5) {
   return want.map((d) => ({ date: d, menu: have[d] || null }));
 }
 
-/** One-line lunch summary: the hot entrée, else the first main. */
-export function lunchHeadline(menu) {
-  const lunch = menu?.lunch || [];
-  const hot = lunch.find((m) => /hot/i.test(m.label)) || lunch[0];
-  return hot?.main?.[0] || null;
-}
-
 // ---- Weather (Open-Meteo, no key) ----------------------------------------------------------
 
 const WX = [
@@ -250,9 +321,11 @@ export async function weather() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max` +
     `&temperature_unit=fahrenheit&timezone=${encodeURIComponent(timezone)}&forecast_days=7`;
-  const j = await (await fetch(url)).json();
+  const res = await fetch(url, { signal: AbortSignal.timeout(10e3) });
+  if (!res.ok) throw new Error(`Weather ${res.status}`);
+  const j = await res.json();
   const data = {
-    now: { temp: Math.round(j.current.temperature_2m), ...wx(j.current.weather_code) },
+    now: { temp: Math.round(j.current.temperature_2m), code: j.current.weather_code, ...wx(j.current.weather_code) },
     days: j.daily.time.map((t, i) => ({
       date: t, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]),
       rain: j.daily.precipitation_probability_max[i], ...wx(j.daily.weather_code[i]),
@@ -261,3 +334,6 @@ export async function weather() {
   wxCache = { at: Date.now(), data };
   return data;
 }
+
+/** Last weather we fetched, without waiting (the Home scene repaints every minute from this). */
+export const lastWeather = () => wxCache?.data || null;

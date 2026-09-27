@@ -11,12 +11,137 @@
     "firstDay": "2026-08-24",
     "lastDay": "2027-05-27",
     "firstDaysEarlyOut": [
-      "2026-08-24",
-      "2026-08-25"
+      {
+        "date": "2026-08-24",
+        "label": "First days"
+      },
+      {
+        "date": "2026-08-25",
+        "label": "First days"
+      }
     ],
-    "noSchool": [],
-    "extraEarlyOut": [],
-    "_todo": "lastDay is a placeholder and noSchool/extraEarlyOut are empty — fill both from the ADM academic calendar."
+    "noSchool": [
+      {
+        "date": "2026-09-07",
+        "label": "Labor Day"
+      },
+      {
+        "date": "2026-09-25",
+        "label": "Teacher workday"
+      },
+      {
+        "date": "2026-10-23",
+        "label": "Teacher workday"
+      },
+      {
+        "date": "2026-11-25",
+        "label": "Thanksgiving break"
+      },
+      {
+        "date": "2026-11-26",
+        "label": "Thanksgiving break"
+      },
+      {
+        "date": "2026-11-27",
+        "label": "Thanksgiving break"
+      },
+      {
+        "date": "2026-12-23",
+        "label": "Winter break"
+      },
+      {
+        "date": "2026-12-24",
+        "label": "Winter break"
+      },
+      {
+        "date": "2026-12-25",
+        "label": "Winter break"
+      },
+      {
+        "date": "2026-12-28",
+        "label": "Winter break"
+      },
+      {
+        "date": "2026-12-29",
+        "label": "Winter break"
+      },
+      {
+        "date": "2026-12-30",
+        "label": "Winter break"
+      },
+      {
+        "date": "2026-12-31",
+        "label": "Winter break"
+      },
+      {
+        "date": "2027-01-01",
+        "label": "Winter break"
+      },
+      {
+        "date": "2027-01-18",
+        "label": "MLK Day · teacher workday"
+      },
+      {
+        "date": "2027-02-12",
+        "label": "Teacher professional learning"
+      },
+      {
+        "date": "2027-03-12",
+        "label": "Spring break"
+      },
+      {
+        "date": "2027-03-15",
+        "label": "Spring break"
+      },
+      {
+        "date": "2027-03-16",
+        "label": "Spring break"
+      },
+      {
+        "date": "2027-03-17",
+        "label": "Spring break"
+      },
+      {
+        "date": "2027-03-18",
+        "label": "Spring break"
+      },
+      {
+        "date": "2027-03-19",
+        "label": "Spring break"
+      },
+      {
+        "date": "2027-04-16",
+        "label": "Teacher workday"
+      }
+    ],
+    "extraEarlyOut": [
+      {
+        "date": "2026-10-20",
+        "label": "P/T conferences"
+      },
+      {
+        "date": "2026-10-22",
+        "label": "P/T conferences"
+      },
+      {
+        "date": "2026-12-22",
+        "label": "Winter break starts"
+      },
+      {
+        "date": "2027-03-09",
+        "label": "P/T conferences"
+      },
+      {
+        "date": "2027-03-11",
+        "label": "P/T conferences"
+      },
+      {
+        "date": "2027-05-27",
+        "label": "Last day of school"
+      }
+    ],
+    "source": "ADM 2026–27 Academic Calendar (approved 1/12/26): https://files.smartsites.parentsquare.com/9509/2026-27_adm_academic_calendar.pdf",
+    "_help": "noSchool / extraEarlyOut entries are { date, label } (a bare \"YYYY-MM-DD\" string also works). Fridays are early outs for every elementary via earlyWeekdays, so only non-Friday early outs go in extraEarlyOut. Update each summer from the new ADM academic calendar (source)."
   },
   "schools": {
     "mv": {

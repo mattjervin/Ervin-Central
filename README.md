@@ -32,9 +32,9 @@ leaderboard, and *days until* countdowns.
 
 All content is hand-edited JSON in `data/` — no code changes needed:
 
-- **`family.json`** — kids (name, emoji, color, school), `birthdays` (the girls are pinned to Countdowns; everyone else competes for the other slots), location for weather, kiosk settings.
-- **`calendar.json`** — `holidays` (`countdown: true` = eligible for Countdowns), `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates), one-off `events` (`kind: "game"`, `tentative`). `who` is a list of kid ids; empty means the whole family.
-- **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates. **TODO:** fill `lastDay`, `noSchool` and `extraEarlyOut` from the ADM academic calendar.
+- **`family.json`** — kids (name, emoji, color, school), `birthdays` (the girls are pinned to Countdowns; everyone else competes for the other slots), location for weather plus `location.sun` (average Des Moines sunrise/sunset per month, which drives the Home sky), kiosk settings.
+- **`calendar.json`** — `holidays` as yearly rules (`"12-25"`, `"4th-thu-11"`, `"last-mon-05"`, `"easter"`, `"election"`; lunar ones list `dates`) so they never run out — `countdown: true` = eligible for Countdowns; `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates; `schoolDays: true` skips breaks), one-off `events` (`kind: "game"`, `tentative`). `who` is a list of kid ids; empty means the whole family.
+- **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates: `noSchool` (breaks, workdays) and `extraEarlyOut` (non-Friday early outs like conferences), each `{ date, label }`, copied from the ADM academic calendar PDF (`year.source`). Replace them each summer when ADM posts the next year.
 - **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
 - **`menus.json`** — generated; don't edit. A GitHub Action refreshes it every morning.
 
@@ -88,9 +88,37 @@ contents, then enter the access key and bin ids under Admin → Sync → "enter 
 (via the setup link), never in this public repo. Anyone holding the access key could edit coin
 bins, so don't post the setup link anywhere public.
 
-**Request budget:** each visible screen checks for changes every `sync.pollSeconds` (60s) —
-about 2 requests/minute while the screen is on, plus 2 per tap. Raise `pollSeconds` in
+**Request budget:** each visible screen checks for changes every `sync.pollSeconds` (60s) and
+reads all three bins — 3 requests/minute while the screen is on (~4,300/day for a screen that never
+sleeps), plus 2 per tap. Raise `pollSeconds` in
 `data/family.json` if your JSONBin plan's request allowance runs tight.
+
+## Calendar sync (weekly)
+
+The site's calendar is copied from the **Kids** calendar in Calendar.app on Matt's Mac, minus
+anything private. A scheduled Claude task, **Ervin Central calendar sync**, runs every Sunday
+evening while the Claude app is open:
+
+1. `node scripts/kids-calendar.mjs` reads the Kids calendar (JXA), expands repeating events and
+   prints only what changed since the last sync. The full dump stays in `.cache/` (gitignored).
+2. The task copies schedule-level changes into `data/calendar.json` (never addresses, medical,
+   counseling, legal, or custody-handoff details), runs the tests, commits and pushes.
+3. `node scripts/kids-calendar.mjs --accept` marks that state as synced.
+4. It also re-checks ADM's academic calendar PDF. If ADM changes it, it updates `school.json` and
+   runs `osascript -l JavaScript scripts/adm-to-kids-calendar.js "$(cat data/school.json)"`, which
+   adds the district's no-school days and early dismissals to the Kids calendar (skipping ones
+   already there).
+
+Run the same steps by hand any time. Calendar.app is slow to script, so step 1 takes a few minutes.
+
+## Tests
+
+```bash
+node --test 'tests/*.test.mjs'
+```
+
+Node's built-in runner, no packages: holiday rules, ADM school days, the sleep pattern,
+countdowns, sunrise/sunset, weather → sky, and ledger op idempotency.
 
 ## Kiosk behavior
 
@@ -126,10 +154,13 @@ js/data.js            Config loading, schedule engine, chores, menus, weather
 js/store.js           Chore check-offs, coin ledger, approvals; JSONBin sync + outbox
 js/linq.js            LINQ Connect menu client (shared by browser + Action)
 js/ui.js              Hero/card/header/stat/pill/ring components, modal, toast, PIN pad
-js/scene.js           Home's time-of-day landscape (SVG)
+js/scene.js           Home's landscape (SVG): sun/moon on this month's sunrise–sunset, live weather
 js/views/*.js         One module per page: render() → HTML, mount() → events (admin.js = #/admin)
 jsonbin/*.json        Starting contents for the three bins
 scripts/setup-jsonbin.mjs   Creates the JSONBin collection + bins, prints the setup link
 data/*.json           Family-editable content
 scripts/fetch-menus.mjs + .github/workflows/menus.yml   Nightly menu cache
+scripts/kids-calendar.mjs     Kids calendar → change report for the weekly sync
+scripts/adm-to-kids-calendar.js   ADM no-school days → Kids calendar
+tests/*.test.mjs      node --test checks
 ```

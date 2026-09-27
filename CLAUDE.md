@@ -21,6 +21,14 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   summary/startDate/endDate/recurrence/uid/excludedDates and expand recurrences yourself (first
   event per uid = master, the rest are moved occurrences). Kids' family details live in Matt's Second Brain vault
   (`Family/Kids/`) — pull only schedule-level facts from there.
+- Weekly calendar sync: `node scripts/kids-calendar.mjs` reports Kids-calendar changes since the
+  last `--accept`; copy them into `data/calendar.json` under the privacy rule above (drop street
+  addresses — keep a place name like "Island Park · Field 3"; skip anything medical, counseling,
+  legal, parents' own plans, and custody "Matt/Brigitte Day/Weekend" entries, which `sleep` already
+  covers). ADM closures come from the district PDF into `school.json`, and
+  `scripts/adm-to-kids-calendar.js` pushes them to the Kids calendar. Holidays are yearly rules in
+  `calendar.json`, not dated entries.
+- Run `node --test 'tests/*.test.mjs'` after touching `js/data.js`, `js/scene.js` or `js/store.js`.
 - Coin balances are derived from the ledger in `store.js`; never store a balance.
 - State syncs to JSONBin (collection "Ervin Central": household / evelynn / avery bins). All
   mutations are serializable ops through `apply()` — keep them idempotent (mint ids up front)

@@ -2,7 +2,7 @@
 // a live landscape, the forecast, an "Up next" card with a running countdown, the agenda by day,
 // lunch, chores you can tick right here, the coin leaderboard, and countdowns to the big days.
 
-import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, lunchHeadline, weather, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { cfg, kids, itemsOn, upcoming, choresFor, menuRange, weather, lastWeather, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
 import { card, header, stat, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
 import { sceneSvg } from '../scene.js';
@@ -37,7 +37,7 @@ export function render() {
       </div>
     </div>
     <div class="hh-scene" id="scene">
-      ${sceneSvg(now)}
+      ${sceneSvg(now, sceneOpts())}
       <div class="scene-overlay">
         <div class="big-clock" data-clock="long"></div>
         <div class="now-wx" id="now-wx"></div>
@@ -61,6 +61,7 @@ export function render() {
 
 export function mount(root, rerender) {
   weather().then((w) => {
+    minute(root); // paint the live weather into the sky
     const now = root.querySelector('#now-wx');
     if (now) now.innerHTML = `<span class="wx-i">${w.now.icon}</span><span class="wx-t">${w.now.temp}°</span><span class="wx-l">${esc(w.now.label)} · ${w.days[0].hi}° / ${w.days[0].lo}°</span>`;
     const f = root.querySelector('#forecast');
@@ -88,8 +89,10 @@ export function mount(root, rerender) {
 /** Called every minute by the shell: keep the sky honest without a full re-render. */
 export function minute(root) {
   const s = root.querySelector('#scene .scene-svg');
-  if (s) s.outerHTML = sceneSvg(new Date());
+  if (s) s.outerHTML = sceneSvg(new Date(), sceneOpts());
 }
+
+const sceneOpts = () => ({ sun: cfg.family.location.sun, weather: lastWeather()?.now });
 
 // ---- Synthesis -------------------------------------------------------------------------------
 
@@ -123,7 +126,7 @@ function sleepCard(now, i) {
   const swWhen = sw ? (Math.round((new Date(ymd(sw.date) + 'T00:00') - new Date(ymd(now) + 'T00:00')) / 864e5) === 1 ? 'tomorrow' : DOW3[sw.date.getDay()]) : '';
   return card(`
     ${header('Tonight', { color: tonight.color, eyebrow: 'Where we’re sleeping' })}
-    <div class="sleep-now" style="--c:${tonight.color}">
+    <div class="sleep-now" style="--c:${esc(tonight.color)}">
       <span class="sn-icon">${esc(tonight.icon)}</span>
       <div class="sn-text"><div class="sn-place">${esc(tonight.label)}</div>
       <div class="sn-sub">${sw ? `${esc(sw.label)} starting ${esc(swWhen)}` : 'All week'}</div></div>
@@ -131,8 +134,8 @@ function sleepCard(now, i) {
     ${weekendsLine(now)}
     <div class="nights">${nights.map((d, j) => {
       const s = sleepOn(d);
-      return `<div class="night ${j === 0 ? 'today' : ''}" style="--c:${s?.color || 'var(--t4)'};--i:${j}"><span class="nt-d">${j === 0 ? 'Tonight' : DOW3[d.getDay()]}</span><span class="nt-i">${esc(s?.icon || '·')}</span><span class="nt-l">${esc(s?.label || '')}</span></div>`;
-    }).join('')}</div>`, 'sleep-card', i, `--c:${tonight.color}`);
+      return `<div class="night ${j === 0 ? 'today' : ''}" style="--c:${esc(s?.color || 'var(--t4)')};--i:${j}"><span class="nt-d">${j === 0 ? 'Tonight' : DOW3[d.getDay()]}</span><span class="nt-i">${esc(s?.icon || '·')}</span><span class="nt-l">${esc(s?.label || '')}</span></div>`;
+    }).join('')}</div>`, 'sleep-card', i, `--c:${esc(tonight.color)}`);
 }
 
 /** "This weekend Dad's · Next weekend Mom's Oct 2–4" — the question that actually gets asked. */
@@ -143,7 +146,7 @@ function weekendsLine(now) {
   const wk = [thisFri, addDays(thisFri, 7)].map((f, i) => {
     const s = sleepOn(f);
     const label = i === 0 ? (dow === 0 || dow >= 5 ? 'This weekend' : 'Weekend') : 'Next';
-    return s ? `<span class="wkd" style="--c:${s.color}"><b>${label}</b> ${esc(s.icon)} ${esc(s.label)} <i>${fmt(f)}</i></span>` : '';
+    return s ? `<span class="wkd" style="--c:${esc(s.color)}"><b>${label}</b> ${esc(s.icon)} ${esc(s.label)} <i>${fmt(f)}</i></span>` : '';
   });
   return `<div class="weekends">${wk.join('')}</div>`;
 }
@@ -155,15 +158,15 @@ function comingCard(now, i) {
   for (let d = 0; d < 60 && out.length < 7; d++) {
     const day = addDays(now, d);
     for (const x of itemsOn(day)) {
-      if (x.kind === 'school' || x.kind === 'recurring') continue;
+      if (x.kind === 'school' || x.kind === 'recurring' || (x.kind === 'noschool' && !x.firstOfRun)) continue;
       if (!x.allDay && x.end < now) continue;
       out.push({ ...x, date: day });
     }
   }
   return card(`
-    ${header('Coming Up', { color: 'var(--blue)', href: '#/calendar', eyebrow: 'Games · parties · birthdays · holidays' })}
+    ${header('Coming Up', { color: 'var(--blue)', href: '#/calendar', eyebrow: 'Games · parties · days off · holidays' })}
     ${out.slice(0, 7).map((x, j) => `
-      <div class="cu-row anim-row ${x.kind}" style="--c:${whoColor(x.who, ks)};--i:${j}">
+      <div class="cu-row anim-row ${x.kind}" style="--c:${esc(whoColor(x.who, ks))};--i:${j}">
         <div class="cu-date"><span class="cu-dow">${DOW3[x.date.getDay()]}</span><span class="cu-day">${x.date.getDate()}</span></div>
         <div class="cu-main"><div class="cu-title">${esc(x.icon)} ${esc(x.title)}</div>
           <div class="cu-sub">${esc([x.allDay ? relDay(x.date, now) : `${relDay(x.date, now)} · ${clock(x.start)}`, x.detail].filter(Boolean).join(' · '))}</div></div>
@@ -179,7 +182,7 @@ function upNextCard(now, i) {
   const n = list[0];
   const color = n ? whoColor(n.who, ks) : 'var(--acc)';
   const body = n ? `
-    <div class="upnext" style="--c:${color}">
+    <div class="upnext" style="--c:${esc(color)}">
       <div class="un-icon">${esc(n.icon)}</div>
       <div class="un-main">
         <div class="un-title">${esc(n.title)}</div>
@@ -207,7 +210,7 @@ function agendaCard(now, i) {
       <div class="ag-day">
         <div class="ag-head"><span class="ag-dow">${esc(relDay(d, now))}</span><span class="ag-date">${d.getMonth() + 1}/${d.getDate()}</span></div>
         ${items.length ? items.map((x, j) => `
-          <div class="ag-item anim-row ${x.kind}" style="--c:${whoColor(x.who, ks)};--i:${j}">
+          <div class="ag-item anim-row ${x.kind}" style="--c:${esc(whoColor(x.who, ks))};--i:${j}">
             <span class="ag-t">${x.allDay ? 'All day' : clock(x.start, false)}</span>
             <span class="ag-n">${esc(x.icon)} ${esc(x.title)}</span>
             <span class="row-dots">${whoDots(x.who, ks)}</span>
@@ -229,7 +232,7 @@ async function lunchBody(now) {
   const others = lunch.filter((m) => m !== hot);
   const sides = hot?.sides.flatMap((x) => x.items) || [];
   return `
-    <div class="sh-eyebrow lunch-when">${esc(relDay(day, now))} · both girls</div>
+    <div class="sh-eyebrow lunch-when">${esc(relDay(day, now))} · ${esc(cfg.school.lunch.label || 'School lunch')}</div>
     <div class="lunch-hero anim-row">
       <span class="lh-icon">🍱</span>
       <div><div class="lk">Hot lunch</div><div class="lm">${esc(hot?.main?.[0] || 'Menu not posted yet')}</div></div>
@@ -247,7 +250,7 @@ function choresCard(choreStats, i) {
     const todo = list.filter((c) => !store.isDone(today, c.id, k.id));
     const nowList = (todo.filter((c) => (c.part || 'morning') === part).length ? todo.filter((c) => (c.part || 'morning') === part) : todo).slice(0, 4);
     return `
-      <div class="hc-col" style="--c:${k.color}">
+      <div class="hc-col" style="--c:${esc(k.color)}">
         <a class="hc-head" href="#/chores/${k.id}">${ring(frac, k.color, 58, 6, avatar(k))}
           <div><div class="hc-name">${esc(k.name)}</div><div class="hc-sub">${done} of ${list.length} done</div></div></a>
         ${nowList.length ? nowList.map((c) => `
@@ -267,7 +270,7 @@ function leaderCard(i) {
     ${ks.map((k, r) => {
       const b = store.balance(k.id);
       const week = store.earnedByDay(k.id, 7).reduce((s, d) => s + d.sum, 0);
-      return `<div class="lb-row anim-row" style="--c:${k.color};--i:${r}">
+      return `<div class="lb-row anim-row" style="--c:${esc(k.color)};--i:${r}">
         <span class="lb-rank">${r === 0 && b > 0 ? '👑' : r + 1}</span>${avatar(k)}
         <div class="lb-main"><div class="lb-name">${esc(k.name)}<span>+${week} this week</span></div>
           <div class="bar coin"><span style="--w:${Math.max(3, (b / max) * 100)}%"></span></div></div>
@@ -285,7 +288,7 @@ function countdownCard(now, i) {
       const when = `${MONTH[c.date.getMonth()].slice(0, 3)} ${c.date.getDate()}`;
       const label = c.days === 0 ? 'Today!' : k ? `${esc(k.name)} turns ${c.turns}` : esc(c.title);
       const sub = k ? when : c.turns ? `turns ${c.turns} · ${when}` : when;
-      return `<div class="cd anim-row ${k ? 'kid' : c.kind}" style="--i:${j};${k ? `--c:${k.color}` : ''}">
+      return `<div class="cd anim-row ${k ? 'kid' : c.kind}" style="--i:${j};${k ? `--c:${esc(k.color)}` : ''}">
         <span class="cd-i">${k ? avatar(k, 'sm') : esc(c.icon)}</span>
         <span class="cd-n" data-count="${c.days}">${c.days}</span>
         <span class="cd-l">${label}</span><span class="cd-s">${sub}</span></div>`;
