@@ -160,11 +160,13 @@
         5
       ],
       "arrive": "07:50",
-      "specials": null,
-      "notes": [
-        "Specials (Art, Music, PE, Library, Computer Science) rotate on a 5-day schedule.",
-        "Music class meets twice a week."
-      ]
+      "specials": {
+        "1": "Computer Science",
+        "2": "PE & Music",
+        "3": "PE & Music",
+        "4": "Art",
+        "5": "Library"
+      }
     },
     "ae": {
       "name": "Adel Elementary",
