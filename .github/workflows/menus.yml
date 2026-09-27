@@ -2,9 +2,10 @@ name: Refresh lunch menus
 
 # Caches ~3 weeks of ADM breakfast/lunch menus into data/menus.json so the site has them even if
 # the live LINQ call fails on a device. The site still tries LINQ live for any day not cached.
+# LINQ's firewall 403s GitHub's runners (tested 2026-09-27), so there is no nightly schedule: the
+# weekly "Ervin Central calendar sync" task refreshes menus from Matt's Mac instead. This stays as a
+# manual button in case LINQ ever starts allowing it.
 on:
-  schedule:
-    - cron: "15 9 * * *"   # 4:15am Central (CDT)
   workflow_dispatch:
 
 permissions:

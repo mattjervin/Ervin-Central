@@ -36,7 +36,7 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 - **`calendar.json`** — `holidays` as yearly rules (`"12-25"`, `"4th-thu-11"`, `"last-mon-05"`, `"easter"`, `"election"`; lunar ones list `dates`) so they never run out — `countdown: true` = eligible for Countdowns; `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates; `schoolDays: true` skips breaks), one-off `events` (`kind: "game"`, `tentative`). `who` is a list of kid ids; empty means the whole family.
 - **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates: `noSchool` (breaks, workdays) and `extraEarlyOut` (non-Friday early outs like conferences), each `{ date, label }`, copied from the ADM academic calendar PDF (`year.source`). Replace them each summer when ADM posts the next year.
 - **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
-- **`menus.json`** — generated; don't edit. A GitHub Action refreshes it every morning.
+- **`menus.json`** — generated; don't edit. The weekly calendar sync refreshes it from Matt's Mac (LINQ blocks GitHub's servers, so the Action is manual-only).
 
 ## How Kindness Coins work
 
@@ -108,6 +108,7 @@ evening while the Claude app is open:
    runs `osascript -l JavaScript scripts/adm-to-kids-calendar.js "$(cat data/school.json)"`, which
    adds the district's no-school days and early dismissals to the Kids calendar (skipping ones
    already there).
+5. `node scripts/fetch-menus.mjs` refreshes the cached lunch menus (LINQ posts ~2 months ahead).
 
 Run the same steps by hand any time. Calendar.app is slow to script, so step 1 takes a few minutes.
 
@@ -159,7 +160,7 @@ js/views/*.js         One module per page: render() → HTML, mount() → events
 jsonbin/*.json        Starting contents for the three bins
 scripts/setup-jsonbin.mjs   Creates the JSONBin collection + bins, prints the setup link
 data/*.json           Family-editable content
-scripts/fetch-menus.mjs + .github/workflows/menus.yml   Nightly menu cache
+scripts/fetch-menus.mjs       Menu cache (run weekly by the sync task; menus.yml is a manual fallback)
 scripts/kids-calendar.mjs     Kids calendar → change report for the weekly sync
 scripts/adm-to-kids-calendar.js   ADM no-school days → Kids calendar
 tests/*.test.mjs      node --test checks
