@@ -1,0 +1,29 @@
+name: Refresh lunch menus
+
+# Caches ~3 weeks of ADM breakfast/lunch menus into data/menus.json so the site has them even if
+# the live LINQ call fails on a device. The site still tries LINQ live for any day not cached.
+on:
+  schedule:
+    - cron: "15 9 * * *"   # 4:15am Central (CDT)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  menus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/fetch-menus.mjs
+      - name: Commit if changed
+        run: |
+          if git diff --quiet data/menus.json; then echo "No menu changes"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898783+github-actions[bot]@users.noreply.github.com"
+          git add data/menus.json
+          git commit -m "Refresh lunch menus"
+          git push
