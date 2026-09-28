@@ -309,7 +309,7 @@ export async function menuRange(schoolKey, start, n = 5) {
 // ---- Weather (Open-Meteo, no key) ----------------------------------------------------------
 
 const WX = [
-  [[0], '☀️', 'Clear'], [[1], '🌤️', 'Mostly sunny'], [[2], '⛅', 'Partly cloudy'], [[3], '☁️', 'Cloudy'],
+  [[0], '☀️', 'Clear'], [[1], '🌤️', 'Mostly sunny'], [[2], '⛅', 'Partly cloudy'], [[3], '☁️', 'Overcast'],
   [[45, 48], '🌫️', 'Fog'], [[51, 53, 55, 56, 57], '🌦️', 'Drizzle'], [[61, 63, 65, 66, 67, 80, 81, 82], '🌧️', 'Rain'],
   [[71, 73, 75, 77, 85, 86], '🌨️', 'Snow'], [[95, 96, 99], '⛈️', 'Storms'],
 ];
@@ -320,19 +320,19 @@ export async function weather() {
   if (wxCache && Date.now() - wxCache.at < 20 * 60e3) return wxCache.data;
   const { lat, lon, timezone } = cfg.family.location;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max` +
+    `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,apparent_temperature_max,apparent_temperature_min,wind_speed_10m_max,uv_index_max` +
     `&wind_speed_unit=mph` +
     `&temperature_unit=fahrenheit&timezone=${encodeURIComponent(timezone)}&forecast_days=7`;
   const res = await fetch(url, { signal: AbortSignal.timeout(10e3) });
   if (!res.ok) throw new Error(`Weather ${res.status}`);
   const j = await res.json();
   const data = {
-    now: { temp: Math.round(j.current.temperature_2m), code: j.current.weather_code, ...wx(j.current.weather_code) },
+    now: { temp: Math.round(j.current.temperature_2m), feels: Math.round(j.current.apparent_temperature), wind: Math.round(j.current.wind_speed_10m), code: j.current.weather_code, ...wx(j.current.weather_code) },
     days: j.daily.time.map((t, i) => ({
       date: t, hi: Math.round(j.daily.temperature_2m_max[i]), lo: Math.round(j.daily.temperature_2m_min[i]),
       rain: j.daily.precipitation_probability_max[i], code: j.daily.weather_code[i], ...wx(j.daily.weather_code[i]),
       feelsHi: Math.round(j.daily.apparent_temperature_max[i]), feelsLo: Math.round(j.daily.apparent_temperature_min[i]),
-      wind: Math.round(j.daily.wind_speed_10m_max[i]),
+      wind: Math.round(j.daily.wind_speed_10m_max[i]), uv: Math.round(j.daily.uv_index_max?.[i] ?? 0),
     })),
   };
   wxCache = { at: Date.now(), data };
@@ -346,13 +346,13 @@ const SNOW = [71, 73, 75, 77, 85, 86];
 /** Outfit for one forecast day, from the rules in data/wear.json: [{ group, icon, text }]. */
 export function whatToWear(day) {
   const hi = day.feelsHi ?? day.hi, lo = day.feelsLo ?? day.lo;
-  const f = { hi, lo, swing: hi - lo, rain: day.rain ?? 0, snow: SNOW.includes(day.code), wind: day.wind ?? 0,
+  const f = { hi, lo, swing: hi - lo, rain: day.rain ?? 0, snow: SNOW.includes(day.code), wind: day.wind ?? 0, uv: day.uv ?? 0,
     cloudy: day.code >= 3 }; // overcast, fog, rain or snow — no sun to warm them up
   const ok = (w) => (w.hiMin == null || f.hi >= w.hiMin) && (w.hiMax == null || f.hi <= w.hiMax)
     && (w.loMin == null || f.lo >= w.loMin) && (w.loMax == null || f.lo <= w.loMax)
     && (w.swingMin == null || f.swing >= w.swingMin) && (w.rainMin == null || f.rain >= w.rainMin)
     && (w.windMin == null || f.wind >= w.windMin) && (w.snow == null || f.snow === w.snow)
-    && (w.cloudy == null || f.cloudy === w.cloudy);
+    && (w.cloudy == null || f.cloudy === w.cloudy) && (w.uvMin == null || f.uv >= w.uvMin);
   const out = new Map();
   for (const r of cfg.wear?.rules || []) if (!out.has(r.group) && ok(r.when || {})) out.set(r.group, r);
   return [...out.values()];

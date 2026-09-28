@@ -41,10 +41,10 @@ export function skyKind(code) {
   return 'clear';
 }
 
-/** The word under the temperature: Sunny / Cloudy / Rainy / Snowy… */
+/** The sky in a word: Sunny / Overcast / Rainy / Snowy… */
 export function skyLabel(code, night = false) {
   return {
-    clear: night ? 'Clear' : 'Sunny', partly: 'Partly cloudy', cloudy: 'Cloudy', fog: 'Foggy',
+    clear: night ? 'Clear' : 'Sunny', partly: 'Partly cloudy', cloudy: 'Overcast', fog: 'Foggy',
     rain: code >= 51 && code <= 57 ? 'Drizzly' : 'Rainy', snow: 'Snowy', storm: 'Stormy',
   }[skyKind(code)];
 }

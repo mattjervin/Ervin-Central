@@ -1,5 +1,5 @@
 {
-  "_help": "What to wear, shown under the Home banner. Uses the day's FEELS-LIKE temps (°F): hi = warmest (recess), lo = coldest (the walk to school). For each group the FIRST rule whose `when` all match wins; a group with no match shows nothing. when keys: hiMin/hiMax, loMin/loMax, swingMin (hi − lo), rainMin (% chance), snow (true = snow in the forecast), windMin (mph), cloudy (true = overcast/fog/rain/snow, false = sun out). The girls run cold, so shorts and t-shirts need real warmth — or sun. Edit freely — no code changes needed.",
+  "_help": "What to wear, shown under the Home banner. Uses the day's FEELS-LIKE temps (°F): hi = warmest (recess), lo = coldest (the walk to school). For each group the FIRST rule whose `when` all match wins; a group with no match shows nothing. when keys: hiMin/hiMax, loMin/loMax, swingMin (hi − lo), rainMin (% chance), snow (true = snow in the forecast), windMin (mph), uvMin (UV index), cloudy (true = overcast/fog/rain/snow, false = sun out). The girls run cold, so shorts and t-shirts need real warmth — or sun. Edit freely — no code changes needed.",
   "rules": [
     { "group": "top", "icon": "👕", "text": "T-shirt", "when": { "hiMin": 76 } },
     { "group": "top", "icon": "👕", "text": "T-shirt", "when": { "hiMin": 70, "cloudy": false } },
@@ -19,6 +19,7 @@
     { "group": "wet", "icon": "🥾", "text": "Snow boots & snow pants", "when": { "snow": true } },
     { "group": "wet", "icon": "☔", "text": "Rain jacket", "when": { "rainMin": 40, "loMin": 33 } },
 
-    { "group": "sun", "icon": "🧢", "text": "Sunscreen & a hat", "when": { "hiMin": 85 } }
+    { "group": "sun", "icon": "🧢", "text": "Sunscreen & a hat", "when": { "hiMin": 85 } },
+    { "group": "sun", "icon": "🧴", "text": "Sunscreen", "when": { "uvMin": 7, "hiMin": 65, "cloudy": false } }
   ]
 }

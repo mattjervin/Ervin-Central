@@ -323,12 +323,13 @@ body.parent .admin-link { display: grid; }
 body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: none; }
 
 .home-hero {
-  position: relative; margin-top: 14px; height: clamp(210px, 30vw, 340px); border-radius: var(--r-lg); overflow: hidden;
+  position: relative; margin-top: 14px; min-height: clamp(210px, 30vw, 340px); border-radius: var(--r-lg); overflow: hidden;
+  display: flex; flex-direction: column;
   border: 1px solid rgba(var(--acc-rgb), 0.22); box-shadow: var(--shadow), 0 0 60px rgba(var(--acc-rgb), 0.08);
 }
 .scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hh-overlay {
-  position: absolute; inset: 0 0 auto; padding: 18px 22px 44px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  position: relative; flex: 1; padding: 18px 22px 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
   background: linear-gradient(rgba(3, 9, 6, 0.62), rgba(3, 9, 6, 0.25) 70%, transparent); text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
 }
 .hh-greet { min-width: 0; }
@@ -342,7 +343,18 @@ body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: non
 .hh-temp { display: flex; align-items: center; gap: 6px; font: 800 clamp(20px, 2.6vw, 30px) var(--sans); color: #f3fff7; }
 .wx-i { font-size: 1.1em; line-height: 1; }
 .hh-sky { font: 800 clamp(14px, 1.6vw, 18px) var(--sans); color: var(--acc-light); letter-spacing: 0.01em; }
-.hh-hilo { font-size: 12px; font-weight: 600; color: var(--t2); }
+/* Weather pills, then what to wear, along the bottom of the banner (over the grass). */
+.hh-facts { position: relative; display: flex; flex-wrap: wrap; gap: 5px; padding: 0 22px 8px; }
+.hh-fact { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 13px; font-weight: 700; color: #e8fff1; background: rgba(3, 9, 6, 0.45); border: 1px solid rgba(255, 255, 255, 0.1); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.hh-fact:first-child { color: var(--acc-light); }
+.hh-wear {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 22px 14px;
+  background: linear-gradient(transparent, rgba(3, 9, 6, 0.72) 45%); border-top: 1px solid rgba(var(--acc-rgb), 0.18);
+}
+.hh-wear[hidden] { display: none; }
+.hh-wear-l { display: flex; flex-direction: column; font: 700 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--acc-light); margin-right: 4px; }
+.hh-wear-l small { font-size: 9px; letter-spacing: 0.06em; color: var(--t3); }
+.wear-it { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 12px 4px 8px; border-radius: 99px; font-weight: 700; font-size: 14px; color: var(--t0); background: rgba(var(--acc-rgb), 0.16); border: 1px solid rgba(var(--acc-rgb), 0.35); }
 
 .star { fill: #e8fff1; animation: twinkle 3.2s ease-in-out infinite; animation-delay: var(--d); }
 .fly { fill: #d9f99d; filter: drop-shadow(0 0 4px #bef264); transform-box: fill-box; animation: flyfloat 5s ease-in-out infinite alternate; animation-delay: var(--d); }
@@ -375,14 +387,6 @@ body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: non
 @keyframes fogdrift { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
 @keyframes lightning { 0%, 90%, 92%, 95%, 100% { opacity: 0; } 91% { opacity: 0.4; } 93.5% { opacity: 0.25; } }
 
-/* What to wear — right under the banner, where the weather is */
-.wear { margin-top: 10px; padding: 12px 14px; border-radius: 18px; background: var(--card); border: 1px solid rgba(var(--acc-rgb), 0.3); display: flex; flex-direction: column; gap: 8px; animation: cardIn 0.5s var(--glide) backwards; }
-.view.settled .wear { animation: none; }
-.wear-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.wear-h .sh-eyebrow { color: var(--acc-light); }
-.wear-why { font-size: 12px; font-weight: 600; color: var(--t3); }
-.wear-items { display: flex; flex-wrap: wrap; gap: 6px; }
-.wear-it { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px 4px 8px; border-radius: 99px; font-weight: 700; font-size: 14px; color: var(--t0); background: rgba(var(--acc-rgb), 0.1); border: 1px solid rgba(var(--acc-rgb), 0.25); }
 .wi { font-size: 20px; line-height: 1; }
 
 .fc-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
@@ -808,15 +812,18 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
   .view, .stack, .cols, .board { gap: 10px; }
   .board { margin-top: 10px; }
   .card { padding: 14px 15px; gap: 10px; }
-  .wear { margin-top: 8px; padding: 10px 12px; gap: 6px; }
   .page-hero { padding-top: 14px; }
   .headline { font-size: 30px; }
   .board { grid-template-columns: minmax(0, 1fr); }
   .today-card, .sleep-card, .coming-card, .wx-card, .cd-card, .leader-card, .chores-card { grid-column: auto; }
   .td-cols { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .home-hero { margin-top: 8px; }
-  .home-hero { height: 157px; }
-  .hh-overlay { padding: 12px 14px 28px; }
+  .home-hero { min-height: 157px; }
+  .hh-overlay { padding: 12px 14px 6px; }
+  .hh-facts { padding: 0 14px 6px; gap: 4px; }
+  .hh-fact { font-size: 11.5px; padding: 2px 8px; }
+  .hh-wear { padding: 8px 14px 10px; gap: 5px; }
+  .wear-it { min-height: 30px; font-size: 12.5px; padding: 3px 10px 3px 6px; gap: 4px; }
   .hh-greet .headline { font-size: 20px; }
   .hh-temp { font-size: 18px; }
   .hh-sky { font-size: 13px; }
