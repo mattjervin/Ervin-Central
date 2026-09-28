@@ -138,3 +138,10 @@ test('what to wear follows the feels-like temps, rain and snow', () => {
   assert.deepEqual(wear({ feelsHi: 74, feelsLo: 62, rain: 10, code: 1 }), ['T-shirt', 'Shorts or a skirt']);
   assert.deepEqual(wear({ feelsHi: 71, feelsLo: 62, rain: 0, code: 0 }), ['T-shirt', 'Pants or leggings']);
 });
+
+test('version.json matches the ?v= on app.js and app.css in index.html', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const { v } = JSON.parse(await readFile(new URL('../version.json', import.meta.url), 'utf8'));
+  assert.equal(html.match(/js\/app\.js\?v=([^"]+)"/)?.[1], String(v));
+  assert.equal(html.match(/css\/app\.css\?v=([^"]+)"/)?.[1], String(v));
+});

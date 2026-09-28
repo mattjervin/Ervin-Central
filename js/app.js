@@ -170,8 +170,10 @@ let pollMs = 60e3;
 
 function kiosk() {
   pollMs = (cfg.family.sync?.pollSeconds || 60) * 1000;
+  checkForUpdate(); // a cold start may be running a cached old copy
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && store.sync) { lastPull = Date.now(); store.pull(); }
+    if (document.visibilityState === 'visible') { lastCheck = 0; checkForUpdate(); }
   });
   const idle = (cfg.family.kiosk?.idleReturnSeconds || 0) * 1000;
   ['pointerdown', 'keydown', 'scroll'].forEach((ev) => addEventListener(ev, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
@@ -190,6 +192,7 @@ function kiosk() {
     tick();
     if (ymd() !== lastDay) { lastDay = ymd(); render(); }                 // new day → fresh chores
     if (store.sync && document.visibilityState === 'visible' && Date.now() - lastPull > pollMs) { lastPull = Date.now(); store.pull(); }
+    if (document.visibilityState === 'visible' && Date.now() - lastCheck > 5 * 60e3) checkForUpdate();
     if (idle && Date.now() - lastTouch > idle) {
       lastTouch = Date.now();
       if (isParent()) lockParent();
@@ -215,8 +218,8 @@ function kiosk() {
  */
 async function hardRefresh() {
   const btn = $('#refresh-btn');
-  if (btn.classList.contains('spin')) return;
-  btn.classList.add('spin');
+  if (btn?.classList.contains('spin')) return;
+  btn?.classList.add('spin');
   const urls = new Set([location.href.split('#')[0].split('?')[0]]);
   for (const r of performance.getEntriesByType('resource')) {
     const u = new URL(r.name);
@@ -227,6 +230,34 @@ async function hardRefresh() {
     new Promise((r) => setTimeout(r, 8e3)), // a slow network shouldn't leave the button spinning forever
   ]);
   location.replace(`${location.pathname}?r=${Date.now()}${location.hash}`);
+}
+
+// ---- Auto-update -------------------------------------------------------------------------------
+// Every deploy bumps version.json together with the ?v= on app.js in index.html. The app checks
+// version.json (which the cache can't hold onto) when it's reopened and every few minutes, and
+// refreshes itself when a newer version is out — so nobody has to tap ↻.
+
+const VERSION = new URL(import.meta.url).searchParams.get('v') || '';
+const TRIED = 'ec-update-tried';
+let lastCheck = 0;
+
+async function checkForUpdate() {
+  if (!VERSION || Date.now() - lastCheck < 60e3) return;
+  lastCheck = Date.now();
+  let latest;
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    latest = String((await res.json()).v);
+  } catch { return; } // offline — try again later
+  if (!latest || latest === VERSION) return;
+  // Don't yank the page out from under someone mid-tap.
+  if ($('#modal').classList.contains('open') || document.activeElement?.matches('input, textarea, select')) return;
+  // If a reload didn't bring the new version (GitHub still rolling it out), wait before retrying.
+  let tried = null;
+  try { tried = JSON.parse(localStorage.getItem(TRIED)); } catch { /* private mode */ }
+  if (tried?.v === latest && Date.now() - tried.at < 10 * 60e3) return;
+  try { localStorage.setItem(TRIED, JSON.stringify({ v: latest, at: Date.now() })); } catch { /* private mode */ }
+  hardRefresh();
 }
 
 // ---- Boot --------------------------------------------------------------------------------------

@@ -16,8 +16,9 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   where-they-sleep UI; the Tonight card takes tonight's parent color. Coins are gold.
 - Entrance animations run only when arriving on a page (`.view.settled` disables them on tap re-renders). Respect `prefers-reduced-motion`.
 - Content changes go in `data/*.json`, not code.
-- When you change JS or CSS, bump the `?v=` on `app.js` and `app.css` in `index.html`. Home-screen
-  shortcuts on the girls' iPhones cache hard; ↻ (top right) re-downloads everything by hand.
+- When you change JS or CSS, bump the `?v=` on `app.js` and `app.css` in `index.html` AND `version.json`
+  (a test checks they match). Home-screen shortcuts on the girls' iPhones cache hard: open apps see the
+  new version.json within ~5 min (or on reopen) and refresh themselves; ↻ (top right) does it by hand.
 - The site is public: never add teacher names, pickup numbers, home/party addresses, phone
   numbers, medical, counseling or legal details. The sleep schedule (Matt asked for it) shows only
   "Dad's" / "Mom's" — never names or addresses.
