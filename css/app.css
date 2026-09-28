@@ -151,10 +151,9 @@ code { font: 12px var(--mono); color: var(--acc-light); background: rgba(var(--a
 .tn-btn:active { transform: scale(0.92); }
 .admin-link { display: none; }
 body.parent .admin-link { display: grid; }
-.parent-btn .lock-open { display: none; }
-body.parent .parent-btn { border-color: var(--red); background: rgba(239, 111, 111, 0.12); }
-body.parent .parent-btn .lock-open { display: inline; }
-body.parent .parent-btn .lock-closed { display: none; }
+.refresh-btn svg { width: 20px; height: 20px; fill: none; stroke: var(--acc-light); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.refresh-btn.spin svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px rgba(var(--acc-rgb), 0.2); }
 .sync-dot.warn { background: var(--amber); box-shadow: 0 0 0 3px rgba(240, 176, 62, 0.2); animation: blink 1.2s infinite; }
 .sync-dot.err { background: var(--red); box-shadow: 0 0 0 3px rgba(239, 111, 111, 0.25); }

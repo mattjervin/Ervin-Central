@@ -206,6 +206,29 @@ function kiosk() {
   }
 }
 
+// ---- Refresh -----------------------------------------------------------------------------------
+
+/**
+ * A home-screen shortcut on an iPhone happily keeps serving yesterday's JS and CSS. Re-download
+ * every file this page loaded, skipping the cache, then reload onto a fresh URL so the new
+ * versions (and the latest calendar, menus and coins) are what comes back.
+ */
+async function hardRefresh() {
+  const btn = $('#refresh-btn');
+  if (btn.classList.contains('spin')) return;
+  btn.classList.add('spin');
+  const urls = new Set([location.href.split('#')[0].split('?')[0]]);
+  for (const r of performance.getEntriesByType('resource')) {
+    const u = new URL(r.name);
+    if (u.origin === location.origin) urls.add(u.href);
+  }
+  await Promise.race([
+    Promise.allSettled([...urls].map((u) => fetch(u, { cache: 'reload' }))),
+    new Promise((r) => setTimeout(r, 8e3)), // a slow network shouldn't leave the button spinning forever
+  ]);
+  location.replace(`${location.pathname}?r=${Date.now()}${location.hash}`);
+}
+
 // ---- Boot --------------------------------------------------------------------------------------
 
 async function boot() {
@@ -218,10 +241,7 @@ async function boot() {
   store.init(kids().map((k) => k.id));
   store.subscribe(onStore);
   addEventListener('hashchange', () => { if (!/^#\/setup\//.test(location.hash)) render(); else handleSetup(); });
-  $('#parent-btn').addEventListener('click', async () => {
-    if (isParent()) { lockParent(); render(); return; }
-    if (await requireParent()) render();
-  });
+  $('#refresh-btn')?.addEventListener('click', hardRefresh);
   fireflies();
   stickyNav();
   if (!(await handleSetup())) render();

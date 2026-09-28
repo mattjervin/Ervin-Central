@@ -45,13 +45,13 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 - Ticking a daily chore gives its coins **immediately**; unticking takes them back.
 - **Bonus tasks** ("Unload the dishwasher") and **rewards** ("Pick what's for dinner") go into a
   *Waiting for a parent* queue on the Coins page.
-- Approving and adjusting need the **parent PIN** (🔒 top right). The first unlock asks you to
-  create one; it's shared across devices once JSONBin is connected. Parent mode relocks after 5 min.
+- Approving and adjusting need the **parent PIN** (asked for when you tap an approval, or open
+  `…/Ervin-Central/admin/`). The first unlock asks you to create one; it's shared across devices once JSONBin is connected. Parent mode relocks after 5 min.
 - Balances are always the sum of the ledger, so every coin can be traced to a chore or approval.
 
 ### Parent Admin (`#/admin`)
 
-Unlock with the PIN, then **⚙︎ Admin** in the top bar (or bookmark `…/Ervin-Central/#/admin`):
+Go to `…/Ervin-Central/admin/` (bookmark it on a parent's phone) and unlock with the PIN. While unlocked, **⚙︎ Admin** also shows in the top bar. The ↻ button top right re-downloads every file and reloads — for home-screen shortcuts stuck on an old version:
 
 - **Spent offline** — record coins the girls spent in real life, with a reason (quick 5/10/20/50/All).
 - **Zero out coins** — adds one "cashed in" line that brings the balance to exactly 0; history stays.
