@@ -794,23 +794,30 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
 @media (max-width: 700px) {
   .topnav { padding: calc(10px + var(--safe-t)) 14px 10px; }
   .topnav.scrolled { padding-top: calc(6px + var(--safe-t)); padding-bottom: 6px; }
-  .tn-inner { flex-wrap: wrap; gap: 10px; }
-  .brand-name { font-size: 18px; }
-  .brand-hex, .scrolled .brand-hex { width: 30px; height: 30px; border-radius: 8px; }
-  .tn-right { margin-left: auto; }
-  .tn-clock { font-size: 17px; }
-  .tabs { order: 3; width: 100%; justify-content: space-between; }
-  .tabs a { flex: 1; justify-content: center; padding: 0 6px; }
+  /* One row: app icon · tabs · lock. The phone's own status bar has the time. */
+  .tn-inner { gap: 8px; }
+  .brand-text, .tn-clock, .tn-wx { display: none !important; }
+  .brand-hex, .scrolled .brand-hex { width: 32px; height: 32px; border-radius: 9px; }
+  body.parent .brand { display: none; } /* room for the admin gear; the Home tab goes home */
+  .tn-right { gap: 6px; }
+  .tabs { flex: 1; min-width: 0; margin: 0; justify-content: space-between; }
+  .tabs a { flex: 1; min-width: 0; justify-content: center; padding: 0 4px; }
   .tabs a span { display: none !important; }
-  .page { padding: 4px 14px calc(40px + var(--safe-b)); }
+  .tabs em { position: absolute; top: 1px; right: 0; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
+  .page { padding: 2px 12px calc(32px + var(--safe-b)); }
+  /* Tighter rhythm: less scrolling */
+  .view, .stack, .cols, .board { gap: 10px; }
+  .board { margin-top: 10px; }
+  .card { padding: 14px 15px; gap: 10px; }
+  .wear { margin-top: 8px; padding: 10px 12px; gap: 6px; }
   .page-hero { padding-top: 14px; }
   .headline { font-size: 30px; }
   .board { grid-template-columns: minmax(0, 1fr); }
   .today-card, .sleep-card, .coming-card, .wx-card, .cd-card, .leader-card, .chores-card { grid-column: auto; }
   .td-cols { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .home-hero { margin-top: 8px; }
-  .home-hero { height: 196px; }
-  .hh-overlay { padding: 14px 16px 36px; }
+  .home-hero { height: 157px; }
+  .hh-overlay { padding: 12px 14px 28px; }
   .hh-greet .headline { font-size: 20px; }
   .hh-temp { font-size: 18px; }
   .hh-sky { font-size: 13px; }
