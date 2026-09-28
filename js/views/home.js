@@ -103,7 +103,7 @@ function wearStrip(el, w, now) {
   if (!fits.length) return;
   el.innerHTML = `
     <div class="wear-h"><span class="sh-eyebrow">What to wear ${tmr ? 'tomorrow' : 'today'}</span>
-      <span class="wear-why">Feels ${d.feelsLo}° → ${d.feelsHi}°${d.rain >= 30 ? ` · 💧${d.rain}%` : ''}${d.wind >= 20 ? ` · 💨${d.wind} mph` : ''}</span></div>
+      <span class="wear-why">Feels ${d.feelsLo}° → ${d.feelsHi}°${d.rain >= 30 ? ` · 💧${d.rain}%` : ''}${d.wind >= 20 ? ` · 💨${d.wind} mph` : ''}${d.code === 3 ? ' · ☁️ overcast' : ''}</span></div>
     <div class="wear-items">${fits.map((f) => `<span class="wear-it"><span class="wi">${esc(f.icon)}</span>${esc(f.text)}</span>`).join('')}</div>`;
   el.hidden = false;
 }

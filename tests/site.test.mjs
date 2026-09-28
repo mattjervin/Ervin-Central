@@ -133,4 +133,8 @@ test('what to wear follows the feels-like temps, rain and snow', () => {
   const winter = wear({ feelsHi: 25, feelsLo: 10, rain: 60, code: 73 });
   assert.ok(winter.includes('Winter coat, hat & gloves') && winter.includes('Snow boots & snow pants') && winter.includes('Sweater or sweatshirt'));
   assert.ok(!winter.includes('Rain jacket'));
+  // The girls run cold: an overcast 60s-to-low-70s day is pants and sleeves; the same temps in sun allow shorts.
+  assert.deepEqual(wear({ feelsHi: 74, feelsLo: 62, rain: 10, code: 3 }), ['Long sleeves', 'Pants or leggings']);
+  assert.deepEqual(wear({ feelsHi: 74, feelsLo: 62, rain: 10, code: 1 }), ['T-shirt', 'Shorts or a skirt']);
+  assert.deepEqual(wear({ feelsHi: 71, feelsLo: 62, rain: 0, code: 0 }), ['T-shirt', 'Pants or leggings']);
 });

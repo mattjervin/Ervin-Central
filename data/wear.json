@@ -1,11 +1,13 @@
 {
-  "_help": "What to wear, shown under the Home banner. Uses the day's FEELS-LIKE temps (°F): hi = warmest (recess), lo = coldest (the walk to school). For each group the FIRST rule whose `when` all match wins; a group with no match shows nothing. when keys: hiMin/hiMax, loMin/loMax, swingMin (hi − lo), rainMin (% chance), snow (true = snow in the forecast), windMin (mph). Edit freely — no code changes needed.",
+  "_help": "What to wear, shown under the Home banner. Uses the day's FEELS-LIKE temps (°F): hi = warmest (recess), lo = coldest (the walk to school). For each group the FIRST rule whose `when` all match wins; a group with no match shows nothing. when keys: hiMin/hiMax, loMin/loMax, swingMin (hi − lo), rainMin (% chance), snow (true = snow in the forecast), windMin (mph), cloudy (true = overcast/fog/rain/snow, false = sun out). The girls run cold, so shorts and t-shirts need real warmth — or sun. Edit freely — no code changes needed.",
   "rules": [
-    { "group": "top", "icon": "👕", "text": "T-shirt", "when": { "hiMin": 70 } },
+    { "group": "top", "icon": "👕", "text": "T-shirt", "when": { "hiMin": 76 } },
+    { "group": "top", "icon": "👕", "text": "T-shirt", "when": { "hiMin": 70, "cloudy": false } },
     { "group": "top", "icon": "👚", "text": "Long sleeves", "when": { "hiMin": 55 } },
     { "group": "top", "icon": "🧶", "text": "Sweater or sweatshirt", "when": {} },
 
-    { "group": "bottom", "icon": "🩳", "text": "Shorts or a skirt", "when": { "hiMin": 72, "loMin": 55 } },
+    { "group": "bottom", "icon": "🩳", "text": "Shorts or a skirt", "when": { "hiMin": 78, "loMin": 58 } },
+    { "group": "bottom", "icon": "🩳", "text": "Shorts or a skirt", "when": { "hiMin": 74, "loMin": 58, "cloudy": false } },
     { "group": "bottom", "icon": "👖", "text": "Pants or leggings", "when": {} },
 
     { "group": "coat", "icon": "🧤", "text": "Winter coat, hat & gloves", "when": { "loMax": 32 } },

@@ -346,11 +346,13 @@ const SNOW = [71, 73, 75, 77, 85, 86];
 /** Outfit for one forecast day, from the rules in data/wear.json: [{ group, icon, text }]. */
 export function whatToWear(day) {
   const hi = day.feelsHi ?? day.hi, lo = day.feelsLo ?? day.lo;
-  const f = { hi, lo, swing: hi - lo, rain: day.rain ?? 0, snow: SNOW.includes(day.code), wind: day.wind ?? 0 };
+  const f = { hi, lo, swing: hi - lo, rain: day.rain ?? 0, snow: SNOW.includes(day.code), wind: day.wind ?? 0,
+    cloudy: day.code >= 3 }; // overcast, fog, rain or snow — no sun to warm them up
   const ok = (w) => (w.hiMin == null || f.hi >= w.hiMin) && (w.hiMax == null || f.hi <= w.hiMax)
     && (w.loMin == null || f.lo >= w.loMin) && (w.loMax == null || f.lo <= w.loMax)
     && (w.swingMin == null || f.swing >= w.swingMin) && (w.rainMin == null || f.rain >= w.rainMin)
-    && (w.windMin == null || f.wind >= w.windMin) && (w.snow == null || f.snow === w.snow);
+    && (w.windMin == null || f.wind >= w.windMin) && (w.snow == null || f.snow === w.snow)
+    && (w.cloudy == null || f.cloudy === w.cloudy);
   const out = new Map();
   for (const r of cfg.wear?.rules || []) if (!out.has(r.group) && ok(r.when || {})) out.set(r.group, r);
   return [...out.values()];
