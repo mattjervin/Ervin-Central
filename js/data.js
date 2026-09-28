@@ -142,7 +142,7 @@ function toItem(src, date) {
   const allDay = !src.start;
   return {
     title: src.tentative ? `${src.title} ?` : src.title, detail: src.detail || '', icon: src.icon || '📌', who: src.who || [],
-    kind: src.kind || (src.days ? 'recurring' : 'event'), tentative: Boolean(src.tentative),
+    kind: src.kind || (src.days ? 'recurring' : 'event'), tentative: Boolean(src.tentative), schoolDays: Boolean(src.schoolDays),
     allDay,
     start: allDay ? at(date, '00:00') : at(date, src.start),
     end: allDay ? at(date, '23:59') : at(date, src.end || src.start),

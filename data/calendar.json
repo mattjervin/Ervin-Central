@@ -30,7 +30,13 @@
       "who": "dad",
       "alternate": "mom"
     },
-    "overrides": []
+    "overrides": [
+      {
+        "from": "2026-10-06",
+        "who": "mom",
+        "note": "Schedule change"
+      }
+    ]
   },
   "recurring": [
     {

@@ -279,20 +279,28 @@ function weekendsLine(now) {
 }
 
 /** The next few notable things beyond this week — games, parties, events (not routine practices). */
+const COMING = 9;
+
 function comingCard(now, i) {
   const ks = kids();
   const out = [];
-  for (let d = 0; d < 60 && out.length < 7; d++) {
+  const seen = new Set(); // weekly activities show just their next session
+  for (let d = 0; d < 60 && out.length < COMING; d++) {
     const day = addDays(now, d);
     for (const x of itemsOn(day)) {
-      if (x.kind === 'school' || x.kind === 'recurring' || (x.kind === 'noschool' && !x.firstOfRun)) continue;
+      if (x.kind === 'school' || x.schoolDays || (x.kind === 'noschool' && !x.firstOfRun)) continue;
       if (!x.allDay && x.end < now) continue;
+      if (x.kind === 'recurring') {
+        const id = `${x.title}|${[...x.who].sort()}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+      }
       out.push({ ...x, date: day });
     }
   }
   return card(`
-    ${header('Coming Up', { color: 'var(--acc)', href: '#/calendar', eyebrow: 'Games · parties · days off · holidays' })}
-    ${out.slice(0, 7).map((x, j) => `
+    ${header('Coming Up', { color: 'var(--acc)', href: '#/calendar', eyebrow: 'Games · activities · days off · holidays' })}
+    ${out.slice(0, COMING).map((x, j) => `
       <div class="cu-row anim-row ${x.kind}" style="--c:${esc(whoColor(x.who, ks))};--i:${j}">
         <div class="cu-date"><span class="cu-dow">${DOW3[x.date.getDay()]}</span><span class="cu-day">${x.date.getDate()}</span></div>
         <div class="cu-main"><div class="cu-title">${esc(x.icon)} ${esc(x.title)}</div>
