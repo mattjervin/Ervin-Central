@@ -1,58 +1,7 @@
 {
- "updated": "2026-09-27T14:45:20.005Z",
+ "updated": "2026-10-01T15:23:12.638Z",
  "schools": {
   "mv": {
-   "2026-09-24": {
-    "breakfast": [
-     {
-      "label": "Breakfast",
-      "main": [
-       "Freshly Baked Cinnamon Roll",
-       "Fruit Parfaits"
-      ],
-      "sides": [
-       {
-        "label": "Fruit",
-        "items": [
-         "Assorted Fruit",
-         "100% Orange Cup"
-        ]
-       }
-      ]
-     }
-    ],
-    "lunch": [
-     {
-      "label": "Hot Lunch",
-      "main": [
-       "Hot Ham & Cheese Sandwich"
-      ],
-      "sides": [
-       {
-        "label": "Vegetable",
-        "items": [
-         "Au Gratin Potatoes",
-         "Fresh Broccoli"
-        ]
-       },
-       {
-        "label": "Fruit",
-        "items": [
-         "Fresh Watermelon"
-        ]
-       }
-      ]
-     },
-     {
-      "label": "Packaged Meal",
-      "main": [
-       "Tiger Salad (Chicken Strips, Egg, Cheese, Salad Veggies)",
-       "Kidzable (Turkey Wrap, Chez Stick, Fresh Fruits & Veggies)"
-      ],
-      "sides": []
-     }
-    ]
-   },
    "2026-09-28": {
     "breakfast": [
      {
@@ -212,7 +161,24 @@
     ]
    },
    "2026-10-01": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Freshly Baked Cinnamon Roll",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",
@@ -246,7 +212,24 @@
     ]
    },
    "2026-10-02": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Egg & Cheese Taco",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",
@@ -280,7 +263,24 @@
     ]
    },
    "2026-10-05": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Bacon & Cheese Breakfast Pizza",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",
@@ -314,7 +314,24 @@
     ]
    },
    "2026-10-06": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Donut",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",
@@ -354,7 +371,24 @@
     ]
    },
    "2026-10-07": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Breakfast Sandwich - Egg & Cheese",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",
@@ -394,7 +428,24 @@
     ]
    },
    "2026-10-08": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Freshly Baked Cinnamon Roll",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",
@@ -427,7 +478,24 @@
     ]
    },
    "2026-10-09": {
-    "breakfast": [],
+    "breakfast": [
+     {
+      "label": "Breakfast",
+      "main": [
+       "Egg & Cheese Taco",
+       "Fruit Parfaits"
+      ],
+      "sides": [
+       {
+        "label": "Fruit",
+        "items": [
+         "Assorted Fruit",
+         "100% Orange Cup"
+        ]
+       }
+      ]
+     }
+    ],
     "lunch": [
      {
       "label": "Hot Lunch",

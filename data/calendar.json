@@ -1,5 +1,5 @@
 {
-  "_help": "Synced by hand from the Kids calendar on Matt's Mac (2026-09-26). who = kid ids, [] = whole family. days = weekdays (0 Sun … 6 Sat). Times 24h HH:MM; omit start for all-day. except = dates a recurring item is cancelled; schoolDays: true = only on days that kid has school (skips breaks and workdays). tentative = show with a '?'. holidays repeat every year by `rule`: \"MM-DD\" (fixed date), \"3rd-mon-01\" / \"last-mon-05\" (nth weekday of a month), \"easter\" or \"election\"; lunar ones (Hanukkah) list `dates` instead, and a one-off can use `date`. Holidays show on the calendar; dayOff: true = a real day off (Home shows \"Holiday\" instead of \"Daycare Day\"); countdown: true makes one eligible for the Countdowns card (with birthdays from family.json). Keep private items (medical, counseling, addresses) out of this public file.",
+  "_help": "Synced by hand from the Kids calendar on Matt's Mac (2026-10-01). who = kid ids, [] = whole family. days = weekdays (0 Sun … 6 Sat). Times 24h HH:MM; omit start for all-day. except = dates a recurring item is cancelled; schoolDays: true = only on days that kid has school (skips breaks and workdays). tentative = show with a '?'. holidays repeat every year by `rule`: \"MM-DD\" (fixed date), \"3rd-mon-01\" / \"last-mon-05\" (nth weekday of a month), \"easter\" or \"election\"; lunar ones (Hanukkah) list `dates` instead, and a one-off can use `date`. Holidays show on the calendar; dayOff: true = a real day off (Home shows \"Holiday\" instead of \"Daycare Day\"); countdown: true makes one eligible for the Countdowns card (with birthdays from family.json). Keep private items (medical, counseling, addresses) out of this public file.",
   "sleep": {
     "_help": "Where the girls sleep each night. The night of a date belongs to whoever has that day. Mon/Wed = mom, Tue/Thu = dad, Fri–Sun alternate weekends starting from weekendAnchor. overrides beat the pattern (holidays, swaps).",
     "places": {
@@ -315,6 +315,18 @@
       "who": [
         "avery"
       ],
+      "date": "2026-10-12",
+      "start": "17:00",
+      "end": "18:00",
+      "detail": "Island Park",
+      "kind": "game"
+    },
+    {
+      "title": "Avery Soccer Game",
+      "icon": "⚽",
+      "who": [
+        "avery"
+      ],
       "date": "2026-10-15",
       "start": "18:00",
       "end": "19:15",
@@ -347,6 +359,26 @@
       "kind": "game"
     },
     {
+      "title": "Parent-teacher conference",
+      "icon": "🏫",
+      "who": [
+        "avery"
+      ],
+      "date": "2026-10-20",
+      "start": "15:40",
+      "end": "16:05"
+    },
+    {
+      "title": "Parent-teacher conference",
+      "icon": "🏫",
+      "who": [
+        "evelynn"
+      ],
+      "date": "2026-10-22",
+      "start": "16:30",
+      "end": "17:00"
+    },
+    {
       "title": "Shoot the Moon tournament (optional)",
       "icon": "🏆",
       "who": [
@@ -365,6 +397,14 @@
       "end": "11:00",
       "detail": "Island Park · Field 4A",
       "kind": "game"
+    },
+    {
+      "title": "ADM HS Cheer Comp Showcase",
+      "icon": "📣",
+      "who": [],
+      "date": "2026-10-24",
+      "start": "16:30",
+      "end": "17:45"
     },
     {
       "title": "Evie Soccer Game",
