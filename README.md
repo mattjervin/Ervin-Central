@@ -46,7 +46,7 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 - **Bonus tasks** ("Unload the dishwasher") and **rewards** ("Pick what's for dinner") go into a
   *Waiting for a parent* queue on the Coins page.
 - Approving and adjusting need the **parent PIN** (asked for when you tap an approval, or open
-  `…/Ervin-Central/admin/`). The first unlock asks you to create one; it's shared across devices once JSONBin is connected. Parent mode relocks after 5 min.
+  `…/Ervin-Central/admin/`). The first unlock asks you to create one; it's shared across devices once sync is connected. Parent mode relocks after 5 min.
 - Balances are always the sum of the ledger, so every coin can be traced to a chore or approval.
 
 ### Parent Admin (`#/admin`)
@@ -57,43 +57,40 @@ Go to `…/Ervin-Central/admin/` (bookmark it on a parent's phone) and unlock wi
 - **Zero out coins** — adds one "cashed in" line that brings the balance to exactly 0; history stays.
 - **Wipe all history** — erases that girl's coins, requests and check-offs on every device.
 - Remove single ledger lines, change the PIN, back up / restore (restore merges, never doubles).
-- **Sync** — connect this device to JSONBin or share a setup link to another device.
+- **Sync** — connect this device to the family gist, share a setup link, or open the save history.
 
-## Shared state — JSONBin
+## Shared state — a secret GitHub Gist
 
-Coins sync across devices through a JSONBin **collection** named *Ervin Central* with three
-private bins: **Household** (the parent PIN), **Evelynn** and **Avery**. One bin per girl keeps
-two iPads saving at the same time from colliding. Every change is queued on the device and
-replayed onto the latest copy of the bin before saving, so one device never overwrites
-another's coins, and a device that's offline catches up when it reconnects.
+Coins sync across devices through one **secret GitHub Gist** with three files: `household.json`
+(the parent PIN), `evelynn.json` and `avery.json`. A save only rewrites the files it changed, so
+two iPads ticking different girls' chores never collide. Every change is queued on the device,
+replayed onto the latest copy before saving, and kept until a re-read shows it stuck — so one
+device never wipes out another's coins, and a device that's offline catches up when it reconnects.
+
+Every save is a gist **revision**: Admin → Sync → **🕘 History** shows exactly what changed and
+when, and any old version can be restored from there.
 
 ### One-time setup
 
-1. In JSONBin → **API Keys**, copy your **X-Master-Key**.
-2. Also there, create an **Access Key** with only **Bins → Read** and **Bins → Update**
-   (no Create/Delete, no Collections). Name it "Ervin Central site".
-3. On your Mac:
+1. On github.com → Settings → Developer settings → **Fine-grained tokens** → Generate. Name it
+   "Ervin Central site", no expiry (or a long one), **Repository access: Public repositories
+   (read-only)**, and under *Account permissions* set only **Gists → Read and write**.
+2. On your Mac (uses your own `gh` login to create the gist):
    ```bash
-   cd ~/Projects/ervin-central
-   JSONBIN_MASTER_KEY='…' JSONBIN_ACCESS_KEY='…' node scripts/setup-jsonbin.mjs
+   GIST_TOKEN='github_pat_…' node scripts/setup-gist.mjs
    ```
-   It creates the collection and bins, saves the ids to `jsonbin/bins.local.json` (not
-   committed), and prints a **setup link**.
-4. Open that link on each family device (AirDrop or text it to yourself). Enter or create the
+   It creates the gist from `gist/*.json`, saves its id to `gist/gist.local.json` (not
+   committed), and prints a **setup link**. `--link` rebuilds the link later.
+3. Open that link on each family device (AirDrop or text it to yourself). Enter or create the
    PIN and the device is connected. The green dot in the top bar means synced; amber is saving,
    red is a problem (tap ⚙︎ Admin for details).
 
-Prefer the dashboard? Create the collection and three bins by hand using `jsonbin/*.json` as the
-contents, then enter the access key and bin ids under Admin → Sync → "enter the keys by hand".
+The token lives only on family devices (via the setup link), never in this public repo. It can
+edit your gists but not your repos or this site — still, don't post the setup link anywhere.
 
-**The master key is never used by the website.** The access key lives only on family devices
-(via the setup link), never in this public repo. Anyone holding the access key could edit coin
-bins, so don't post the setup link anywhere public.
-
-**Request budget:** each visible screen checks for changes every `sync.pollSeconds` (60s) and
-reads all three bins — 3 requests/minute while the screen is on (~4,300/day for a screen that never
-sleeps), plus 2 per tap. Raise `pollSeconds` in
-`data/family.json` if your JSONBin plan's request allowance runs tight.
+**Request budget:** GitHub allows 5,000 requests an hour per token. Each visible screen checks
+every `sync.pollSeconds` (60s) with one request, and "nothing changed" answers (304) don't count
+against the limit. A save costs three requests (read, write, re-check).
 
 ## Calendar sync (weekly)
 
@@ -154,13 +151,13 @@ index.html            Shell: rail/tab bar, top bar, modal + toast roots
 css/app.css           Design tokens, components, motion, iPad/iPhone breakpoints
 js/app.js             Router, clock, kiosk behaviors
 js/data.js            Config loading, schedule engine, chores, menus, weather
-js/store.js           Chore check-offs, coin ledger, approvals; JSONBin sync + outbox
+js/store.js           Chore check-offs, coin ledger, approvals; GitHub Gist sync + outbox
 js/linq.js            LINQ Connect menu client (shared by browser + Action)
 js/ui.js              Hero/card/header/stat/pill/ring components, modal, toast, PIN pad
 js/scene.js           Home's landscape (SVG): sun/moon on this month's sunrise–sunset, live weather
 js/views/*.js         One module per page: render() → HTML, mount() → events (admin.js = #/admin)
-jsonbin/*.json        Starting contents for the three bins
-scripts/setup-jsonbin.mjs   Creates the JSONBin collection + bins, prints the setup link
+gist/*.json           Starting contents for the three gist files
+scripts/setup-gist.mjs      Creates the secret gist, prints the setup link
 data/*.json           Family-editable content
 scripts/fetch-menus.mjs       Menu cache (run weekly by the sync task; menus.yml is a manual fallback)
 scripts/kids-calendar.mjs     Kids calendar → change report for the weekly sync

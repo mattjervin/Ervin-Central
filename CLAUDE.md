@@ -36,10 +36,14 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   `calendar.json`, not dated entries.
 - Run `node --test 'tests/*.test.mjs'` after touching `js/data.js`, `js/scene.js` or `js/store.js`.
 - Coin balances are derived from the ledger in `store.js`; never store a balance.
-- State syncs to JSONBin (collection "Ervin Central": household / evelynn / avery bins). All
-  mutations are serializable ops through `apply()` — keep them idempotent (mint ids up front)
-  because the outbox replays them onto the latest bin before each PUT.
-- Never commit JSONBin keys or a setup link. The master key is only for scripts/setup-jsonbin.mjs.
+- State syncs to one secret GitHub Gist (household.json / evelynn.json / avery.json; id in the
+  gitignored `gist/gist.local.json`; every save is a revision, so history and undo live there —
+  `gh gist view <id>` reads it). All mutations are serializable ops through `apply()` — keep them
+  idempotent (mint ids up front): the outbox replays them onto the latest gist before each PATCH,
+  and keeps them until a re-read shows they stuck (a PATCH is last-write-wins), resending if not.
+  `isApplied()` decides "stuck", so an op that can't be told apart from a no-op would loop.
+- Never commit the GitHub token or a setup link. Devices use a fine-grained token with only
+  Gists: Read and write; `scripts/setup-gist.mjs` creates the gist with Matt's own `gh` login.
 - Views export `title`, `render(params)` → HTML string, optional `mount(el, rerender)`. The
   router hands `mount` a fresh element each render, so binding listeners there is safe.
 

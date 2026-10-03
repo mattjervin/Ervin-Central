@@ -4,7 +4,7 @@
 //   · Spent offline — record coins the girls spent in real life, with a reason
 //   · Zero out      — bring a balance to 0 (history kept)
 //   · Wipe          — erase a girl's history entirely
-//   · Sync          — connect this device to the JSONBin bins, share a setup link
+//   · Sync          — connect this device to the family's GitHub Gist, share a setup link
 //   · PIN, backup
 
 import { cfg, kids } from '../data.js';
@@ -81,33 +81,32 @@ function kidAdmin(k) {
 
 function syncCard() {
   const s = store.status;
-  const kidsList = kids();
-  if (s.mode === 'jsonbin') {
+  if (s.mode === 'gist') {
     const state = s.error ? `<span class="sync-state err">⚠︎ ${esc(s.error)}</span>`
       : s.pending ? `<span class="sync-state warn">Saving ${s.pending}…</span>`
       : `<span class="sync-state ok">✓ Synced${s.lastSync ? ' ' + clock(new Date(s.lastSync)) : ''}</span>`;
     return card(`
-      ${header('Sync · JSONBin', { color: 'var(--blue)' })}
+      ${header('Sync · GitHub', { color: 'var(--blue)' })}
       <p class="muted">${state}</p>
       <ul class="bin-list">
-        ${['household', ...kidsList.map((k) => k.id)].map((b) => `<li><span>${esc(b === 'household' ? 'Household' : kidsList.find((k) => k.id === b).name)}</span><code>${esc(store.sync.bins[b])}</code></li>`).join('')}
+        <li><span>Gist</span><code>${esc(store.sync.gistId)}</code></li>
       </ul>
       <div class="tool-row">
         <button class="btn" data-sync-now>↻ Sync now</button>
+        <a class="btn" href="https://gist.github.com/${esc(store.sync.gistId)}/revisions" target="_blank" rel="noopener">🕘 History</a>
         <button class="btn" data-share>📲 Setup link for another device</button>
         <button class="btn ghost" data-disconnect>Disconnect this device</button>
       </div>
-      <p class="muted small">The setup link holds the access key — share it only with family devices (AirDrop / Messages to yourself).</p>`);
+      <p class="muted small">The setup link holds the GitHub token — share it only with family devices (AirDrop / Messages to yourself).</p>`);
   }
   return card(`
     ${header('Sync · this device only', { color: 'var(--amber)' })}
-    <p class="muted">Coins are saved on this device only. Connect JSONBin so every iPad and iPhone shares them.</p>
+    <p class="muted">Coins are saved on this device only. Connect the family gist so every iPad and iPhone shares them.</p>
     <form class="connect" data-connect>
       <label>Setup link or code <input name="code" type="text" placeholder="Paste a setup link…" autocomplete="off"></label>
       <details><summary class="muted">…or enter the keys by hand</summary>
-        <label>Access key <input name="accessKey" type="text" autocomplete="off" spellcheck="false"></label>
-        <label>Household bin id <input name="household" type="text" autocomplete="off" spellcheck="false"></label>
-        ${kidsList.map((k) => `<label>${esc(k.name)} bin id <input name="${k.id}" type="text" autocomplete="off" spellcheck="false"></label>`).join('')}
+        <label>GitHub token <input name="token" type="text" autocomplete="off" spellcheck="false"></label>
+        <label>Gist id <input name="gistId" type="text" autocomplete="off" spellcheck="false"></label>
       </details>
       <button class="btn ok" type="submit">Connect</button>
     </form>`);
@@ -168,7 +167,7 @@ export function mount(root, rerender) {
         let conf;
         const code = f.code.value.trim();
         if (code) conf = store.parseSetupCode(code.split('#/setup/').pop());
-        else conf = { accessKey: f.accessKey.value.trim(), bins: Object.fromEntries(['household', ...kids().map((k) => k.id)].map((b) => [b, f[b].value.trim()])) };
+        else conf = { token: f.token.value.trim(), gistId: f.gistId.value.trim() };
         await connectFlow(conf);
         rerender();
       } catch (err) {
@@ -183,10 +182,10 @@ export async function connectFlow(conf) {
   let mergeLocal = false;
   if (store.hasLocalActivity()) {
     mergeLocal = await confirmSheet('Keep this device’s coins?',
-      'This device already has coins or requests. Add them to the shared bins? Choose Cancel if this was just testing.', { ok: 'Add them', icon: '🪙' });
+      'This device already has coins or requests. Add them to the shared gist? Choose Cancel if this was just testing.', { ok: 'Add them', icon: '🪙' });
   }
   await store.connect(conf, { mergeLocal });
-  toast('✓ Connected to JSONBin', 'var(--good)');
+  toast('✓ Connected to GitHub', 'var(--good)');
 }
 
 async function shareSetup() {

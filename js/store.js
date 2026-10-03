@@ -1,15 +1,17 @@
 // The one place mutable household state lives: chore check-offs, the Kindness Coin ledger,
 // pending approvals, and the parent PIN.
 //
-// State is split into documents that map 1:1 onto JSONBin bins in the "Ervin Central" collection:
-//   household → { v, pinHash }
-//   <kidId>   → { v, kid, done: { date: { choreId: ts } }, ledger: [..], pending: [..] }
-// One bin per girl means two iPads ticking chores at the same time almost never touch the same bin.
+// State is split into documents that map 1:1 onto files in one secret GitHub Gist:
+//   household.json → { v, pinHash }
+//   <kidId>.json   → { v, kid, done: { date: { choreId: ts } }, ledger: [..], pending: [..] }
+// A save PATCHes only the files it changed, so two iPads ticking different girls' chores never
+// touch the same file. Every save is a gist revision — that's the history and the undo.
 //
 // Every change is a small serializable op run through `apply()`. It's applied locally at once
 // (the tap feels instant), queued in an outbox that survives reloads, and replayed onto the
-// *latest* copy of the bin before each PUT — so a write never clobbers another device's coins,
-// and ops are idempotent (ids are minted up front) so a retry can't double-pay.
+// *latest* copy of the gist before each PATCH. Ops are idempotent (ids are minted up front) so a
+// retry can't double-pay. A gist PATCH is last-write-wins, so ops leave the outbox only once a
+// later read shows they stuck — if another device's save landed on top, they're simply sent again.
 //
 // Coin balances are never stored — they're the sum of the ledger.
 //
@@ -21,13 +23,16 @@ const KEY = 'ervin-central:v2';
 const OLD_KEY = 'ervin-central:v1';
 const OUTBOX_KEY = 'ervin-central:outbox';
 const SYNC_KEY = 'ervin-central:sync';
-const API = 'https://api.jsonbin.io/v3/b/';
+const API = 'https://api.github.com/gists/';
 const KEEP_DONE_DAYS = 45;
+const SETTLE_MS = 3000;      // wait before checking a save stuck, so a racing save has landed
+const SAVE_TRIES = 3;
 
 let kidIds = [];
 let docs = {};
 let outbox = read(OUTBOX_KEY) || [];
-let sync = read(SYNC_KEY);   // { accessKey, bins: { household, <kidId>... } } | null
+let sync = read(SYNC_KEY);   // { token, gistId } | null
+if (sync && !sync.gistId) { sync = null; write(SYNC_KEY, null); } // old JSONBin config
 const status = { lastSync: null, error: null, busy: false };
 const listeners = new Set();
 
@@ -80,7 +85,7 @@ function apply(doc, op) {
       doc.ledger = doc.ledger.filter((e) => e.id !== op.id);
       break;
     case 'zero': {
-      // Computed against whatever the bin holds *now*, so it zeroes the real balance even if
+      // Computed against whatever the gist holds *now*, so it zeroes the real balance even if
       // another device added coins a moment ago.
       if (hasEntry(op.id)) break;
       const bal = balanceOf(doc);
@@ -99,10 +104,18 @@ function apply(doc, op) {
       doc.pinHash = op.hash;
       break;
   }
-  // Keep bins small: old check-offs are only needed for "done today".
+  // Keep the files small: old check-offs are only needed for "done today".
   const cutoff = ymd(new Date(Date.now() - KEEP_DONE_DAYS * 864e5));
-  for (const d of Object.keys(doc.done || {})) if (d < cutoff) delete doc.done[d];
+  for (const d of Object.keys(doc.done || {})) if (d < cutoff || !Object.keys(doc.done[d]).length) delete doc.done[d];
   return doc;
+}
+
+/** True when replaying these ops onto doc would change nothing — i.e. they already landed. */
+function isApplied(doc, ops) {
+  const base = apply(structuredClone(doc), { t: 'noop' }); // same normalising and pruning
+  const after = structuredClone(base);
+  for (const op of ops) apply(after, op);
+  return JSON.stringify(after) === JSON.stringify(base);
 }
 
 function mutate(bin, op) {
@@ -113,29 +126,76 @@ function mutate(bin, op) {
   if (sync) flush();
 }
 
-// ---- JSONBin -------------------------------------------------------------------------------
+// ---- GitHub Gist ---------------------------------------------------------------------------
 
-/** 4xx = wrong key or bin id (retrying won't help); anything else is worth another try. */
+/** 401/404 = wrong token or gist id (retrying won't help); anything else is worth another try. */
 function httpError(what, code) {
-  const err = new Error(code >= 400 && code < 500 && code !== 429 ? `JSONBin ${what} ${code} — check the key in Admin → Sync` : `JSONBin ${what} ${code}`);
-  err.fatal = code >= 400 && code < 500 && code !== 429;
+  const fatal = code === 401 || code === 404;
+  const err = new Error(fatal ? `GitHub ${what} ${code} — check the token in Admin → Sync` : `GitHub ${what} ${code}`);
+  err.fatal = fatal;
   return err;
 }
 
-async function getBin(id) {
-  const res = await fetch(`${API}${id}/latest`, { headers: { 'X-Access-Key': sync.accessKey, 'X-Bin-Meta': 'false' }, cache: 'no-store' });
+const headers = () => ({ Authorization: `Bearer ${sync.token}`, Accept: 'application/vnd.github+json' });
+const blankFor = (bin) => (bin === 'household' ? blankHousehold() : blankKid(bin));
+let etag = null;
+
+/** Every doc in one request. With `ifChanged`, resolves null when nothing moved (a 304 is free). */
+async function getGist({ ifChanged = false } = {}) {
+  const h = headers();
+  if (ifChanged && etag) h['If-None-Match'] = etag;
+  const res = await fetch(API + sync.gistId, { headers: h, cache: 'no-store' });
+  if (res.status === 304) return null;
   if (!res.ok) throw httpError('read', res.status);
-  return res.json();
+  etag = res.headers.get('ETag');
+  const { files } = await res.json();
+  const out = {};
+  for (const bin of ['household', ...kidIds]) {
+    const f = files[`${bin}.json`];
+    // The API inlines up to 1 MB per file; past that, the content comes from the raw URL.
+    const text = !f ? null : f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content;
+    out[bin] = { ...blankFor(bin), ...(text ? JSON.parse(text) : {}) };
+  }
+  return out;
 }
 
-async function putBin(id, doc) {
-  const res = await fetch(`${API}${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'X-Access-Key': sync.accessKey },
-    body: JSON.stringify(doc),
+async function patchGist(changed) {
+  const files = Object.fromEntries(Object.entries(changed).map(([bin, doc]) => [`${bin}.json`, { content: serialize(doc) }]));
+  const res = await fetch(API + sync.gistId, {
+    method: 'PATCH',
+    headers: { ...headers(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ files }),
   });
   if (!res.ok) throw httpError('save', res.status);
-  return (await res.json()).record;
+}
+
+/** One entry per line, so a gist revision diff reads like a list of what changed. */
+function serialize(doc) {
+  const inner = (v) => (Array.isArray(v) ? v.map((x) => `    ${JSON.stringify(x)}`)
+    : Object.entries(v).map(([k, x]) => `    ${JSON.stringify(k)}: ${JSON.stringify(x)}`)).join(',\n');
+  const field = ([k, v]) => {
+    const open = Array.isArray(v) ? '[' : '{';
+    const nested = v && typeof v === 'object' && Object.keys(v).length;
+    return `  ${JSON.stringify(k)}: ${nested ? `${open}\n${inner(v)}\n  ${open === '[' ? ']' : '}'}` : JSON.stringify(v)}`;
+  };
+  return `{\n${Object.entries(doc).map(field).join(',\n')}\n}\n`;
+}
+
+/**
+ * One save round: read the latest docs, lay the batch on, write the changed files, let any racing
+ * save land, then read again. A bin's ops count as saved only if the re-read already contains them.
+ */
+async function saveBatch(io, batch, settleMs = SETTLE_MS) {
+  const fresh = await io.get();
+  const bins = [...new Set(batch.map((o) => o.bin))];
+  const opsFor = (bin) => batch.filter((o) => o.bin === bin).map((o) => o.op);
+  const changed = {};
+  for (const bin of bins) changed[bin] = opsFor(bin).reduce(apply, structuredClone(fresh[bin]));
+  await io.patch(changed);
+  if (settleMs) await new Promise((r) => setTimeout(r, settleMs));
+  const saved = await io.get();
+  const okBins = bins.filter((bin) => isApplied(saved[bin], opsFor(bin)));
+  return { saved, ok: batch.filter((o) => okBins.includes(o.bin)) };
 }
 
 /** Latest remote copy with this device's still-unsent ops laid on top. */
@@ -150,18 +210,19 @@ let retryTimer = null;
 let flushes = 0; // bumped after every successful save, so a pull that started earlier can tell it's stale
 
 function flush() {
-  if (!sync) return Promise.resolve();
+  // Nothing to send: return before the async body, which would otherwise finish synchronously
+  // and clear `flushing` before it is even assigned — leaving it stuck and blocking every pull.
+  if (!sync || (!flushing && !outbox.length)) return flushing || Promise.resolve();
   flushing ||= (async () => {
     status.busy = true; notify('status');
     try {
-      while (outbox.length) {
-        const bin = outbox[0].bin;
-        const batch = outbox.filter((o) => o.bin === bin);
-        const fresh = await getBin(sync.bins[bin]);
-        for (const o of batch) apply(fresh, o.op);
-        const saved = await putBin(sync.bins[bin], fresh);
-        outbox = outbox.filter((o) => !batch.includes(o));
-        docs[bin] = withOutbox(bin, saved);
+      for (let tries = 0; outbox.length; tries++) {
+        if (tries >= SAVE_TRIES) throw new Error('GitHub save kept getting overwritten — trying again soon');
+        const batch = [...outbox];
+        const { saved, ok } = await saveBatch({ get: getGist, patch: patchGist }, batch);
+        if (ok.length) tries = -1; // progress — the next round starts fresh
+        outbox = outbox.filter((o) => !ok.includes(o));
+        for (const bin of Object.keys(saved)) docs[bin] = withOutbox(bin, saved[bin]);
         flushes++;
         saveLocal();
       }
@@ -300,33 +361,32 @@ export const store = {
 
   // ---- Sync ----
   get sync() { return sync; },
-  get status() { return { ...status, pending: outbox.length, mode: sync ? 'jsonbin' : 'local' }; },
+  get status() { return { ...status, pending: outbox.length, mode: sync ? 'gist' : 'local' }; },
 
-  /** Pull every bin. Remote wins, with this device's unsent ops re-applied on top. */
+  /** Pull every doc. Remote wins, with this device's unsent ops re-applied on top. */
   async pull() {
     if (!sync || flushing) return;
     const seen = flushes;
     try {
-      const bins = ['household', ...kidIds];
-      const got = await Promise.all(bins.map((b) => getBin(sync.bins[b])));
+      const got = await getGist({ ifChanged: true });
       if (flushes !== seen || flushing) return; // a save landed mid-pull; this copy predates it
-      const before = JSON.stringify(docs);
-      bins.forEach((b, i) => { docs[b] = withOutbox(b, { ...(b === 'household' ? blankHousehold() : blankKid(b)), ...got[i] }); });
-      saveLocal();
       status.error = null; status.lastSync = Date.now();
+      if (!got) { notify('status'); return; } // 304 — nothing moved
+      const before = JSON.stringify(docs);
+      for (const bin of Object.keys(got)) docs[bin] = withOutbox(bin, got[bin]);
+      saveLocal();
       notify(JSON.stringify(docs) === before ? 'status' : 'remote');
     } catch (err) {
       status.error = err.message; notify('status');
     }
   },
 
-  /** Point this device at the bins. Optionally push what this device already has. */
+  /** Point this device at the gist. Optionally push what this device already has. */
   async connect(cfg, { mergeLocal = false } = {}) {
-    const missing = ['household', ...kidIds].filter((b) => !cfg.bins?.[b]);
-    if (!cfg.accessKey || missing.length) throw new Error(`Missing ${cfg.accessKey ? 'bin id for ' + missing.join(', ') : 'access key'}`);
+    if (!cfg.token || !cfg.gistId) throw new Error(`Missing ${cfg.token ? 'gist id' : 'GitHub token'}`);
     const local = structuredClone(docs);
-    sync = cfg;
-    outbox = [];
+    sync = { token: cfg.token, gistId: cfg.gistId };
+    outbox = []; etag = null;
     await store.pull();
     if (status.error) { sync = null; throw new Error(status.error); }
     write(SYNC_KEY, sync);
@@ -343,7 +403,7 @@ export const store = {
     notify('status');
   },
 
-  /** Base64url setup code carrying the access key + bin ids, for #/setup/<code>. */
+  /** Base64url setup code carrying the token + gist id, for #/setup/<code>. */
   setupCode() { return sync ? btoa(JSON.stringify(sync)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : null; },
 
   parseSetupCode(code) {
@@ -354,10 +414,10 @@ export const store = {
   hasLocalActivity() { return kidIds.some((k) => docs[k].ledger.length || docs[k].pending.length); },
 };
 
-/** For tests: the op reducer on its own. */
-export { apply as applyOp };
+/** For tests: the op reducer, the saved-yet check, one save round and the gist file format. */
+export { apply as applyOp, isApplied, saveBatch, serialize };
 
-/** SHA-256 of the PIN. Keeps kids from reading it out of a bin; it is not real security. */
+/** SHA-256 of the PIN. Keeps kids from reading it out of the gist; it is not real security. */
 export async function hashPin(pin) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`ervin-central:${pin}`));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');

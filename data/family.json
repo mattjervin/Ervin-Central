@@ -75,7 +75,7 @@
     }
   ],
   "sync": {
-    "_help": "JSONBin setup is per device (Admin → Sync), never in this public file. pollSeconds = how often a visible screen checks for other devices' changes.",
+    "_help": "GitHub Gist sync is set up per device (Admin → Sync), never in this public file. pollSeconds = how often a visible screen checks for other devices' changes.",
     "pollSeconds": 60
   },
   "kiosk": {

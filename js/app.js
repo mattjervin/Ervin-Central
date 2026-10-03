@@ -130,7 +130,7 @@ function tick() {
 
   const s = store.status;
   const dot = $('#sync-dot');
-  dot.hidden = s.mode !== 'jsonbin';
+  dot.hidden = s.mode !== 'gist';
   dot.className = `sync-dot ${s.error ? 'err' : s.pending || s.busy ? 'warn' : 'ok'}`;
   dot.title = s.error ? `Sync problem: ${s.error}` : s.pending ? 'Saving…' : 'Synced';
 }
@@ -144,7 +144,7 @@ function onStore(reason) {
   render();
 }
 
-// ---- Setup links: #/setup/<code> carries the JSONBin access key + bin ids ----------------------
+// ---- Setup links: #/setup/<code> carries the GitHub token + gist id ------------------------------
 
 async function handleSetup() {
   const m = location.hash.match(/^#\/setup\/(.+)$/);

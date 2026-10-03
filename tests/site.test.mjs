@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { cfg, schoolDay, itemsOn, sleepOn, countdowns, ruleDate, holidaysIn, whatToWear } from '../js/data.js';
-import { applyOp } from '../js/store.js';
+import { applyOp, isApplied, saveBatch, serialize } from '../js/store.js';
 import { sunTimes, skyKind } from '../js/scene.js';
 import { ymd } from '../js/util.js';
 
@@ -115,6 +115,47 @@ test('store ops are idempotent (the outbox replays them)', () => {
   applyOp(doc, zero); applyOp(doc, zero);
   assert.equal(doc.ledger.reduce((s, e) => s + e.amount, 0), 0);
   assert.equal(doc.ledger.length, 3);
+});
+
+const blank = () => ({ v: 2, kid: 'avery', done: {}, ledger: [], pending: [] });
+const tick = (id, on = true) => {
+  const date = ymd(new Date()), ref = `${date}:${id}:avery`;
+  return { t: 'chore', date, choreId: id, on, ts: 1, ref, entry: { id: `e-${id}`, kid: 'avery', amount: 1, reason: id, type: 'chore', ref, ts: 1 } };
+};
+
+test('isApplied: an op counts as saved only once the doc already holds it', () => {
+  const doc = blank();
+  assert.equal(isApplied(doc, [tick('bed')]), false);
+  applyOp(doc, tick('bed'));
+  assert.equal(isApplied(doc, [tick('bed')]), true);
+  // Ticked then unticked before the save: the end state is what has to stick.
+  assert.equal(isApplied(blank(), [tick('bed'), tick('bed', false)]), true);
+});
+
+test('gist saves: a write another device overwrote is sent again, never paid twice', async () => {
+  let remote = { avery: blank() };
+  let clobber = true;
+  const io = {
+    get: async () => structuredClone(remote),
+    patch: async (changed) => {
+      if (clobber) { clobber = false; return; } // another device's save lands on top of ours
+      remote = { ...remote, ...structuredClone(changed) };
+    },
+  };
+  const batch = [{ bin: 'avery', op: tick('bed') }];
+  assert.equal((await saveBatch(io, batch, 0)).ok.length, 0);
+  assert.equal((await saveBatch(io, batch, 0)).ok.length, 1);
+  assert.equal((await saveBatch(io, batch, 0)).ok.length, 1); // a stray retry is harmless
+  assert.equal(remote.avery.ledger.length, 1);
+});
+
+test('gist files are one entry per line and parse back', () => {
+  const doc = blank();
+  applyOp(doc, tick('bed')); applyOp(doc, tick('teeth'));
+  const text = serialize(doc);
+  assert.deepEqual(JSON.parse(text), doc);
+  assert.equal(text.split('\n').filter((l) => l.includes('"type":"chore"')).length, 2);
+  assert.deepEqual(JSON.parse(serialize({ v: 2, pinHash: null })), { v: 2, pinHash: null });
 });
 
 test('school-only recurring items skip breaks', () => {
