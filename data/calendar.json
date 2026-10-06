@@ -154,6 +154,19 @@
       "from": "2026-08-27"
     },
     {
+      "title": "Wrestling",
+      "icon": "🤼",
+      "who": [
+        "avery"
+      ],
+      "days": [
+        1
+      ],
+      "start": "18:30",
+      "end": "19:30",
+      "from": "2026-11-09"
+    },
+    {
       "title": "Avery PE Day",
       "icon": "👟",
       "who": [
