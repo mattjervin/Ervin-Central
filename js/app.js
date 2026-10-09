@@ -4,7 +4,7 @@
 
 import { loadConfig, cfg, kids, weather } from './data.js';
 import { store } from './store.js';
-import { isParent, lockParent, requireParent, toast } from './ui.js';
+import { isParent, lockParent } from './ui.js';
 import { $, $$, esc, clock, ymd } from './util.js';
 import * as home from './views/home.js';
 import * as calendar from './views/calendar.js';
@@ -130,7 +130,7 @@ function tick() {
 
   const s = store.status;
   const dot = $('#sync-dot');
-  dot.hidden = s.mode !== 'gist';
+  dot.hidden = s.mode !== 'cloud';
   dot.className = `sync-dot ${s.error ? 'err' : s.pending || s.busy ? 'warn' : 'ok'}`;
   dot.title = s.error ? `Sync problem: ${s.error}` : s.pending ? 'Saving…' : 'Synced';
 }
@@ -144,23 +144,6 @@ function onStore(reason) {
   render();
 }
 
-// ---- Setup links: #/setup/<code> carries the GitHub token + gist id ------------------------------
-
-async function handleSetup() {
-  const m = location.hash.match(/^#\/setup\/(.+)$/);
-  if (!m) return false;
-  history.replaceState(null, '', `${location.pathname}#/admin`); // don't leave the key in history
-  try {
-    const conf = store.parseSetupCode(m[1]);
-    if (!(await requireParent())) { render(); return true; }
-    await admin.connectFlow(conf);
-  } catch (err) {
-    toast(`Setup failed: ${esc(err.message)}`, 'var(--red)');
-  }
-  render();
-  return true;
-}
-
 // ---- Kiosk -------------------------------------------------------------------------------------
 
 let lastTouch = Date.now();
@@ -169,7 +152,7 @@ let lastPull = Date.now();
 let pollMs = 60e3;
 
 function kiosk() {
-  pollMs = (cfg.family.sync?.pollSeconds || 60) * 1000;
+  pollMs = (cfg.family.sync?.pollSeconds || 15) * 1000;
   checkForUpdate(); // a cold start may be running a cached old copy
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && store.sync) { lastPull = Date.now(); store.pull(); }
@@ -188,10 +171,14 @@ function kiosk() {
   topWx();
   setInterval(topWx, 20 * 60e3);
 
+  // Other devices' coin changes: a cheap "anything past the last seq?" read every pollSeconds.
+  setInterval(() => {
+    if (store.sync && document.visibilityState === 'visible' && Date.now() - lastPull >= pollMs) { lastPull = Date.now(); store.pull(); }
+  }, 3e3);
+
   setInterval(() => {
     tick();
     if (ymd() !== lastDay) { lastDay = ymd(); render(); }                 // new day → fresh chores
-    if (store.sync && document.visibilityState === 'visible' && Date.now() - lastPull > pollMs) { lastPull = Date.now(); store.pull(); }
     if (document.visibilityState === 'visible' && Date.now() - lastCheck > 5 * 60e3) checkForUpdate();
     if (idle && Date.now() - lastTouch > idle) {
       lastTouch = Date.now();
@@ -269,13 +256,13 @@ async function boot() {
     $('#main').innerHTML = `<div class="card" style="margin-top:40px"><p class="empty">Couldn’t load the family data (${esc(err.message)}).</p></div>`;
     return;
   }
-  store.init(kids().map((k) => k.id));
+  store.init(kids().map((k) => k.id), cfg.family.sync);
   store.subscribe(onStore);
-  addEventListener('hashchange', () => { if (!/^#\/setup\//.test(location.hash)) render(); else handleSetup(); });
+  addEventListener('hashchange', render);
   $('#refresh-btn')?.addEventListener('click', hardRefresh);
   fireflies();
   stickyNav();
-  if (!(await handleSetup())) render();
+  render();
   kiosk();
   document.fonts?.ready.then(moveGlider); // tab widths change once Inter arrives
 }
