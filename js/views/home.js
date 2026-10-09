@@ -3,9 +3,9 @@
 // lunch) and a peek at tomorrow. Then where the girls sleep, what's coming up, a 4-day forecast,
 // countdowns, and — last, since chores aren't the point — the coin leaderboard and chore chart.
 
-import { cfg, kids, itemsOn, holidaysIn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { cfg, kids, kid as kidById, itemsOn, holidaysIn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
-import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst } from '../ui.js';
+import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst, requireKidCode } from '../ui.js';
 import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
 import { esc, greeting, clock, ymd, relDay, plural, dayPart, addDays, parseYmd, DOW, DOW3, MONTH } from '../util.js';
 
@@ -76,12 +76,16 @@ export function mount(root, rerender) {
   }
 
   // Tap a chore right from the board.
-  root.addEventListener('click', (e) => {
+  root.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-chore]');
     if (!t) return;
     const chore = cfg.chores.chores.find((c) => c.id === t.dataset.chore);
-    const on = store.toggleChore(chore, t.dataset.kid);
-    if (on) { const r = t.getBoundingClientRect(); coinBurst(r.left + r.width / 2, r.top, chore.coins); }
+    const k = kidById(t.dataset.kid);
+    // Ticking adds coins, so it needs the kids' code. Unticking only takes them back.
+    if (!store.isDone(ymd(), chore.id, k.id) && !(await requireKidCode(k, `get ${chore.coins} coin${chore.coins === 1 ? '' : 's'} for “${chore.title}”`))) return;
+    const r = t.getBoundingClientRect();
+    const on = store.toggleChore(chore, k.id);
+    if (on) coinBurst(r.left + r.width / 2, r.top, chore.coins);
     rerender();
   });
 }
