@@ -36,14 +36,20 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   `calendar.json`, not dated entries.
 - Run `node --test 'tests/*.test.mjs'` after touching `js/data.js`, `js/scene.js` or `js/store.js`.
 - Coin balances are derived from the ledger in `store.js`; never store a balance.
-- State syncs to one secret GitHub Gist (household.json / evelynn.json / avery.json; id in the
-  gitignored `gist/gist.local.json`; every save is a revision, so history and undo live there —
-  `gh gist view <id>` reads it). All mutations are serializable ops through `apply()` — keep them
-  idempotent (mint ids up front): the outbox replays them onto the latest gist before each PATCH,
-  and keeps them until a re-read shows they stuck (a PATCH is last-write-wins), resending if not.
-  `isApplied()` decides "stuck", so an op that can't be told apart from a no-op would loop.
-- Never commit the GitHub token or a setup link. Devices use a fine-grained token with only
-  Gists: Read and write; `scripts/setup-gist.mjs` creates the gist with Matt's own `gh` login.
+- State syncs through Supabase (project `ervin-data`, ref `gflocxcogragbwjplwgt`, schema
+  `ervin_central`, table `ops`) — an append-only log `{ seq, op_id, bin, op }` that every device
+  replays in `seq` order (`replay()` in store.js). All mutations are serializable ops through
+  `apply()` — keep them idempotent and deterministic given the log order (mint ids up front; a
+  retry with the same `op_id` is ignored by the unique index). The API allows only SELECT/INSERT
+  for anon — never add UPDATE/DELETE grants; a correction is a new op.
+- URL + **publishable** key live in `data/family.json → sync` (safe to be public). Never commit the
+  secret key. Access control is deliberately open for now (Matt's call, Oct 2026).
+- Passcodes (`data/family.json → passcodes`, SHA-256 of `ervin-central:<code>`): `parent` unlocks
+  Admin/approvals; `kids` is asked EVERY time a kid adds coins (chore tick on, bonus request) via
+  `requireKidCode()` in ui.js — skipped while parent mode is unlocked. Untick needs no code.
+- Schema changes: run SQL in the Supabase SQL Editor (or the Supabase MCP server with
+  `project_ref=gflocxcogragbwjplwgt`). Setup + how-to-add-an-app notes live in Matt's Second Brain
+  (`AI & Tools/Supabase — Personal App Backend.md`).
 - Views export `title`, `render(params)` → HTML string, optional `mount(el, rerender)`. The
   router hands `mount` a fresh element each render, so binding listeners there is safe.
 
