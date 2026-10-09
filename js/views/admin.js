@@ -1,11 +1,11 @@
-// Parent Admin — the back door. Not in the nav; reach it from 🔓 Parent → Admin, or bookmark
-// #/admin on a parent's phone. Everything here needs the PIN.
+// Parent Admin — the back door. Not in the nav; bookmark …/Ervin-Central/admin/ on a parent's
+// phone. Everything here needs the parent passcode.
 //
 //   · Spent offline — record coins the girls spent in real life, with a reason
 //   · Zero out      — bring a balance to 0 (history kept)
 //   · Wipe          — erase a girl's history entirely
-//   · Sync          — connect this device to the family's GitHub Gist, share a setup link
-//   · PIN, backup
+//   · Cloud         — sync status for the Supabase log, sync now, rebuild from the cloud
+//   · Backup
 
 import { cfg, kids } from '../data.js';
 import { store } from '../store.js';
@@ -20,20 +20,19 @@ export function render() {
       <div class="locked">
         <div class="sheet-icon">🔒</div>
         <h3 class="sheet-title">Parents only</h3>
-        <p class="sheet-sub">Enter the parent PIN to manage ${esc(cfg.chores.coinName)}.</p>
+        <p class="sheet-sub">Enter the parent passcode to manage ${esc(cfg.chores.coinName)}.</p>
         <button class="btn ok" data-unlock>Unlock</button>
       </div>`);
   }
   return `
-  ${hero('Parents only', 'Parent', 'admin', 'Record coins spent offline, zero out or wipe a balance, and manage sync.')}
+  ${hero('Parents only', 'Parent', 'admin', 'Record coins spent offline, zero out or wipe a balance, and check cloud sync.')}
   <div class="stack">
     <div class="cols two">${kids().map(kidAdmin).join('')}</div>
     <div class="cols two">
       ${syncCard()}
       ${card(`
-        ${header('PIN & backup', { color: 'var(--t3)' })}
+        ${header('Backup', { color: 'var(--t3)' })}
         <div class="tool-row">
-          <button class="btn" data-pin>🔑 Change PIN</button>
           <button class="btn" data-export>⬇︎ Back up</button>
           <button class="btn" data-import>⬆︎ Restore</button>
           <button class="btn ghost" data-lock>🔒 Lock</button>
@@ -81,35 +80,28 @@ function kidAdmin(k) {
 
 function syncCard() {
   const s = store.status;
-  if (s.mode === 'gist') {
-    const state = s.error ? `<span class="sync-state err">⚠︎ ${esc(s.error)}</span>`
-      : s.pending ? `<span class="sync-state warn">Saving ${s.pending}…</span>`
-      : `<span class="sync-state ok">✓ Synced${s.lastSync ? ' ' + clock(new Date(s.lastSync)) : ''}</span>`;
+  if (s.mode !== 'cloud') {
     return card(`
-      ${header('Sync · GitHub', { color: 'var(--blue)' })}
-      <p class="muted">${state}</p>
-      <ul class="bin-list">
-        <li><span>Gist</span><code>${esc(store.sync.gistId)}</code></li>
-      </ul>
-      <div class="tool-row">
-        <button class="btn" data-sync-now>↻ Sync now</button>
-        <a class="btn" href="https://gist.github.com/${esc(store.sync.gistId)}/revisions" target="_blank" rel="noopener">🕘 History</a>
-        <button class="btn" data-share>📲 Setup link for another device</button>
-        <button class="btn ghost" data-disconnect>Disconnect this device</button>
-      </div>
-      <p class="muted small">The setup link holds the GitHub token — share it only with family devices (AirDrop / Messages to yourself).</p>`);
+      ${header('Sync · this device only', { color: 'var(--amber)' })}
+      <p class="muted">No cloud settings in data/family.json → sync, so coins are saved on this device only.</p>`);
   }
+  const state = s.error ? `<span class="sync-state err">⚠︎ ${esc(s.error)}</span>`
+    : s.pending ? `<span class="sync-state warn">Saving ${s.pending}…</span>`
+    : `<span class="sync-state ok">✓ Synced${s.lastSync ? ' ' + clock(new Date(s.lastSync)) : ''}</span>`;
   return card(`
-    ${header('Sync · this device only', { color: 'var(--amber)' })}
-    <p class="muted">Coins are saved on this device only. Connect the family gist so every iPad and iPhone shares them.</p>
-    <form class="connect" data-connect>
-      <label>Setup link or code <input name="code" type="text" placeholder="Paste a setup link…" autocomplete="off"></label>
-      <details><summary class="muted">…or enter the keys by hand</summary>
-        <label>GitHub token <input name="token" type="text" autocomplete="off" spellcheck="false"></label>
-        <label>Gist id <input name="gistId" type="text" autocomplete="off" spellcheck="false"></label>
-      </details>
-      <button class="btn ok" type="submit">Connect</button>
-    </form>`);
+    ${header('Sync · Supabase cloud', { color: 'var(--blue)' })}
+    <p class="muted">${state}</p>
+    <ul class="bin-list">
+      <li><span>Project</span><code>${esc(new URL(store.sync.url).hostname.split('.')[0])}</code></li>
+      <li><span>Table</span><code>${esc(store.sync.schema)}.ops</code></li>
+      <li><span>Log position</span><code>#${esc(s.lastSeq)}</code></li>
+      <li><span>This device</span><code>${esc(s.device)}</code></li>
+    </ul>
+    <div class="tool-row">
+      <button class="btn" data-sync-now>↻ Sync now</button>
+      <button class="btn ghost" data-resync>Rebuild from cloud</button>
+    </div>
+    <p class="muted small">Every device reads and writes the same cloud log, so there’s nothing to set up per device. The log keeps every change, even after a wipe.</p>`);
 }
 
 export function mount(root, rerender) {
@@ -136,14 +128,14 @@ export function mount(root, rerender) {
       }
     }
     if (d.remove) store.removeEntry(d.remove);
-    if ('pin' in d) { if (await requireParent({ reset: true })) toast('🔑 PIN changed', 'var(--good)'); }
     if ('lock' in d) { lockParent(); location.hash = '#/home'; return; }
     if ('export' in d) exportBackup();
     if ('import' in d) return importBackup(rerender);
     if ('syncNow' in d) { await store.pull(); toast(store.status.error ? esc(store.status.error) : '✓ Synced', store.status.error ? 'var(--red)' : 'var(--good)'); }
-    if ('share' in d) return shareSetup();
-    if ('disconnect' in d) {
-      if (await confirmSheet('Disconnect this device?', 'It will keep a local copy but stop syncing.', { ok: 'Disconnect' })) store.disconnect();
+    if ('resync' in d) {
+      if (await confirmSheet('Rebuild from the cloud?', 'Throws away this device’s copy and replays every change from the cloud log. Nothing in the cloud changes.', { ok: 'Rebuild', icon: '☁️' })) {
+        await store.resync(); toast(store.status.error ? esc(store.status.error) : '✓ Rebuilt from the cloud', store.status.error ? 'var(--red)' : 'var(--good)');
+      }
     }
     rerender();
   });
@@ -162,38 +154,7 @@ export function mount(root, rerender) {
       rerender();
     }
 
-    if ('connect' in f.dataset) {
-      try {
-        let conf;
-        const code = f.code.value.trim();
-        if (code) conf = store.parseSetupCode(code.split('#/setup/').pop());
-        else conf = { token: f.token.value.trim(), gistId: f.gistId.value.trim() };
-        await connectFlow(conf);
-        rerender();
-      } catch (err) {
-        toast(esc(err.message || 'That setup code didn’t work'), 'var(--red)');
-      }
-    }
   });
-}
-
-/** Shared by the admin form and #/setup/<code> links. */
-export async function connectFlow(conf) {
-  let mergeLocal = false;
-  if (store.hasLocalActivity()) {
-    mergeLocal = await confirmSheet('Keep this device’s coins?',
-      'This device already has coins or requests. Add them to the shared gist? Choose Cancel if this was just testing.', { ok: 'Add them', icon: '🪙' });
-  }
-  await store.connect(conf, { mergeLocal });
-  toast('✓ Connected to GitHub', 'var(--good)');
-}
-
-async function shareSetup() {
-  const url = `${location.origin}${location.pathname}#/setup/${store.setupCode()}`;
-  try {
-    if (navigator.share) await navigator.share({ title: 'Ervin Central setup', url });
-    else { await navigator.clipboard.writeText(url); toast('Setup link copied'); }
-  } catch { /* share sheet dismissed */ }
 }
 
 function exportBackup() {

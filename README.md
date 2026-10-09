@@ -27,7 +27,7 @@ next one, lunch on school days, and a peek at tomorrow. Where the girls sleep, w
 | **Calendar** | Agenda, rolling Week and Month views, filterable by kid, with school hours, early-outs, specials and weather | `data/calendar.json` + `data/school.json` |
 | **School** | Hours, specials, and the week's lunch/breakfast menu per girl | `data/school.json` + ADM's LINQ Connect menus |
 | **Chores** | Big tap tiles by morning / after school / evening; bonus tasks | `data/chores.json` |
-| **Coins** | Balances, 7-day earnings, reward shop, parent approvals, history | The on-device ledger |
+| **Coins** | Balances, 7-day earnings, reward shop, parent approvals, history | The shared cloud ledger (Supabase) |
 
 ## Editing the family data
 
@@ -42,55 +42,61 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 
 ## How Kindness Coins work
 
-- Ticking a daily chore gives its coins **immediately**; unticking takes them back.
-- **Bonus tasks** ("Unload the dishwasher") and **rewards** ("Pick what's for dinner") go into a
-  *Waiting for a parent* queue on the Coins page.
-- Approving and adjusting need the **parent PIN** (asked for when you tap an approval, or open
-  `…/Ervin-Central/admin/`). The first unlock asks you to create one; it's shared across devices once sync is connected. Parent mode relocks after 5 min.
+- Ticking a daily chore gives its coins **immediately** — after the kid types the **coin code**
+  (asked *every* time a kid adds coins to herself). Unticking takes the coins back, no code needed.
+- **Bonus tasks** ("Unload the dishwasher") also need the coin code, then go into a
+  *Waiting for a parent* queue on the Coins page. **Rewards** ("Pick what's for dinner") go
+  straight into the same queue.
+- Approving and adjusting need the **parent passcode** (asked for when you tap an approval, or open
+  `…/Ervin-Central/admin/`). Parent mode relocks after 5 min, and while it's unlocked the coin code
+  isn't asked.
 - Balances are always the sum of the ledger, so every coin can be traced to a chore or approval.
+
+**Passcodes** live in `data/family.json → passcodes` as SHA-256 hashes (salted with
+`ervin-central:`), so they aren't sitting in the public source as plain digits. That keeps honest
+kids honest; it is not real security. To change one, hash the new code and paste it in:
+
+```bash
+node -e "console.log(require('crypto').createHash('sha256').update('ervin-central:1234').digest('hex'))"
+```
 
 ### Parent Admin (`#/admin`)
 
-Go to `…/Ervin-Central/admin/` (bookmark it on a parent's phone) and unlock with the PIN. While unlocked, **⚙︎ Admin** also shows in the top bar. The ↻ button top right re-downloads every file and reloads — for home-screen shortcuts stuck on an old version:
+Go to `…/Ervin-Central/admin/` (bookmark it on a parent's phone) and unlock with the parent passcode. While unlocked, **⚙︎ Admin** also shows in the top bar. The ↻ button top right re-downloads every file and reloads — for home-screen shortcuts stuck on an old version:
 
 - **Spent offline** — record coins the girls spent in real life, with a reason (quick 5/10/20/50/All).
 - **Zero out coins** — adds one "cashed in" line that brings the balance to exactly 0; history stays.
 - **Wipe all history** — erases that girl's coins, requests and check-offs on every device.
-- Remove single ledger lines, change the PIN, back up / restore (restore merges, never doubles).
-- **Sync** — connect this device to the family gist, share a setup link, or open the save history.
+- Remove single ledger lines, back up / restore (restore merges, never doubles).
+- **Sync** — cloud status, *Sync now*, and *Rebuild from cloud* (throws away this device's copy
+  and replays the whole log).
 
-## Shared state — a secret GitHub Gist
+## Shared state — Supabase (cloud log)
 
-Coins sync across devices through one **secret GitHub Gist** with three files: `household.json`
-(the parent PIN), `evelynn.json` and `avery.json`. A save only rewrites the files it changed, so
-two iPads ticking different girls' chores never collide. Every change is queued on the device,
-replayed onto the latest copy before saving, and kept until a re-read shows it stuck — so one
-device never wipes out another's coins, and a device that's offline catches up when it reconnects.
+Coins, check-offs and approvals sync through **Supabase**: project **ervin-data** (org *Ervin*,
+Free plan, US East 2), schema **`ervin_central`**, table **`ops`**. The URL and the *publishable*
+key are in `data/family.json → sync` — the publishable key is meant to be public; the **secret**
+key must never go in this repo.
 
-Every save is a gist **revision**: Admin → Sync → **🕘 History** shows exactly what changed and
-when, and any old version can be restored from there.
+`ops` is an **append-only log**: every change (tick, untick, request, approve, zero, wipe…) is one
+row `{ seq, op_id, bin, op }`. Each device replays the log in `seq` order to rebuild every girl's
+ledger, so all devices land on the same balances and nothing is ever overwritten. The table only
+allows **read and insert** — nobody can edit or delete history through the API, and a wipe is just
+another row (the record stays in the log).
 
-### One-time setup
+- A tap is applied on screen at once, queued in an on-device outbox, and POSTed with an `op_id`
+  minted up front. A retry of an op that already landed is ignored (unique `op_id`), so it can't
+  double-pay. Offline devices catch up when they reconnect.
+- Each visible screen checks for other devices' changes every `sync.pollSeconds` (15s) by reading
+  only rows past the last `seq` it saw — a tiny request.
+- **No per-device setup.** Any browser that opens the site is synced.
+- **History / audit:** Supabase dashboard → Table Editor → `ervin_central` → `ops`.
 
-1. On github.com → Settings → Developer settings → **Fine-grained tokens** → Generate. Name it
-   "Ervin Central site", no expiry (or a long one), **Repository access: Public repositories
-   (read-only)**, and under *Account permissions* set only **Gists → Read and write**.
-2. On your Mac (uses your own `gh` login to create the gist):
-   ```bash
-   GIST_TOKEN='github_pat_…' node scripts/setup-gist.mjs
-   ```
-   It creates the gist from `gist/*.json`, saves its id to `gist/gist.local.json` (not
-   committed), and prints a **setup link**. `--link` rebuilds the link later.
-3. Open that link on each family device (AirDrop or text it to yourself). Enter or create the
-   PIN and the device is connected. The green dot in the top bar means synced; amber is saving,
-   red is a problem (tap ⚙︎ Admin for details).
-
-The token lives only on family devices (via the setup link), never in this public repo. It can
-edit your gists but not your repos or this site — still, don't post the setup link anywhere.
-
-**Request budget:** GitHub allows 5,000 requests an hour per token. Each visible screen checks
-every `sync.pollSeconds` (60s) with one request, and "nothing changed" answers (304) don't count
-against the limit. A save costs three requests (read, write, re-check).
+**Moving off the old Gist (Oct 2026):** the first time each device opens this version, any coins it
+still holds from the old GitHub Gist / on-device storage are uploaded once as a `merge` op
+(idempotent by entry id, so two devices uploading the same coins never doubles them). A copy of the
+old data stays on the device under `ervin-central:v2-backup`. The old gist itself is untouched and
+can be deleted on github.com once the balances look right.
 
 ## Calendar sync (weekly)
 
@@ -118,7 +124,7 @@ node --test 'tests/*.test.mjs'
 ```
 
 Node's built-in runner, no packages: holiday rules, ADM school days, the sleep pattern,
-countdowns, sunrise/sunset, weather → sky, and ledger op idempotency.
+countdowns, sunrise/sunset, weather → sky, ledger op idempotency, and cloud-log replay.
 
 ## Kiosk behavior
 
@@ -151,13 +157,11 @@ index.html            Shell: rail/tab bar, top bar, modal + toast roots
 css/app.css           Design tokens, components, motion, iPad/iPhone breakpoints
 js/app.js             Router, clock, kiosk behaviors
 js/data.js            Config loading, schedule engine, chores, menus, weather
-js/store.js           Chore check-offs, coin ledger, approvals; GitHub Gist sync + outbox
+js/store.js           Chore check-offs, coin ledger, approvals; Supabase log sync + outbox
 js/linq.js            LINQ Connect menu client (shared by browser + Action)
-js/ui.js              Hero/card/header/stat/pill/ring components, modal, toast, PIN pad
+js/ui.js              Hero/card/header/stat/pill/ring components, modal, toast, passcode pad
 js/scene.js           Home's landscape (SVG): sun/moon on this month's sunrise–sunset, live weather
 js/views/*.js         One module per page: render() → HTML, mount() → events (admin.js = #/admin)
-gist/*.json           Starting contents for the three gist files
-scripts/setup-gist.mjs      Creates the secret gist, prints the setup link
 data/*.json           Family-editable content
 scripts/fetch-menus.mjs       Menu cache (run weekly by the sync task; menus.yml is a manual fallback)
 scripts/kids-calendar.mjs     Kids calendar → change report for the weekly sync

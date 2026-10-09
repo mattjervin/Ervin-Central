@@ -3,7 +3,7 @@
 
 import { cfg, kids, kid as kidById, choresFor } from '../data.js';
 import { store } from '../store.js';
-import { card, hero, header, avatar, toast, coinBurst, empty, ring } from '../ui.js';
+import { card, hero, header, avatar, toast, coinBurst, empty, ring, requireKidCode } from '../ui.js';
 import { esc, ymd, dayPart } from '../util.js';
 
 export const title = 'Chores';
@@ -89,12 +89,16 @@ function bonus(sel, i) {
 }
 
 export function mount(root, rerender) {
-  root.addEventListener('click', (e) => {
+  root.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-chore]');
     if (t) {
       const chore = cfg.chores.chores.find((c) => c.id === t.dataset.chore);
-      const on = store.toggleChore(chore, t.dataset.kid);
-      if (on) { const r = t.getBoundingClientRect(); coinBurst(r.left + r.width / 2, r.top, chore.coins); }
+      const k = kidById(t.dataset.kid);
+      // Ticking adds coins, so it needs the kids' code. Unticking only takes them back.
+      if (!store.isDone(ymd(), chore.id, k.id) && !(await requireKidCode(k, `get ${chore.coins} coin${chore.coins === 1 ? '' : 's'} for “${chore.title}”`))) return;
+      const r = t.getBoundingClientRect();
+      const on = store.toggleChore(chore, k.id);
+      if (on) coinBurst(r.left + r.width / 2, r.top, chore.coins);
       rerender();
       return;
     }
@@ -102,6 +106,7 @@ export function mount(root, rerender) {
     if (b) {
       const k = kidById(b.dataset.kid);
       const item = cfg.chores.bonus.find((x) => x.id === b.dataset.bonus);
+      if (!(await requireKidCode(k, `send “${item.title}” to a parent`))) return;
       store.request(k.id, 'bonus', item);
       toast(`${esc(item.icon)} Sent to a parent — nice, ${esc(k.name)}!`, k.color);
       rerender();

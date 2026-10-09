@@ -1,5 +1,5 @@
 // Kindness Coins — balances, the parent approval queue, the reward shop, and the ledger.
-// Anything that moves coins without a chore behind it asks for the parent PIN first.
+// Anything that moves coins without a chore behind it asks for the parent passcode first.
 
 import { cfg, kids, kid as kidById } from '../data.js';
 import { store } from '../store.js';
