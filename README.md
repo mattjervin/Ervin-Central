@@ -91,6 +91,7 @@ another row (the record stays in the log).
   only rows past the last `seq` it saw — a tiny request.
 - **No per-device setup.** Any browser that opens the site is synced.
 - **History / audit:** Supabase dashboard → Table Editor → `ervin_central` → `ops`.
+- **Schema:** [`supabase/ervin_central.sql`](supabase/ervin_central.sql) — the exact schema and grants; re-runnable.
 
 **Moving off the old Gist (Oct 2026):** the first time each device opens this version, any coins it
 still holds from the old GitHub Gist / on-device storage are uploaded once as a `merge` op
