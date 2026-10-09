@@ -1,49 +1,51 @@
-// The one place mutable household state lives: chore check-offs, the Kindness Coin ledger,
-// pending approvals, and the parent PIN.
+// The one place mutable household state lives: chore check-offs, the Kindness Coin ledger and
+// pending approvals — one doc per kid:
+//   <kidId> → { v, kid, done: { date: { choreId: ts } }, ledger: [..], pending: [..] }
 //
-// State is split into documents that map 1:1 onto files in one secret GitHub Gist:
-//   household.json → { v, pinHash }
-//   <kidId>.json   → { v, kid, done: { date: { choreId: ts } }, ledger: [..], pending: [..] }
-// A save PATCHes only the files it changed, so two iPads ticking different girls' chores never
-// touch the same file. Every save is a gist revision — that's the history and the undo.
+// Shared state lives in Supabase (project "ervin-data", schema `ervin_central`) as an append-only
+// log of ops in table `ops` (seq, op_id, bin, op). Every device rebuilds the same docs by
+// replaying the log in `seq` order, so nothing is ever overwritten and the log *is* the history.
 //
-// Every change is a small serializable op run through `apply()`. It's applied locally at once
-// (the tap feels instant), queued in an outbox that survives reloads, and replayed onto the
-// *latest* copy of the gist before each PATCH. Ops are idempotent (ids are minted up front) so a
-// retry can't double-pay. A gist PATCH is last-write-wins, so ops leave the outbox only once a
-// later read shows they stuck — if another device's save landed on top, they're simply sent again.
+// Every change is a small serializable op run through `apply()`. It's applied locally at once (the
+// tap feels instant), queued in an outbox that survives reloads, and POSTed with an `op_id` minted
+// up front — a retry of an op that already landed is ignored by the database (unique op_id), so it
+// can't double-pay. Sent ops stay laid on top of the view until a pull shows them in the log.
+//
+// The API key is Supabase's *publishable* key — safe in a public repo. The table allows read and
+// insert only: nobody can edit or delete history through the API.
 //
 // Coin balances are never stored — they're the sum of the ledger.
-//
-// With no sync configured, the same docs simply live in localStorage.
 
 import { uid, ymd } from './util.js';
 
-const KEY = 'ervin-central:v2';
-const OLD_KEY = 'ervin-central:v1';
-const OUTBOX_KEY = 'ervin-central:outbox';
-const SYNC_KEY = 'ervin-central:sync';
-const API = 'https://api.github.com/gists/';
+const CACHE_KEY = 'ervin-central:cloud';    // { docs, lastSeq, recent } — the replayed log
+const OUTBOX_KEY = 'ervin-central:outbox2'; // [{ op_id, bin, op }] not yet confirmed sent
+const SENT_KEY = 'ervin-central:sent';      // [{ op_id, bin, op }] sent, not yet seen in a pull
+const DEVICE_KEY = 'ervin-central:device';
+const LEGACY_KEY = 'ervin-central:v2';      // the old gist/localStorage docs, migrated once
+const LEGACY_OLD = 'ervin-central:v1';
+const MIGRATED_KEY = 'ervin-central:migrated';
 const KEEP_DONE_DAYS = 45;
-const SETTLE_MS = 3000;      // wait before checking a save stuck, so a racing save has landed
-const SAVE_TRIES = 3;
+const PAGE = 1000;                          // PostgREST's max rows per request
+const OVERLAP = 50;                         // re-read this many seqs back to catch late commits
 
 let kidIds = [];
-let docs = {};
+let conf = null;                            // { url, key, schema }
+let remote = { docs: {}, lastSeq: 0, recent: [] };
 let outbox = read(OUTBOX_KEY) || [];
-let sync = read(SYNC_KEY);   // { token, gistId } | null
-if (sync && !sync.gistId) { sync = null; write(SYNC_KEY, null); } // old JSONBin config
+let sent = read(SENT_KEY) || [];
+let docs = {};
+const device = read(DEVICE_KEY) || (() => { const d = uid(); write(DEVICE_KEY, d); return d; })();
 const status = { lastSync: null, error: null, busy: false };
 const listeners = new Set();
 
 function read(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
 function write(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } }
 
-const blankKid = (kid) => ({ v: 2, kid, done: {}, ledger: [], pending: [] });
-const blankHousehold = () => ({ v: 2, pinHash: null });
+const blankKid = (kid) => ({ v: 3, kid, done: {}, ledger: [], pending: [] });
 
 function notify(reason) { listeners.forEach((fn) => fn(reason)); }
-function saveLocal() { write(KEY, docs); write(OUTBOX_KEY, outbox); }
+function saveLocal() { write(CACHE_KEY, remote); write(OUTBOX_KEY, outbox); write(SENT_KEY, sent); }
 
 // ---- Ops ------------------------------------------------------------------------------------
 
@@ -85,8 +87,8 @@ function apply(doc, op) {
       doc.ledger = doc.ledger.filter((e) => e.id !== op.id);
       break;
     case 'zero': {
-      // Computed against whatever the gist holds *now*, so it zeroes the real balance even if
-      // another device added coins a moment ago.
+      // Computed against the log as replayed *up to this op*, so every device gets the same answer
+      // and it zeroes the real balance even if another device added coins a moment before.
       if (hasEntry(op.id)) break;
       const bal = balanceOf(doc);
       if (bal !== 0) doc.ledger.push({ id: op.id, kid: doc.kid, amount: -bal, reason: op.reason, icon: '🧹', type: 'reset', ts: op.ts });
@@ -100,138 +102,125 @@ function apply(doc, op) {
       for (const p of op.pending || []) if (!doc.pending.some((x) => x.id === p.id)) doc.pending.push(p);
       for (const [date, day] of Object.entries(op.done || {})) Object.assign((doc.done[date] ||= {}), day);
       break;
-    case 'pin':
-      doc.pinHash = op.hash;
-      break;
   }
-  // Keep the files small: old check-offs are only needed for "done today".
+  // Keep docs small: old check-offs are only needed for "done today".
   const cutoff = ymd(new Date(Date.now() - KEEP_DONE_DAYS * 864e5));
   for (const d of Object.keys(doc.done || {})) if (d < cutoff || !Object.keys(doc.done[d]).length) delete doc.done[d];
   return doc;
 }
 
-/** True when replaying these ops onto doc would change nothing — i.e. they already landed. */
-function isApplied(doc, ops) {
-  const base = apply(structuredClone(doc), { t: 'noop' }); // same normalising and pruning
-  const after = structuredClone(base);
-  for (const op of ops) apply(after, op);
-  return JSON.stringify(after) === JSON.stringify(base);
-}
-
-function mutate(bin, op) {
-  apply(docs[bin], op);
-  if (sync) outbox.push({ bin, op });
-  saveLocal();
-  notify('local');
-  if (sync) flush();
-}
-
-// ---- GitHub Gist ---------------------------------------------------------------------------
-
-/** 401/404 = wrong token or gist id (retrying won't help); anything else is worth another try. */
-function httpError(what, code) {
-  const fatal = code === 401 || code === 404;
-  const err = new Error(fatal ? `GitHub ${what} ${code} — check the token in Admin → Sync` : `GitHub ${what} ${code}`);
-  err.fatal = fatal;
-  return err;
-}
-
-const headers = () => ({ Authorization: `Bearer ${sync.token}`, Accept: 'application/vnd.github+json' });
-const blankFor = (bin) => (bin === 'household' ? blankHousehold() : blankKid(bin));
-let etag = null;
-
-/** Every doc in one request. With `ifChanged`, resolves null when nothing moved (a 304 is free). */
-async function getGist({ ifChanged = false } = {}) {
-  const h = headers();
-  if (ifChanged && etag) h['If-None-Match'] = etag;
-  const res = await fetch(API + sync.gistId, { headers: h, cache: 'no-store' });
-  if (res.status === 304) return null;
-  if (!res.ok) throw httpError('read', res.status);
-  etag = res.headers.get('ETag');
-  const { files } = await res.json();
-  const out = {};
-  for (const bin of ['household', ...kidIds]) {
-    const f = files[`${bin}.json`];
-    // The API inlines up to 1 MB per file; past that, the content comes from the raw URL.
-    const text = !f ? null : f.truncated ? await (await fetch(f.raw_url, { cache: 'no-store' })).text() : f.content;
-    out[bin] = { ...blankFor(bin), ...(text ? JSON.parse(text) : {}) };
-  }
+/** Fold log rows ({ seq, bin, op }) onto docs in seq order. Rows for unknown bins are skipped. */
+function replay(base, rows) {
+  const out = base;
+  for (const r of [...rows].sort((a, b) => a.seq - b.seq)) if (out[r.bin]) apply(out[r.bin], r.op);
   return out;
 }
 
-async function patchGist(changed) {
-  const files = Object.fromEntries(Object.entries(changed).map(([bin, doc]) => [`${bin}.json`, { content: serialize(doc) }]));
-  const res = await fetch(API + sync.gistId, {
-    method: 'PATCH',
-    headers: { ...headers(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ files }),
-  });
-  if (!res.ok) throw httpError('save', res.status);
+const blankDocs = () => Object.fromEntries(kidIds.map((k) => [k, blankKid(k)]));
+
+/** What the screen shows: the replayed log, then sent-but-unseen ops, then the outbox. */
+function rebuildView() {
+  docs = structuredClone(remote.docs);
+  for (const k of kidIds) docs[k] ||= blankKid(k);
+  for (const o of [...sent, ...outbox]) if (docs[o.bin]) apply(docs[o.bin], o.op);
 }
 
-/** One entry per line, so a gist revision diff reads like a list of what changed. */
-function serialize(doc) {
-  const inner = (v) => (Array.isArray(v) ? v.map((x) => `    ${JSON.stringify(x)}`)
-    : Object.entries(v).map(([k, x]) => `    ${JSON.stringify(k)}: ${JSON.stringify(x)}`)).join(',\n');
-  const field = ([k, v]) => {
-    const open = Array.isArray(v) ? '[' : '{';
-    const nested = v && typeof v === 'object' && Object.keys(v).length;
-    return `  ${JSON.stringify(k)}: ${nested ? `${open}\n${inner(v)}\n  ${open === '[' ? ']' : '}'}` : JSON.stringify(v)}`;
-  };
-  return `{\n${Object.entries(doc).map(field).join(',\n')}\n}\n`;
+function mutate(bin, op) {
+  outbox.push({ op_id: uid(), bin, op });
+  apply(docs[bin], op);
+  saveLocal();
+  notify('local');
+  flush();
+}
+
+// ---- Supabase (PostgREST over plain fetch — no SDK, no build step) ---------------------------
+
+function httpError(what, res, text) {
+  const err = new Error(`Cloud ${what} failed (${res.status})${text ? ': ' + text.slice(0, 120) : ''}`);
+  err.fatal = res.status === 401 || res.status === 403 || res.status === 404;
+  return err;
+}
+
+const api = () => `${conf.url}/rest/v1/ops`;
+const readHeaders = () => ({ apikey: conf.key, 'Accept-Profile': conf.schema });
+
+/** Every log row with seq > after, oldest first, paging past PostgREST's 1000-row cap. */
+async function fetchRows(after) {
+  const rows = [];
+  for (let from = after; ;) {
+    const res = await fetch(`${api()}?select=seq,op_id,bin,op&seq=gt.${from}&order=seq.asc&limit=${PAGE}`, { headers: readHeaders(), cache: 'no-store' });
+    if (!res.ok) throw httpError('read', res, await res.text());
+    const page = await res.json();
+    rows.push(...page);
+    if (page.length < PAGE) return rows;
+    from = page[page.length - 1].seq;
+  }
+}
+
+async function postOps(batch) {
+  const res = await fetch(`${api()}?on_conflict=op_id`, {
+    method: 'POST',
+    headers: { apikey: conf.key, 'Content-Profile': conf.schema, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' },
+    body: JSON.stringify(batch.map((o) => ({ op_id: o.op_id, bin: o.bin, op: o.op, device }))),
+  });
+  if (!res.ok) throw httpError('save', res, await res.text());
 }
 
 /**
- * One save round: read the latest docs, lay the batch on, write the changed files, let any racing
- * save land, then read again. A bin's ops count as saved only if the re-read already contains them.
+ * Bring `remote` up to date. Reads a little behind lastSeq: a seq that shows up below lastSeq that
+ * we have never seen means a slow write committed late, and the only safe fix is a full replay.
  */
-async function saveBatch(io, batch, settleMs = SETTLE_MS) {
-  const fresh = await io.get();
-  const bins = [...new Set(batch.map((o) => o.bin))];
-  const opsFor = (bin) => batch.filter((o) => o.bin === bin).map((o) => o.op);
-  const changed = {};
-  for (const bin of bins) changed[bin] = opsFor(bin).reduce(apply, structuredClone(fresh[bin]));
-  await io.patch(changed);
-  if (settleMs) await new Promise((r) => setTimeout(r, settleMs));
-  const saved = await io.get();
-  const okBins = bins.filter((bin) => isApplied(saved[bin], opsFor(bin)));
-  return { saved, ok: batch.filter((o) => okBins.includes(o.bin)) };
-}
-
-/** Latest remote copy with this device's still-unsent ops laid on top. */
-function withOutbox(bin, remote) {
-  const doc = structuredClone(remote);
-  for (const o of outbox) if (o.bin === bin) apply(doc, o.op);
-  return doc;
+async function syncDown() {
+  const from = Math.max(0, remote.lastSeq - OVERLAP);
+  const rows = await fetchRows(from);
+  const seen = new Set(remote.recent);
+  const late = rows.some((r) => r.seq <= remote.lastSeq && !seen.has(r.seq));
+  let changed = false;
+  let seenRows = rows;
+  if (late) {
+    const all = await fetchRows(0);
+    remote = { docs: replay(blankDocs(), all), lastSeq: all.at(-1)?.seq || 0, recent: all.slice(-200).map((r) => r.seq) };
+    seenRows = all;
+    changed = true;
+  } else {
+    const fresh = rows.filter((r) => r.seq > remote.lastSeq);
+    if (fresh.length) {
+      for (const k of kidIds) remote.docs[k] ||= blankKid(k);
+      replay(remote.docs, fresh);
+      remote.lastSeq = fresh.at(-1).seq;
+      remote.recent = [...remote.recent, ...fresh.map((r) => r.seq)].slice(-200);
+      changed = true;
+    }
+  }
+  const ids = new Set(seenRows.map((r) => r.op_id));
+  const before = sent.length;
+  sent = sent.filter((o) => !ids.has(o.op_id));
+  if (sent.length !== before) changed = true;
+  return changed;
 }
 
 let flushing = null;
 let retryTimer = null;
-let flushes = 0; // bumped after every successful save, so a pull that started earlier can tell it's stale
 
 function flush() {
-  // Nothing to send: return before the async body, which would otherwise finish synchronously
-  // and clear `flushing` before it is even assigned — leaving it stuck and blocking every pull.
-  if (!sync || (!flushing && !outbox.length)) return flushing || Promise.resolve();
+  if (!conf || (!flushing && !outbox.length)) return flushing || Promise.resolve();
   flushing ||= (async () => {
     status.busy = true; notify('status');
     try {
-      for (let tries = 0; outbox.length; tries++) {
-        if (tries >= SAVE_TRIES) throw new Error('GitHub save kept getting overwritten — trying again soon');
-        const batch = [...outbox];
-        const { saved, ok } = await saveBatch({ get: getGist, patch: patchGist }, batch);
-        if (ok.length) tries = -1; // progress — the next round starts fresh
-        outbox = outbox.filter((o) => !ok.includes(o));
-        for (const bin of Object.keys(saved)) docs[bin] = withOutbox(bin, saved[bin]);
-        flushes++;
+      while (outbox.length) {
+        const batch = outbox.slice(0, 200);
+        await postOps(batch);
+        outbox = outbox.slice(batch.length);
+        sent.push(...batch);
         saveLocal();
       }
-      status.error = null;
-      status.lastSync = Date.now();
+      await syncDown();
+      rebuildView(); saveLocal();
+      status.error = null; status.lastSync = Date.now();
     } catch (err) {
       status.error = err.message;
       clearTimeout(retryTimer);
-      if (!err.fatal) retryTimer = setTimeout(flush, 20e3);
+      if (!err.fatal) retryTimer = setTimeout(flush, 15e3);
     } finally {
       status.busy = false; flushing = null;
       notify('remote');
@@ -241,31 +230,55 @@ function flush() {
   return flushing;
 }
 
+// ---- One-time move off the old GitHub Gist / on-device storage -------------------------------
+
+/** Docs this device held before the cloud move (they mirror the old gist when sync was on). */
+function legacyDocs() {
+  const out = {};
+  const v2 = read(LEGACY_KEY);
+  for (const k of kidIds) if (v2?.[k]) out[k] = v2[k];
+  const v1 = read(LEGACY_OLD);
+  if (v1) {
+    for (const k of kidIds) out[k] ||= blankKid(k);
+    for (const [date, day] of Object.entries(v1.done || {})) {
+      for (const [key, ts] of Object.entries(day)) {
+        const [choreId, kid] = key.split(':');
+        if (out[kid]) (out[kid].done[date] ||= {})[choreId] = ts;
+      }
+    }
+    for (const e of v1.ledger || []) out[e.kid]?.ledger.push(e);
+    for (const p of v1.pending || []) out[p.kid]?.pending.push(p);
+  }
+  return out;
+}
+
+/** Push this device's pre-cloud coins up once, as `merge` ops (idempotent by entry id). */
+function migrateLegacy() {
+  if (read(MIGRATED_KEY)) return;
+  const old = legacyDocs();
+  for (const [k, d] of Object.entries(old)) {
+    if ((d.ledger || []).length || (d.pending || []).length || Object.keys(d.done || {}).length) {
+      mutate(k, { t: 'merge', ledger: d.ledger || [], pending: d.pending || [], done: d.done || {} });
+    }
+  }
+  write(MIGRATED_KEY, Date.now());
+  if (read(LEGACY_KEY)) write('ervin-central:v2-backup', read(LEGACY_KEY)); // keep a copy, just in case
+  for (const k of [LEGACY_KEY, LEGACY_OLD, 'ervin-central:outbox', 'ervin-central:sync']) write(k, null);
+}
+
 // ---- Public API ------------------------------------------------------------------------------
 
 export const store = {
-  /** Call once config is loaded. Creates docs for every kid and migrates v1 local state. */
-  init(ids) {
+  /** Call once config is loaded. `cloud` = { url, key, schema } from family.json → sync. */
+  init(ids, cloud) {
     kidIds = ids;
-    docs = read(KEY) || {};
-    docs.household ||= blankHousehold();
-    for (const k of ids) docs[k] ||= blankKid(k);
-
-    const old = read(OLD_KEY);
-    if (old) {
-      for (const [date, day] of Object.entries(old.done || {})) {
-        for (const [key, ts] of Object.entries(day)) {
-          const [choreId, kid] = key.split(':');
-          if (docs[kid]) (docs[kid].done[date] ||= {})[choreId] = ts;
-        }
-      }
-      for (const e of old.ledger || []) docs[e.kid]?.ledger.push(e);
-      for (const p of old.pending || []) docs[p.kid]?.pending.push(p);
-      if (old.settings?.pinHash) docs.household.pinHash ||= old.settings.pinHash;
-      write(OLD_KEY, null);
-    }
+    conf = cloud?.url && cloud?.key ? { url: cloud.url.replace(/\/$/, ''), key: cloud.key, schema: cloud.schema || 'public' } : null;
+    remote = read(CACHE_KEY) || { docs: {}, lastSeq: 0, recent: [] };
+    for (const k of ids) remote.docs[k] ||= blankKid(k);
+    rebuildView();
+    migrateLegacy();
     saveLocal();
-    if (sync) { flush(); store.pull(); }
+    store.pull().then(() => flush());
   },
 
   subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
@@ -316,7 +329,7 @@ export const store = {
   /** Bring a balance to exactly 0, keeping history. */
   zero(kid, reason = 'Coins cashed in') { mutate(kid, { t: 'zero', id: uid(), reason, ts: Date.now() }); },
 
-  /** Erase a kid's history entirely — ledger, requests, and check-offs. */
+  /** Erase a kid's history entirely — ledger, requests, and check-offs. (The log keeps the record.) */
   wipe(kid) { mutate(kid, { t: 'wipe' }); },
 
   removeEntry(id) {
@@ -344,80 +357,46 @@ export const store = {
     return [...all].sort((a, b) => b.ts - a.ts).slice(0, limit);
   },
 
-  // ---- PIN ----
-  get pinHash() { return docs.household?.pinHash || null; },
-  setPinHash(hash) { mutate('household', { t: 'pin', hash }); },
-
   // ---- Backup ----
-  exportJson() { return JSON.stringify({ app: 'ervin-central', v: 2, docs }, null, 2); },
+  exportJson() { return JSON.stringify({ app: 'ervin-central', v: 3, docs }, null, 2); },
 
   /** Merges a backup in (by entry id), so restoring never duplicates coins. */
   importJson(text) {
     const b = JSON.parse(text);
     if (b?.app !== 'ervin-central' || !b.docs) throw new Error('Not an Ervin Central backup');
     for (const k of kidIds) if (b.docs[k]) mutate(k, { t: 'merge', ...b.docs[k] });
-    if (b.docs.household?.pinHash && !store.pinHash) store.setPinHash(b.docs.household.pinHash);
   },
 
   // ---- Sync ----
-  get sync() { return sync; },
-  get status() { return { ...status, pending: outbox.length, mode: sync ? 'gist' : 'local' }; },
+  get sync() { return conf; },
+  get status() { return { ...status, pending: outbox.length + sent.length, mode: conf ? 'cloud' : 'local', lastSeq: remote.lastSeq, device }; },
 
-  /** Pull every doc. Remote wins, with this device's unsent ops re-applied on top. */
+  /** Pull new log rows. Safe to call often: it only reads what's past the last seq it saw. */
   async pull() {
-    if (!sync || flushing) return;
-    const seen = flushes;
+    if (!conf) return;
+    if (flushing) return flushing;
     try {
-      const got = await getGist({ ifChanged: true });
-      if (flushes !== seen || flushing) return; // a save landed mid-pull; this copy predates it
+      const changed = await syncDown();
       status.error = null; status.lastSync = Date.now();
-      if (!got) { notify('status'); return; } // 304 — nothing moved
-      const before = JSON.stringify(docs);
-      for (const bin of Object.keys(got)) docs[bin] = withOutbox(bin, got[bin]);
-      saveLocal();
-      notify(JSON.stringify(docs) === before ? 'status' : 'remote');
+      if (changed) { rebuildView(); saveLocal(); notify('remote'); } else notify('status');
     } catch (err) {
       status.error = err.message; notify('status');
     }
   },
 
-  /** Point this device at the gist. Optionally push what this device already has. */
-  async connect(cfg, { mergeLocal = false } = {}) {
-    if (!cfg.token || !cfg.gistId) throw new Error(`Missing ${cfg.token ? 'gist id' : 'GitHub token'}`);
-    const local = structuredClone(docs);
-    sync = { token: cfg.token, gistId: cfg.gistId };
-    outbox = []; etag = null;
-    await store.pull();
-    if (status.error) { sync = null; throw new Error(status.error); }
-    write(SYNC_KEY, sync);
-    if (mergeLocal) {
-      for (const k of kidIds) mutate(k, { t: 'merge', ledger: local[k].ledger, pending: local[k].pending, done: local[k].done });
-      if (local.household.pinHash && !store.pinHash) store.setPinHash(local.household.pinHash);
-    }
-  },
-
-  disconnect() {
-    sync = null; outbox = [];
-    write(SYNC_KEY, null);
+  /** Throw away the local copy and replay the whole log from the cloud. */
+  async resync() {
+    if (!conf) return;
+    remote = { docs: blankDocs(), lastSeq: 0, recent: [] };
     saveLocal();
-    notify('status');
+    await store.pull();
   },
-
-  /** Base64url setup code carrying the token + gist id, for #/setup/<code>. */
-  setupCode() { return sync ? btoa(JSON.stringify(sync)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : null; },
-
-  parseSetupCode(code) {
-    const b64 = code.replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)));
-  },
-
-  hasLocalActivity() { return kidIds.some((k) => docs[k].ledger.length || docs[k].pending.length); },
 };
 
-/** For tests: the op reducer, the saved-yet check, one save round and the gist file format. */
-export { apply as applyOp, isApplied, saveBatch, serialize };
+/** For tests: the op reducer and the log replayer. */
+export { apply as applyOp, replay };
 
-/** SHA-256 of the PIN. Keeps kids from reading it out of the gist; it is not real security. */
+/** SHA-256 of a passcode, so the codes don't sit in the public source as plain digits. Not real security. */
 export async function hashPin(pin) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`ervin-central:${pin}`));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
