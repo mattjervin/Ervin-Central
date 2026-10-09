@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { cfg, schoolDay, itemsOn, sleepOn, countdowns, ruleDate, holidaysIn, whatToWear } from '../js/data.js';
-import { applyOp, isApplied, saveBatch, serialize } from '../js/store.js';
+import { applyOp, replay } from '../js/store.js';
 import { sunTimes, skyKind } from '../js/scene.js';
 import { ymd } from '../js/util.js';
 
@@ -123,39 +123,34 @@ const tick = (id, on = true) => {
   return { t: 'chore', date, choreId: id, on, ts: 1, ref, entry: { id: `e-${id}`, kid: 'avery', amount: 1, reason: id, type: 'chore', ref, ts: 1 } };
 };
 
-test('isApplied: an op counts as saved only once the doc already holds it', () => {
-  const doc = blank();
-  assert.equal(isApplied(doc, [tick('bed')]), false);
-  applyOp(doc, tick('bed'));
-  assert.equal(isApplied(doc, [tick('bed')]), true);
-  // Ticked then unticked before the save: the end state is what has to stick.
-  assert.equal(isApplied(blank(), [tick('bed'), tick('bed', false)]), true);
+test('cloud log: replaying in seq order rebuilds the same balances on every device', () => {
+  const log = [
+    { seq: 1, bin: 'avery', op: tick('bed') },
+    { seq: 2, bin: 'avery', op: { t: 'request', item: { id: 'p1', kid: 'avery', type: 'bonus', ref: 'vacuum', title: 'Vacuum', amount: 2, ts: 2 } } },
+    { seq: 3, bin: 'avery', op: { t: 'approve', id: 'p1', entryId: 'e2', ts: 3 } },
+    { seq: 4, bin: 'test', op: { t: 'noop' } },                       // unknown bins are ignored
+    { seq: 5, bin: 'avery', op: { t: 'zero', id: 'z1', reason: 'Cashed in', ts: 4 } },
+    { seq: 6, bin: 'avery', op: tick('teeth') },
+  ];
+  const a = replay({ avery: blank() }, log);
+  const b = replay({ avery: blank() }, [...log].reverse()); // rows arriving out of order
+  assert.deepEqual(a, b);
+  assert.equal(a.avery.ledger.reduce((s, e) => s + e.amount, 0), 1); // zeroed, then one more chore
+  assert.equal(a.avery.pending.length, 0);
 });
 
-test('gist saves: a write another device overwrote is sent again, never paid twice', async () => {
-  let remote = { avery: blank() };
-  let clobber = true;
-  const io = {
-    get: async () => structuredClone(remote),
-    patch: async (changed) => {
-      if (clobber) { clobber = false; return; } // another device's save lands on top of ours
-      remote = { ...remote, ...structuredClone(changed) };
-    },
-  };
-  const batch = [{ bin: 'avery', op: tick('bed') }];
-  assert.equal((await saveBatch(io, batch, 0)).ok.length, 0);
-  assert.equal((await saveBatch(io, batch, 0)).ok.length, 1);
-  assert.equal((await saveBatch(io, batch, 0)).ok.length, 1); // a stray retry is harmless
-  assert.equal(remote.avery.ledger.length, 1);
+test('cloud log: a duplicated op (a retry) never pays twice', () => {
+  const log = [{ seq: 1, bin: 'avery', op: tick('bed') }, { seq: 2, bin: 'avery', op: tick('bed') }];
+  assert.equal(replay({ avery: blank() }, log).avery.ledger.length, 1);
 });
 
-test('gist files are one entry per line and parse back', () => {
-  const doc = blank();
-  applyOp(doc, tick('bed')); applyOp(doc, tick('teeth'));
-  const text = serialize(doc);
-  assert.deepEqual(JSON.parse(text), doc);
-  assert.equal(text.split('\n').filter((l) => l.includes('"type":"chore"')).length, 2);
-  assert.deepEqual(JSON.parse(serialize({ v: 2, pinHash: null })), { v: 2, pinHash: null });
+test('cloud log: the one-time migration merge is idempotent', () => {
+  const old = blank();
+  applyOp(old, tick('bed')); applyOp(old, tick('teeth'));
+  const merge = { t: 'merge', ledger: old.ledger, pending: old.pending, done: old.done };
+  // Two devices both migrate the same old gist copy: still two coins.
+  const doc = replay({ avery: blank() }, [{ seq: 1, bin: 'avery', op: merge }, { seq: 2, bin: 'avery', op: merge }]);
+  assert.equal(doc.avery.ledger.length, 2);
 });
 
 test('school-only recurring items skip breaks', () => {
