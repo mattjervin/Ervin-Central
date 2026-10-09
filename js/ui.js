@@ -1,9 +1,10 @@
 // Ervin Central's building blocks, in the Catan companion's vocabulary: Cinzel page heroes with a
 // gradient key word, mono eyebrows, glass cards that animate in, choice pills, stat tiles with one
-// hero tile, hexagon avatars. Plus the touch-only pieces: modal sheet, toast, PIN pad.
+// hero tile, hexagon avatars. Plus the touch-only pieces: modal sheet, toast, passcode pad.
 
 import { $, esc } from './util.js';
-import { store, hashPin } from './store.js';
+import { hashPin } from './store.js';
+import { cfg } from './data.js';
 
 /** Card. `i` staggers its entrance animation. */
 export const card = (body, cls = '', i = 0, style = '') => `<section class="card ${cls}" style="--i:${i};${style}">${body}</section>`;
@@ -128,29 +129,31 @@ export function modal(html, { onMount, onClose } = {}) {
   return close;
 }
 
-// ---- Parent PIN ----------------------------------------------------------------------------
-// Parent mode unlocks approvals, adjustments, and backup. It stays unlocked for a few minutes,
-// then relocks on its own so a wall display never sits in parent mode.
+// ---- Passcodes -----------------------------------------------------------------------------
+// Two fixed 4-digit codes, stored as SHA-256 hashes in data/family.json → passcodes:
+//   · parent — unlocks approvals, adjustments and Admin. Stays unlocked for a few minutes, then
+//              relocks on its own so a wall display never sits in parent mode.
+//   · kids   — asked EVERY time a kid adds coins to herself (ticking a chore, sending an extra
+//              chore for approval). Skipped while parent mode is unlocked.
+// This keeps honest kids honest; it is not real security (the site is public).
 
 let unlockedUntil = 0;
 export const isParent = () => Date.now() < unlockedUntil;
 export function lockParent() { unlockedUntil = 0; document.body.classList.remove('parent'); }
 
-/** Resolves true once a parent has entered the PIN. `reset` asks for a new PIN (change PIN). */
-export function requireParent({ reset = false } = {}) {
-  if (isParent() && !reset) return Promise.resolve(true);
-  const creating = reset || !store.pinHash;
+/** Number-pad sheet. Resolves true once the entered code hashes to `hash`. */
+function passcodeSheet({ title, sub, hash, icon = '' }) {
   return new Promise((resolve) => {
     let entry = '';
-    let first = null;
     let ok = false;
-    const close = modal(`
-      <h3 class="sheet-title">${reset ? 'New parent PIN' : creating ? 'Create a parent PIN' : 'Parent PIN'}</h3>
-      <p class="sheet-sub" id="pin-sub">${creating ? 'Pick 4 digits. Kids won’t see it.' : 'Enter the 4-digit PIN.'}</p>
+    modal(`
+      ${icon ? `<div class="sheet-icon">${icon}</div>` : ''}
+      <h3 class="sheet-title">${esc(title)}</h3>
+      <p class="sheet-sub" id="pin-sub">${sub}</p>
       <div class="pin-dots" id="pin-dots">${'<span></span>'.repeat(4)}</div>
       <div class="pinpad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((n) => n === '' ? '<span></span>' : `<button data-n="${n}">${n}</button>`).join('')}</div>
       <button class="btn ghost wide" data-close>Cancel</button>`, {
-      onMount(sheet) {
+      onMount(sheet, close) {
         const dots = () => [...sheet.querySelectorAll('#pin-dots span')].forEach((d, i) => d.classList.toggle('on', i < entry.length));
         sheet.querySelector('.pinpad').addEventListener('click', async (e) => {
           const n = e.target.closest('button')?.dataset.n;
@@ -158,23 +161,37 @@ export function requireParent({ reset = false } = {}) {
           entry = n === '⌫' ? entry.slice(0, -1) : (entry + n).slice(0, 4);
           dots();
           if (entry.length < 4) return;
-          const h = await hashPin(entry);
-          if (creating && !first) { first = h; entry = ''; dots(); sheet.querySelector('#pin-sub').textContent = 'Once more to confirm.'; return; }
-          if (creating ? h === first : h === store.pinHash) {
-            if (creating) store.setPinHash(h);
-            unlockedUntil = Date.now() + 5 * 60e3;
-            document.body.classList.add('parent');
-            ok = true; close();
-          } else {
-            sheet.querySelector('#pin-dots').classList.add('shake');
-            setTimeout(() => sheet.querySelector('#pin-dots')?.classList.remove('shake'), 400);
-            entry = ''; if (creating) { first = null; sheet.querySelector('#pin-sub').textContent = 'Didn’t match — pick 4 digits again.'; }
-            dots();
-          }
+          if ((await hashPin(entry)) === hash) { ok = true; close(); return; }
+          sheet.querySelector('#pin-dots').classList.add('shake');
+          setTimeout(() => sheet.querySelector('#pin-dots')?.classList.remove('shake'), 400);
+          sheet.querySelector('#pin-sub').textContent = 'Not quite — try again.';
+          entry = ''; dots();
         });
       },
       onClose: () => resolve(ok),
     });
+  });
+}
+
+/** Resolves true once a parent has entered the parent passcode. */
+export async function requireParent() {
+  if (isParent()) return true;
+  const ok = await passcodeSheet({ title: 'Parent passcode', sub: 'Enter the 4-digit parent code.', hash: cfg.family.passcodes?.parent, icon: '🔒' });
+  if (ok) {
+    unlockedUntil = Date.now() + 5 * 60e3;
+    document.body.classList.add('parent');
+  }
+  return ok;
+}
+
+/** Resolves true once the kids' coin passcode is entered. Asked every time (parents skip it). */
+export function requireKidCode(k, what = 'add coins') {
+  if (isParent()) return Promise.resolve(true);
+  return passcodeSheet({
+    title: k ? `${k.name}, enter the coin code` : 'Enter the coin code',
+    sub: `Type the 4-digit code to ${esc(what)}.`,
+    hash: cfg.family.passcodes?.kids,
+    icon: '🪙',
   });
 }
 
