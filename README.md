@@ -96,8 +96,8 @@ another row (the record stays in the log).
 **Moving off the old Gist (Oct 2026):** the first time each device opens this version, any coins it
 still holds from the old GitHub Gist / on-device storage are uploaded once as a `merge` op
 (idempotent by entry id, so two devices uploading the same coins never doubles them). A copy of the
-old data stays on the device under `ervin-central:v2-backup`. The old gist itself is untouched and
-can be deleted on github.com once the balances look right.
+old data stays on the device under `ervin-central:v2-backup`. The old gist was deleted on 2026-10-09
+after a reconcile showed every line it held was accounted for.
 
 ## Calendar sync (weekly)
 
