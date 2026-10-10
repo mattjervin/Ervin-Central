@@ -3,9 +3,9 @@
 // lunch) and a peek at tomorrow. Then where the girls sleep, what's coming up, a 4-day forecast,
 // countdowns, and — last, since chores aren't the point — the coin leaderboard and chore chart.
 
-import { cfg, kids, kid as kidById, itemsOn, holidaysIn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { cfg, kids, kid as kidById, houses, itemsOn, holidaysIn, choresFor, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
 import { store } from '../store.js';
-import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst, requireKidCode } from '../ui.js';
+import { card, header, empty, avatar, whoDots, whoColor, chip, ring, coinBurst, kidEarns, houseTag } from '../ui.js';
 import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
 import { esc, greeting, clock, ymd, relDay, plural, dayPart, addDays, parseYmd, DOW, DOW3, MONTH } from '../util.js';
 
@@ -79,12 +79,14 @@ export function mount(root, rerender) {
   root.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-chore]');
     if (!t) return;
-    const chore = cfg.chores.chores.find((c) => c.id === t.dataset.chore);
+    const chore = cfg.chores.daily.find((c) => c.id === t.dataset.chore);
     const k = kidById(t.dataset.kid);
-    // Ticking adds coins, so it needs the kids' code. Unticking only takes them back.
-    if (!store.isDone(ymd(), chore.id, k.id) && !(await requireKidCode(k, `get ${chore.coins} coin${chore.coins === 1 ? '' : 's'} for “${chore.title}”`))) return;
+    // Ticking adds coins: the coin code, then which house's jar. (The board only lists undone chores.)
+    if (store.isDone(ymd(), chore.id, k.id)) return;
+    const at = await kidEarns(k, `get ${chore.coins} coin${chore.coins === 1 ? '' : 's'} for “${chore.title}”`);
+    if (!at) return;
     const r = t.getBoundingClientRect();
-    const on = store.toggleChore(chore, k.id);
+    const on = store.toggleChore(chore, k.id, at);
     if (on) coinBurst(r.left + r.width / 2, r.top, chore.coins);
     rerender();
   });
@@ -322,9 +324,11 @@ function leaderCard(i) {
     ${ks.map((k, r) => {
       const b = store.balance(k.id);
       const week = store.earnedByDay(k.id, 7).reduce((s, d) => s + d.sum, 0);
+      const split = houses().map((h) => `${houseTag(h.id)} ${store.balance(k.id, h.id)}`).join(' ');
       return `<div class="lb-row anim-row" style="--c:${esc(k.color)};--i:${r}">
         <span class="lb-rank">${r === 0 && b > 0 ? '👑' : r + 1}</span>${avatar(k)}
         <div class="lb-main"><div class="lb-name">${esc(k.name)}<span>+${week} this week</span></div>
+          <div class="lb-split">${split}</div>
           <div class="bar coin"><span style="--w:${Math.max(3, (b / max) * 100)}%"></span></div></div>
         <span class="lb-val">🪙 <b data-count="${b}">${b}</b></span></div>`;
     }).join('')}`, 'leader-card', i);

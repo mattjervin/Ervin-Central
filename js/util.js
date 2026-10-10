@@ -31,6 +31,11 @@ export function startOfWeek(d) {
   return addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), -d.getDay());
 }
 
+/** The Monday a chore week starts on (chore weeks run Monday–Sunday). */
+export function mondayOf(d) {
+  return addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), -((d.getDay() + 6) % 7));
+}
+
 /** "15:10" on a given day → Date */
 export function at(day, hhmm) {
   const [h, m] = hhmm.split(':').map(Number);

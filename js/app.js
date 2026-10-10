@@ -2,9 +2,9 @@
 // countdowns, the motion layer (fireflies, count-up numbers), and the kiosk behaviors a wall display
 // needs (keep the screen awake, drift back to Home when idle, repaint at midnight).
 
-import { loadConfig, cfg, kids, weather } from './data.js';
+import { loadConfig, cfg, kids, house, weather } from './data.js';
 import { store } from './store.js';
-import { isParent, lockParent } from './ui.js';
+import { isParent, lockParent, parentNow, requireParent } from './ui.js';
 import { $, $$, esc, clock, ymd } from './util.js';
 import * as home from './views/home.js';
 import * as calendar from './views/calendar.js';
@@ -123,6 +123,12 @@ let lastMinute = new Date().getMinutes();
 function tick() {
   seconds();
   document.body.classList.toggle('parent', isParent());
+  const me = parentNow();
+  const pb = $('#parent-btn');
+  pb.classList.toggle('on', Boolean(me));
+  pb.style.setProperty('--h', me ? house(me)?.color || 'var(--acc)' : 'var(--acc)');
+  $('#parent-btn-l').textContent = me ? `${house(me)?.label || 'Parent'} management` : 'Parent management';
+  pb.querySelector('.pb-i').textContent = me ? '🔓' : '🔒';
   const pend = store.allPending().length;
   const badge = $('#coins-badge');
   badge.textContent = pend || '';
@@ -260,6 +266,11 @@ async function boot() {
   store.subscribe(onStore);
   addEventListener('hashchange', render);
   $('#refresh-btn')?.addEventListener('click', hardRefresh);
+  // Parent management: Dad's code opens Dad's area, Mom's code opens Mom's (views/admin.js).
+  $('#parent-btn').addEventListener('click', async () => {
+    if (!(await requireParent())) return;
+    if (parseHash().name === 'admin') render(); else location.hash = '#/admin';
+  });
   fireflies();
   stickyNav();
   render();

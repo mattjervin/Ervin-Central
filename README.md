@@ -26,8 +26,8 @@ next one, lunch on school days, and a peek at tomorrow. Where the girls sleep, w
 | **Home** | Landscape banner (greeting, clock, weather), **Today** per girl (school, specials, activities, lunch) + tomorrow, **Tonight** (where the girls sleep + the week of nights), **Coming up**, 4-day weather, countdowns, leaderboard, tap-to-finish chores | Everything below |
 | **Calendar** | Agenda, rolling Week and Month views, filterable by kid, with school hours, early-outs, specials and weather | `data/calendar.json` + `data/school.json` |
 | **School** | Hours, specials, and the week's lunch/breakfast menu per girl | `data/school.json` + ADM's LINQ Connect menus |
-| **Chores** | Big tap tiles by morning / after school / evening; bonus tasks | `data/chores.json` |
-| **Coins** | Balances, 7-day earnings, reward shop, parent approvals, history | The shared cloud ledger (Supabase) |
+| **Chores** | Big tap tiles by morning / after school / evening, a *This week* set, and extra chores | `data/chores.json` |
+| **Coins** | Each girl's Dad's and Mom's jars, 7-day earnings, reward shop, parent approvals, history | The shared cloud ledger (Supabase) |
 
 ## Editing the family data
 
@@ -36,21 +36,26 @@ All content is hand-edited JSON in `data/` — no code changes needed:
 - **`family.json`** — kids (name, emoji, color, school), `birthdays` (the girls are pinned to Countdowns; everyone else competes for the other slots), location for weather plus `location.sun` (average Des Moines sunrise/sunset per month, which drives the Home sky), kiosk settings.
 - **`calendar.json`** — `holidays` as yearly rules (`"12-25"`, `"4th-thu-11"`, `"last-mon-05"`, `"easter"`, `"election"`; lunar ones list `dates`) so they never run out — `countdown: true` = eligible for Countdowns; `sleep` (the Dad's/Mom's night pattern + `overrides` for swaps and holidays), `recurring` weekly items (with `except` dates; `schoolDays: true` skips breaks), one-off `events` (`kind: "game"`, `tentative`). `who` is a list of kid ids; empty means the whole family.
 - **`school.json`** — school hours, early-out weekdays, specials, and the school-year dates: `noSchool` (breaks, workdays) and `extraEarlyOut` (non-Friday early outs like conferences), each `{ date, label }`, copied from the ADM academic calendar PDF (`year.source`). Replace them each summer when ADM posts the next year.
-- **`chores.json`** — daily chores (with `who`, `days`, `part`), bonus tasks, rewards and their coin values.
+- **`chores.json`** — `daily` chores (with `who`, `days`, `part`), `weekly` chores, `extra` chores (`parentOnly` = a parent gives it, like a kindness catch), `rewards`, and their coin values. Keep ids stable; the coin history refers to them.
 - **`wear.json`** — the *What to wear* rules under the Home banner (T-shirt / long sleeves / sweater, shorts or pants, light jacket to peel off, warm or winter coat, rain jacket, snow gear, sunscreen), keyed on the day's feels-like high and low, rain chance, snow and wind. First matching rule per group wins; after 3pm it shows tomorrow's.
 - **`menus.json`** — generated; don't edit. The weekly calendar sync refreshes it from Matt's Mac (LINQ blocks GitHub's servers, so the Action is manual-only).
 
 ## How Kindness Coins work
 
-- Ticking a daily chore gives its coins **immediately** — after the kid types the **coin code**
-  (asked *every* time a kid adds coins to herself). Unticking takes the coins back, no code needed.
-- **Bonus tasks** ("Unload the dishwasher") also need the coin code, then go into a
-  *Waiting for a parent* queue on the Coins page. **Rewards** ("Pick what's for dinner") go
-  straight into the same queue.
-- Approving and adjusting need the **parent passcode** (asked for when you tap an approval, or open
-  `…/Ervin-Central/admin/`). Parent mode relocks after 5 min, and while it's unlocked the coin code
-  isn't asked.
+- Each girl has **two jars: Dad's and Mom's**. Coins earned at a house go in that house's jar and
+  are spent there; each house's parent OKs their own extras and rewards.
+- Ticking a chore pays **immediately**: the kid types the **coin code** (asked *every* time a kid
+  adds coins to herself), then picks **Dad's or Mom's**. Tonight's house is pre-picked from the sleep
+  schedule (before noon, last night's). Unticking takes the coins back, no code needed.
+- **Daily** chores count once a day, **weekly** chores once a week (Monday–Sunday), across both
+  houses, so making the bed at Mom's and again at Dad's pays once.
+- **Extra chores** ("Rake leaves") are once a day each: coin code, house, then *Waiting for a
+  parent*. **Rewards** go into the same queue, paid from the jar the kid picks.
+- **Parent management** (the button at the bottom of every page): Dad's code opens Dad's area, Mom's
+  code opens Mom's. Parent mode relocks after 5 min, and while it's unlocked the coin code isn't
+  asked and coins go to that parent's house.
 - Balances are always the sum of the ledger, so every coin can be traced to a chore or approval.
+  Entries from before the houses existed count toward Dad's jar.
 
 **Passcodes** live in `data/family.json → passcodes` as SHA-256 hashes (salted with
 `ervin-central:`), so they aren't sitting in the public source as plain digits. That keeps honest
@@ -60,12 +65,12 @@ kids honest; it is not real security. To change one, hash the new code and paste
 node -e "console.log(require('crypto').createHash('sha256').update('ervin-central:1234').digest('hex'))"
 ```
 
-### Parent Admin (`#/admin`)
+### Parent management (`#/admin`)
 
-Go to `…/Ervin-Central/admin/` (bookmark it on a parent's phone) and unlock with the parent passcode. While unlocked, **⚙︎ Admin** also shows in the top bar. The ↻ button top right re-downloads every file and reloads — for home-screen shortcuts stuck on an old version:
+Tap **Parent management** at the bottom of any page (or bookmark `…/Ervin-Central/admin/`) and enter your code. Each parent manages their own house's jars: approvals waiting on them, quick ±, a kindness catch, coins spent offline, zero out. Dad's code (`passcodes.siteTools`) also gets sync, backup and wipe. While unlocked, **⚙︎** also shows in the top bar. The ↻ button top right re-downloads every file and reloads — for home-screen shortcuts stuck on an old version:
 
 - **Spent offline** — record coins the girls spent in real life, with a reason (quick 5/10/20/50/All).
-- **Zero out coins** — adds one "cashed in" line that brings the balance to exactly 0; history stays.
+- **Zero out** — adds one "cashed in" line that brings that house's jar to exactly 0; history stays.
 - **Wipe all history** — erases that girl's coins, requests and check-offs on every device.
 - Remove single ledger lines, back up / restore (restore merges, never doubles).
 - **Sync** — cloud status, *Sync now*, and *Rebuild from cloud* (throws away this device's copy

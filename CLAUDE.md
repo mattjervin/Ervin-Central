@@ -13,7 +13,8 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
 - Colors: green (`--acc`) = the whole family / both girls / generic (weather, what to wear, lunch —
   it's the same menu at both schools, the day type, holidays). Evelynn orange (her avatar is an orange
   butterfly, `assets/butterfly-orange.svg`), Avery yellow. Dad blue and Mom pink appear only on
-  where-they-sleep UI; the Tonight card takes tonight's parent color. Coins are gold.
+  where-they-sleep UI and the house coin jars / house tags; the Tonight card takes tonight's parent
+  color. Coins are gold.
 - Entrance animations run only when arriving on a page (`.view.settled` disables them on tap re-renders). Respect `prefers-reduced-motion`.
 - Content changes go in `data/*.json`, not code.
 - When you change JS or CSS, bump the `?v=` on `app.js` and `app.css` in `index.html` AND `version.json`
@@ -35,7 +36,11 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   `scripts/adm-to-kids-calendar.js` pushes them to the Kids calendar. Holidays are yearly rules in
   `calendar.json`, not dated entries.
 - Run `node --test 'tests/*.test.mjs'` after touching `js/data.js`, `js/scene.js` or `js/store.js`.
-- Coin balances are derived from the ledger in `store.js`; never store a balance.
+- Coin balances are derived from the ledger in `store.js`; never store a balance. Each girl has a jar
+  per house: every entry and request carries `house` ('dad' | 'mom', the sleep schedule's places);
+  entries without one count as Dad's. Chores: `daily` once a day, `weekly` once a week (Mon–Sun, keyed
+  on that Monday via `periodKey()`), `extra` once a day with that house's parent's OK — limits count
+  across both houses and are enforced in `apply()` so every device agrees.
 - State syncs through Supabase (project `ervin-data`, ref `gflocxcogragbwjplwgt`, schema
   `ervin_central`, table `ops`) — an append-only log `{ seq, op_id, bin, op }` that every device
   replays in `seq` order (`replay()` in store.js). All mutations are serializable ops through
@@ -44,9 +49,11 @@ ideas come from DAKboard family boards. Matt likes live motion and the sticky to
   for anon — never add UPDATE/DELETE grants; a correction is a new op.
 - URL + **publishable** key live in `data/family.json → sync` (safe to be public). Never commit the
   secret key. Access control is deliberately open for now (Matt's call, Oct 2026).
-- Passcodes (`data/family.json → passcodes`, SHA-256 of `ervin-central:<code>`): `parent` unlocks
-  Admin/approvals; `kids` is asked EVERY time a kid adds coins (chore tick on, bonus request) via
-  `requireKidCode()` in ui.js — skipped while parent mode is unlocked. Untick needs no code.
+- Passcodes (`data/family.json → passcodes`, SHA-256 of `ervin-central:<code>`): `dad` / `mom` open
+  that parent's Parent management (their house's jars; `requireParent(house)` for approvals), and
+  `siteTools` names whose code also gets sync/backup/wipe; `kids` is asked EVERY time a kid adds coins
+  (then she picks the house) via `kidEarns()` in ui.js — both skipped while a parent is unlocked, whose
+  house gets the coins. Untick needs no code. Never write the codes themselves into the repo.
 - Schema changes: run SQL in the Supabase SQL Editor (or the Supabase MCP server with
   `project_ref=gflocxcogragbwjplwgt`). Setup + how-to-add-an-app notes live in Matt's Second Brain
   (`AI & Tools/Supabase — Personal App Backend.md`).

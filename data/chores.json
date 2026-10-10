@@ -1,135 +1,42 @@
 {
-  "_help": "Daily chores: who = kid ids (omit for both), days = weekdays 0 Sun … 6 Sat (omit for every day), part = morning | afternoon | evening. Daily chores pay 1 coin the moment they're ticked. Extra (bonus) chores pay 2 coins after a parent OKs them. Rewards cost coins and also need a parent's OK.",
+  "_help": "daily = once a day (part = morning | afternoon | evening; days = weekdays 0 Sun … 6 Sat, omit for every day). weekly = once a week, Monday–Sunday. Both pay the moment they're ticked, into the jar of the house the girl picks (Dad's or Mom's). extra = once a day, sent to that house's parent to OK first; parentOnly extras are given by a parent from Parent management and can't be asked for. who = kid ids (omit for both). Limits count across both houses. Rewards cost coins from one house's jar and need that house's parent to OK them. Keep ids stable: the coin history refers to them.",
   "coinName": "Kindness Coins",
-  "chores": [
-    {
-      "id": "make-bed",
-      "title": "Make your bed",
-      "icon": "🛏️",
-      "coins": 1,
-      "part": "morning"
-    },
-    {
-      "id": "ready-school",
-      "title": "Get ready for school without asking",
-      "icon": "🎒",
-      "coins": 1,
-      "part": "morning",
-      "days": [
-        1,
-        2,
-        3,
-        4,
-        5
-      ]
-    },
-    {
-      "id": "brush-teeth",
-      "title": "Brush your teeth",
-      "icon": "🪥",
-      "coins": 1,
-      "part": "morning"
-    },
-    {
-      "id": "dishes-dw",
-      "title": "Put your dishes in the dishwasher",
-      "icon": "🍽️",
-      "coins": 1,
-      "part": "evening"
-    }
+  "daily": [
+    { "id": "make-bed", "title": "Make your bed", "icon": "🛏️", "coins": 1, "part": "morning" },
+    { "id": "brush-teeth", "title": "Brush your teeth", "icon": "🪥", "coins": 1, "part": "morning" },
+    { "id": "reading", "title": "Read for 20 minutes", "icon": "📚", "coins": 1, "part": "afternoon" },
+    { "id": "dishes-dw", "title": "Put your dishes in the dishwasher", "icon": "🍽️", "coins": 1, "part": "evening" },
+    { "id": "feed-loki", "title": "Feed Loki", "icon": "🐶", "coins": 1, "part": "evening" },
+    { "id": "pickup", "title": "5-minute room pickup", "icon": "🧺", "coins": 1, "part": "evening" },
+    { "id": "brush-teeth-pm", "title": "Brush your teeth before bed", "icon": "🪥", "coins": 1, "part": "evening" }
   ],
-  "bonus": [
-    {
-      "id": "clean-bedroom",
-      "title": "Clean your bedroom",
-      "icon": "🧸",
-      "coins": 2
-    },
-    {
-      "id": "put-away-laundry",
-      "title": "Put away your laundry",
-      "icon": "👕",
-      "coins": 2
-    },
-    {
-      "id": "clean-windows",
-      "title": "Clean the windows",
-      "icon": "🪟",
-      "coins": 2
-    },
-    {
-      "id": "take-out-trash",
-      "title": "Take out the trash",
-      "icon": "🗑️",
-      "coins": 2
-    },
-    {
-      "id": "put-away-dishes",
-      "title": "Put away the dishes",
-      "icon": "🥣",
-      "coins": 2
-    },
-    {
-      "id": "sister-laundry",
-      "title": "Help with your sister's laundry",
-      "icon": "🧺",
-      "coins": 2
-    },
-    {
-      "id": "feed-loki",
-      "title": "Feed Loki",
-      "icon": "🐶",
-      "coins": 2
-    },
-    {
-      "id": "vacuum",
-      "title": "Vacuum",
-      "icon": "🧹",
-      "coins": 2
-    },
-    {
-      "id": "wipe-counters",
-      "title": "Wipe down the counters",
-      "icon": "🧽",
-      "coins": 2
-    }
+  "weekly": [
+    { "id": "clean-bedroom", "title": "Clean your bedroom", "icon": "🧸", "coins": 3 },
+    { "id": "put-away-laundry", "title": "Put away your laundry", "icon": "👕", "coins": 3 },
+    { "id": "vacuum", "title": "Vacuum", "icon": "🧹", "coins": 3 },
+    { "id": "put-away-dishes", "title": "Unload the dishwasher", "icon": "🥣", "coins": 2 },
+    { "id": "sister-laundry", "title": "Help with your sister's laundry", "icon": "🧺", "coins": 2 },
+    { "id": "wipe-counters", "title": "Wipe down the counters", "icon": "🧽", "coins": 2 },
+    { "id": "clean-windows", "title": "Clean the windows", "icon": "🪟", "coins": 2 },
+    { "id": "bathroom-sink", "title": "Clean the bathroom sink and mirror", "icon": "🚰", "coins": 2, "who": ["evelynn"] },
+    { "id": "small-trash", "title": "Empty the small trash cans", "icon": "🗑️", "coins": 2, "who": ["avery"] }
+  ],
+  "extra": [
+    { "id": "set-table", "title": "Set or clear the table", "icon": "🍴", "coins": 1 },
+    { "id": "groceries", "title": "Carry in and put away groceries", "icon": "🛍️", "coins": 1 },
+    { "id": "rake", "title": "Rake leaves / yard work", "icon": "🍂", "coins": 2 },
+    { "id": "kind-catch", "title": "Kindness catch", "icon": "💛", "coins": 1, "parentOnly": true }
   ],
   "rewards": [
-    {
-      "id": "screen-30",
-      "title": "30 min extra screen time",
-      "icon": "📱",
-      "cost": 10
-    },
-    {
-      "id": "pick-dinner",
-      "title": "Pick what's for dinner",
-      "icon": "🍕",
-      "cost": 15
-    },
-    {
-      "id": "stay-up",
-      "title": "Stay up 30 min late",
-      "icon": "🌙",
-      "cost": 20
-    },
-    {
-      "id": "movie-night",
-      "title": "Choose family movie night",
-      "icon": "🎬",
-      "cost": 25
-    },
-    {
-      "id": "ice-cream",
-      "title": "Ice cream trip",
-      "icon": "🍦",
-      "cost": 40
-    },
-    {
-      "id": "one-on-one",
-      "title": "One-on-one date with Dad",
-      "icon": "🎟️",
-      "cost": 60
-    }
+    { "id": "dollar-store", "title": "Dollar-store pick", "icon": "🪙", "cost": 4 },
+    { "id": "game-night", "title": "Pick the game for game night", "icon": "🎲", "cost": 5 },
+    { "id": "breakfast", "title": "Pick weekend breakfast", "icon": "🥞", "cost": 5 },
+    { "id": "pick-dinner", "title": "Pick what's for dinner", "icon": "🍕", "cost": 5 },
+    { "id": "movie-night", "title": "Choose family movie night", "icon": "🎬", "cost": 10 },
+    { "id": "stay-up", "title": "Stay up 30 min late", "icon": "🌙", "cost": 20 },
+    { "id": "ice-cream", "title": "Ice cream trip", "icon": "🍦", "cost": 30 },
+    { "id": "target", "title": "Target trip (up to $20)", "icon": "🎯", "cost": 50 },
+    { "id": "theater", "title": "Movie at the theater", "icon": "🍿", "cost": 100 },
+    { "id": "trampoline", "title": "Trampoline park or bowling", "icon": "🤸", "cost": 100 }
   ]
 }

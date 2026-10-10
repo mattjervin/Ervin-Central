@@ -3,8 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { cfg, schoolDay, itemsOn, sleepOn, countdowns, ruleDate, holidaysIn, whatToWear } from '../js/data.js';
-import { applyOp, replay } from '../js/store.js';
+import { cfg, schoolDay, itemsOn, sleepOn, countdowns, ruleDate, holidaysIn, whatToWear, periodKey, houseNow, houses, choresFor, weeklyFor } from '../js/data.js';
+import { applyOp, replay, houseOf } from '../js/store.js';
 import { sunTimes, skyKind } from '../js/scene.js';
 import { ymd } from '../js/util.js';
 
@@ -151,6 +151,72 @@ test('cloud log: the one-time migration merge is idempotent', () => {
   // Two devices both migrate the same old gist copy: still two coins.
   const doc = replay({ avery: blank() }, [{ seq: 1, bin: 'avery', op: merge }, { seq: 2, bin: 'avery', op: merge }]);
   assert.equal(doc.avery.ledger.length, 2);
+});
+
+const jar = (doc, h) => doc.ledger.filter((e) => houseOf(e) === h).reduce((s, e) => s + e.amount, 0);
+
+test('houses: each girl has a jar per house, and zero empties only one', () => {
+  const doc = blank();
+  const pay = (id, house, amount, ref) => ({ t: 'entry', entry: { id, kid: 'avery', house, amount, reason: id, type: 'adjust', ref, ts: 1 } });
+  applyOp(doc, pay('a', 'dad', 5)); applyOp(doc, pay('b', 'mom', 3));
+  applyOp(doc, { t: 'entry', entry: { id: 'old', kid: 'avery', amount: 2, reason: 'before houses', ts: 0 } }); // legacy → Dad's
+  assert.equal(jar(doc, 'dad'), 7);
+  assert.equal(jar(doc, 'mom'), 3);
+  applyOp(doc, { t: 'zero', id: 'z', house: 'mom', reason: 'Cashed in', ts: 2 });
+  assert.equal(jar(doc, 'mom'), 0);
+  assert.equal(jar(doc, 'dad'), 7);
+  // A parent-given extra (kindness catch) carries a dated ref: once a day, even with a fresh entry id.
+  applyOp(doc, pay('k1', 'dad', 1, '2026-10-10:kind-catch:avery'));
+  applyOp(doc, pay('k2', 'mom', 1, '2026-10-10:kind-catch:avery'));
+  assert.equal(jar(doc, 'dad'), 8);
+  assert.equal(jar(doc, 'mom'), 0);
+});
+
+test('extras: once a day per girl, and approval pays into the asking house', () => {
+  const ask = (id, house) => ({ t: 'request', item: { id, kid: 'avery', house, type: 'bonus', ref: '2026-10-10:rake:avery', choreId: 'rake', limited: true, title: 'Rake', amount: 2, ts: 1 } });
+  const log = [
+    { seq: 1, bin: 'avery', op: ask('p1', 'mom') },
+    { seq: 2, bin: 'avery', op: ask('p2', 'dad') },                       // already waiting → ignored
+    { seq: 3, bin: 'avery', op: { t: 'approve', id: 'p1', entryId: 'e1', ts: 2 } },
+    { seq: 4, bin: 'avery', op: ask('p3', 'dad') },                       // already paid today → ignored
+  ];
+  const doc = replay({ avery: blank() }, log).avery;
+  assert.equal(doc.pending.length, 0);
+  assert.equal(jar(doc, 'mom'), 2);
+  assert.equal(jar(doc, 'dad'), 0);
+  // A declined ask can be sent again the same day.
+  const again = replay({ avery: blank() }, [log[0], { seq: 2, bin: 'avery', op: { t: 'decline', id: 'p1' } }, { seq: 3, bin: 'avery', op: ask('p4', 'dad') }]).avery;
+  assert.equal(again.pending.length, 1);
+});
+
+test('chore periods: daily by day, weekly by its Monday (counted across both houses)', () => {
+  assert.equal(periodKey('daily', d('2026-10-10')), '2026-10-10');
+  assert.equal(periodKey('weekly', d('2026-10-10')), '2026-10-05'); // Sat → Mon
+  assert.equal(periodKey('weekly', d('2026-10-11')), '2026-10-05'); // Sun is the same week
+  assert.equal(periodKey('weekly', d('2026-10-12')), '2026-10-12'); // Mon starts a new one
+  // Ticking a weekly chore at Mom's and then at Dad's in the same week is still one tick.
+  const wk = (house, id) => ({ t: 'chore', date: '2026-10-05', choreId: 'vacuum', on: true, ts: 1, ref: '2026-10-05:vacuum:avery',
+    entry: { id, kid: 'avery', house, amount: 3, reason: 'Vacuum', type: 'chore', ref: '2026-10-05:vacuum:avery', ts: 1 } });
+  const doc = replay({ avery: blank() }, [{ seq: 1, bin: 'avery', op: wk('mom', 'a') }, { seq: 2, bin: 'avery', op: wk('dad', 'b') }]).avery;
+  assert.equal(doc.ledger.length, 1);
+  assert.equal(jar(doc, 'mom'), 3);
+});
+
+test('houses come from the sleep schedule; mornings belong to last night’s house', () => {
+  assert.deepEqual(houses().map((h) => h.id), ['dad', 'mom']);
+  assert.equal(houseNow(new Date('2026-09-29T20:00')), 'dad'); // Tue night: Dad's
+  assert.equal(houseNow(new Date('2026-09-30T07:30')), 'dad'); // Wed morning: woke up at Dad's
+  assert.equal(houseNow(new Date('2026-09-30T18:00')), 'mom'); // Wed evening: Mom's
+});
+
+test('chores.json: ids unique across lists, every kid has daily and weekly chores', () => {
+  const all = [...cfg.chores.daily, ...cfg.chores.weekly, ...cfg.chores.extra].map((c) => c.id);
+  assert.equal(new Set(all).size, all.length);
+  for (const k of cfg.family.kids) {
+    assert.ok(choresFor(k.id, d('2026-10-12')).length > 0);
+    assert.ok(weeklyFor(k.id).length > 0);
+  }
+  assert.ok(cfg.family.passcodes.dad && cfg.family.passcodes.mom && !cfg.family.passcodes.parent);
 });
 
 test('school-only recurring items skip breaks', () => {

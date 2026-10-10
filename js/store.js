@@ -1,6 +1,12 @@
 // The one place mutable household state lives: chore check-offs, the Kindness Coin ledger and
 // pending approvals — one doc per kid:
-//   <kidId> → { v, kid, done: { date: { choreId: ts } }, ledger: [..], pending: [..] }
+//   <kidId> → { v, kid, done: { period: { choreId: ts } }, ledger: [..], pending: [..] }
+// A period is the day for daily chores and that week's Monday for weekly ones, so ticking twice in one
+// period is the same tick (the limit counts across both houses).
+//
+// Each girl has a coin jar at each house: every ledger entry and request carries `house` ('dad' |
+// 'mom'), and a jar's balance is the sum of its entries. Entries from before the houses existed have
+// no house and count toward Dad's jar.
 //
 // Shared state lives in Supabase (project "ervin-data", schema `ervin_central`) as an append-only
 // log of ops in table `ops` (seq, op_id, bin, op). Every device rebuilds the same docs by
@@ -49,12 +55,19 @@ function saveLocal() { write(CACHE_KEY, remote); write(OUTBOX_KEY, outbox); writ
 
 // ---- Ops ------------------------------------------------------------------------------------
 
-function balanceOf(doc) { return (doc.ledger || []).reduce((s, e) => s + e.amount, 0); }
+const LEGACY_HOUSE = 'dad';
+export const houseOf = (e) => e.house || LEGACY_HOUSE;
+
+/** One jar's balance, or both jars together when `house` is omitted. */
+function balanceOf(doc, house) {
+  return (doc.ledger || []).filter((e) => !house || houseOf(e) === house).reduce((s, e) => s + e.amount, 0);
+}
 
 /** Apply one op to one doc, in place. Must be idempotent. */
 function apply(doc, op) {
   doc.done ||= {}; doc.ledger ||= []; doc.pending ||= [];
   const hasEntry = (id) => doc.ledger.some((e) => e.id === id);
+  const hasRef = (ref) => doc.ledger.some((e) => e.ref === ref);
   switch (op.t) {
     case 'chore': {
       const day = (doc.done[op.date] ||= {});
@@ -67,21 +80,28 @@ function apply(doc, op) {
       }
       break;
     }
-    case 'request':
-      if (!doc.pending.some((p) => p.id === op.item.id)) doc.pending.push(op.item);
+    case 'request': {
+      // An extra chore is once per day: a second ask while one waits or after one was paid is ignored.
+      // (Its ref is dated; a declined ask leaves neither behind, so she can try again.)
+      const it = op.item;
+      if (doc.pending.some((p) => p.id === it.id)) break;
+      if (it.type === 'bonus' && it.limited && (doc.pending.some((p) => p.ref === it.ref) || hasRef(it.ref))) break;
+      doc.pending.push(it);
       break;
+    }
     case 'approve': {
       const p = doc.pending.find((x) => x.id === op.id);
       if (!p) break;
       doc.pending = doc.pending.filter((x) => x.id !== op.id);
-      if (!hasEntry(op.entryId)) doc.ledger.push({ id: op.entryId, kid: p.kid, amount: p.amount, reason: p.title, icon: p.icon, type: p.type, ref: p.ref, ts: op.ts });
+      if (!hasEntry(op.entryId)) doc.ledger.push({ id: op.entryId, kid: p.kid, house: p.house, amount: p.amount, reason: p.title, icon: p.icon, type: p.type, ref: p.ref, ts: op.ts });
       break;
     }
     case 'decline':
       doc.pending = doc.pending.filter((x) => x.id !== op.id);
       break;
     case 'entry':
-      if (!hasEntry(op.entry.id)) doc.ledger.push(op.entry);
+      // A ref'd entry (a parent-given extra like a kindness catch) is once per ref, i.e. once a day.
+      if (!hasEntry(op.entry.id) && !(op.entry.ref && hasRef(op.entry.ref))) doc.ledger.push(op.entry);
       break;
     case 'remove':
       doc.ledger = doc.ledger.filter((e) => e.id !== op.id);
@@ -89,9 +109,10 @@ function apply(doc, op) {
     case 'zero': {
       // Computed against the log as replayed *up to this op*, so every device gets the same answer
       // and it zeroes the real balance even if another device added coins a moment before.
+      // Zeroes one house's jar (op.house); an old zero op without a house zeroes everything.
       if (hasEntry(op.id)) break;
-      const bal = balanceOf(doc);
-      if (bal !== 0) doc.ledger.push({ id: op.id, kid: doc.kid, amount: -bal, reason: op.reason, icon: '🧹', type: 'reset', ts: op.ts });
+      const bal = balanceOf(doc, op.house);
+      if (bal !== 0) doc.ledger.push({ id: op.id, kid: doc.kid, house: op.house, amount: -bal, reason: op.reason, icon: '🧹', type: 'reset', ts: op.ts });
       break;
     }
     case 'wipe':
@@ -284,30 +305,49 @@ export const store = {
   subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
   // ---- Chores ----
-  isDone(date, choreId, kid) { return Boolean(docs[kid]?.done[date]?.[choreId]); },
+  // `period` is the day (daily chores) or that week's Monday (weekly) — see periodKey() in data.js.
+  isDone(period, choreId, kid) { return Boolean(docs[kid]?.done[period]?.[choreId]); },
 
-  toggleChore(chore, kid, date = ymd()) {
-    const on = !store.isDone(date, chore.id, kid);
-    const ref = `${date}:${chore.id}:${kid}`;
+  /** Which house a ticked chore paid into, for the little "at Dad's" tag. */
+  doneHouse(period, choreId, kid) {
+    const e = docs[kid]?.ledger.find((x) => x.ref === `${period}:${choreId}:${kid}`);
+    return e ? houseOf(e) : null;
+  },
+
+  /** Tick or untick. Ticking pays `chore.coins` into `house`'s jar; unticking takes them back. */
+  toggleChore(chore, kid, house, period = ymd()) {
+    const on = !store.isDone(period, chore.id, kid);
+    const ref = `${period}:${chore.id}:${kid}`;
     const ts = Date.now();
-    mutate(kid, { t: 'chore', date, choreId: chore.id, on, ts, ref,
-      entry: { id: uid(), kid, amount: chore.coins, reason: chore.title, icon: chore.icon, type: 'chore', ref, ts } });
+    mutate(kid, { t: 'chore', date: period, choreId: chore.id, on, ts, ref,
+      entry: { id: uid(), kid, house, amount: chore.coins, reason: chore.title, icon: chore.icon, type: 'chore', ref, ts } });
     return on;
   },
 
   // ---- Requests that wait for a parent ----
-  request(kid, type, item) {
+  /** type 'bonus' (an extra chore, once a day) or 'reward' (spends from `house`'s jar). */
+  request(kid, type, item, house) {
     const amount = type === 'reward' ? -item.cost : item.coins;
-    mutate(kid, { t: 'request', item: { id: uid(), kid, type, ref: item.id, title: item.title, icon: item.icon, amount, ts: Date.now() } });
+    const ref = type === 'bonus' ? `${ymd()}:${item.id}:${kid}` : item.id;
+    mutate(kid, { t: 'request', item: { id: uid(), kid, house, type, ref, choreId: item.id, limited: type === 'bonus', title: item.title, icon: item.icon, amount, ts: Date.now() } });
   },
 
-  allPending() { return kidIds.flatMap((k) => docs[k].pending).sort((a, b) => a.ts - b.ts); },
+  /** An extra chore today: 'waiting' (asked, not OK'd yet), 'done' (paid) or null. */
+  extraState(kid, extraId, date = ymd()) {
+    const ref = `${date}:${extraId}:${kid}`;
+    if (docs[kid]?.ledger.some((e) => e.ref === ref)) return 'done';
+    if (docs[kid]?.pending.some((p) => p.ref === ref)) return 'waiting';
+    return null;
+  },
+
+  /** Everything waiting, oldest first — or only what's waiting on one house's parent. */
+  allPending(house) { return kidIds.flatMap((k) => docs[k].pending).filter((p) => !house || houseOf(p) === house).sort((a, b) => a.ts - b.ts); },
   pendingFor(kid) { return docs[kid]?.pending || []; },
 
   approve(id) {
     const p = store.allPending().find((x) => x.id === id);
     if (!p) return;
-    if (p.amount < 0 && store.balance(p.kid) + p.amount < 0) throw new Error('Not enough coins');
+    if (p.amount < 0 && store.balance(p.kid, houseOf(p)) + p.amount < 0) throw new Error('Not enough coins in that jar');
     mutate(p.kid, { t: 'approve', id, entryId: uid(), ts: Date.now() });
   },
 
@@ -316,18 +356,24 @@ export const store = {
     if (p) mutate(p.kid, { t: 'decline', id });
   },
 
-  // ---- Parent edits ----
-  adjust(kid, amount, reason) {
-    mutate(kid, { t: 'entry', entry: { id: uid(), kid, amount, reason: reason || (amount > 0 ? 'Bonus from a parent' : 'Adjustment'), icon: amount > 0 ? '🎁' : '✏️', type: 'adjust', ts: Date.now() } });
+  // ---- Parent edits (each into or out of one house's jar) ----
+  adjust(kid, amount, reason, house) {
+    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount, reason: reason || (amount > 0 ? 'Bonus from a parent' : 'Adjustment'), icon: amount > 0 ? '🎁' : '✏️', type: 'adjust', ts: Date.now() } });
+  },
+
+  /** A parent-given extra (a kindness catch): paid at once, once a day. */
+  award(kid, extra, house) {
+    const ref = `${ymd()}:${extra.id}:${kid}`;
+    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount: extra.coins, reason: extra.title, icon: extra.icon, type: 'bonus', ref, ts: Date.now() } });
   },
 
   /** Coins spent in real life (a store trip, a treat) — recorded so the history explains it. */
-  spend(kid, amount, reason) {
-    mutate(kid, { t: 'entry', entry: { id: uid(), kid, amount: -Math.abs(amount), reason: reason || 'Spent', icon: '🛍️', type: 'spend', ts: Date.now() } });
+  spend(kid, amount, reason, house) {
+    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount: -Math.abs(amount), reason: reason || 'Spent', icon: '🛍️', type: 'spend', ts: Date.now() } });
   },
 
-  /** Bring a balance to exactly 0, keeping history. */
-  zero(kid, reason = 'Coins cashed in') { mutate(kid, { t: 'zero', id: uid(), reason, ts: Date.now() }); },
+  /** Bring one house's jar to exactly 0, keeping history. */
+  zero(kid, house, reason = 'Coins cashed in') { mutate(kid, { t: 'zero', id: uid(), house, reason, ts: Date.now() }); },
 
   /** Erase a kid's history entirely — ledger, requests, and check-offs. (The log keeps the record.) */
   wipe(kid) { mutate(kid, { t: 'wipe' }); },
@@ -338,7 +384,8 @@ export const store = {
   },
 
   // ---- Coins ----
-  balance(kid) { return docs[kid] ? balanceOf(docs[kid]) : 0; },
+  /** One jar (`house`), or both jars together. */
+  balance(kid, house) { return docs[kid] ? balanceOf(docs[kid], house) : 0; },
 
   /** Coins *earned* (not spent) per day for the last n days, oldest first. */
   earnedByDay(kid, n = 7) {
@@ -352,9 +399,9 @@ export const store = {
     return out;
   },
 
-  history(kid, limit = 30) {
+  history(kid, limit = 30, house) {
     const all = kid ? docs[kid]?.ledger || [] : kidIds.flatMap((k) => docs[k].ledger);
-    return [...all].sort((a, b) => b.ts - a.ts).slice(0, limit);
+    return all.filter((e) => !house || houseOf(e) === house).sort((a, b) => b.ts - a.ts).slice(0, limit);
   },
 
   // ---- Backup ----

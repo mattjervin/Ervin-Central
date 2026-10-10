@@ -82,9 +82,11 @@
     "pollSeconds": 15
   },
   "passcodes": {
-    "_help": "SHA-256 hashes of the 4-digit codes, salted with \"ervin-central:\". parent unlocks Admin and approvals; kids is asked every time a kid adds coins. To change one: node -e \"console.log(require('crypto').createHash('sha256').update('ervin-central:1234').digest('hex'))\" and paste the result.",
-    "parent": "b1001754ad1764f0da72bd53b35801a7bd7aa6c9fa1a1a0d0a20e547c4795fab",
-    "kids": "61fdd22649166bd3a69546417f41e96a5e6524a483d9ceb74f44343820d16440"
+    "_help": "SHA-256 hashes of the 4-digit codes, salted with \"ervin-central:\". dad and mom each open that parent's Parent management area (their house's coin jars, approvals, adjustments); kids is asked every time a kid adds coins. siteTools names the parent whose code also opens sync, backup and wipe. To change one: node -e \"console.log(require('crypto').createHash('sha256').update('ervin-central:1234').digest('hex'))\" and paste the result.",
+    "dad": "b1001754ad1764f0da72bd53b35801a7bd7aa6c9fa1a1a0d0a20e547c4795fab",
+    "mom": "2b4a5c24ca203396494200c93f8742a8c1103d639938089ea12373ec7b620940",
+    "kids": "61fdd22649166bd3a69546417f41e96a5e6524a483d9ceb74f44343820d16440",
+    "siteTools": "dad"
   },
   "kiosk": {
     "idleReturnSeconds": 120,

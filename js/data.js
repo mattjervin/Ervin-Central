@@ -1,7 +1,7 @@
 // Loads the hand-edited config in data/*.json and derives what the views ask for: a day's
 // schedule, a kid's chores for a date, the lunch menu, the weather.
 
-import { addDays, at, clock, parseYmd, ymd } from './util.js';
+import { addDays, at, clock, mondayOf, parseYmd, ymd } from './util.js';
 
 const clockShort = (hhmm) => clock(hhmm, false);
 import { fetchMenu } from './linq.js';
@@ -277,9 +277,38 @@ export function nextSwitch(date) {
 
 // ---- Chores ------------------------------------------------------------------------------
 
+const choreForKid = (list, kidId) => (list || []).filter((c) => !c.who || c.who.includes(kidId));
+
+/** A kid's daily chores for a date. */
 export function choresFor(kidId, date = new Date()) {
   const dow = date.getDay();
-  return cfg.chores.chores.filter((c) => (!c.who || c.who.includes(kidId)) && (!c.days || c.days.includes(dow)));
+  return choreForKid(cfg.chores.daily, kidId).filter((c) => !c.days || c.days.includes(dow));
+}
+
+export const weeklyFor = (kidId) => choreForKid(cfg.chores.weekly, kidId);
+
+/** Any chore (daily, weekly or extra) by id, tagged with its kind. */
+export function choreById(id) {
+  for (const kind of ['daily', 'weekly', 'extra']) {
+    const c = (cfg.chores[kind] || []).find((x) => x.id === id);
+    if (c) return { ...c, kind };
+  }
+  return null;
+}
+
+/** The key a chore's once-per-period limit hangs on: the day for daily chores, that week's Monday for weekly. */
+export const periodKey = (kind, date = new Date()) => ymd(kind === 'weekly' ? mondayOf(date) : date);
+
+// ---- Houses (each girl has a coin jar at Dad's and at Mom's) ---------------------------------------
+
+/** [{ id, label, icon, color }] — the sleep schedule's places double as the coin houses. */
+export const houses = () => Object.entries(cfg.calendar.sleep?.places || {}).map(([id, p]) => ({ id, ...p }));
+export const house = (id) => houses().find((h) => h.id === id);
+
+/** Where the girls are right now: before noon it's where they slept last night, after that tonight's house. */
+export function houseNow(now = new Date()) {
+  const night = now.getHours() < 12 ? addDays(now, -1) : now;
+  return sleepOn(night)?.key || houses()[0]?.id;
 }
 
 // ---- Menus -------------------------------------------------------------------------------

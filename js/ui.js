@@ -3,8 +3,8 @@
 // hero tile, hexagon avatars. Plus the touch-only pieces: modal sheet, toast, passcode pad.
 
 import { $, esc } from './util.js';
-import { hashPin } from './store.js';
-import { cfg } from './data.js';
+import { store, hashPin } from './store.js';
+import { cfg, houses, house, houseNow } from './data.js';
 
 /** Card. `i` staggers its entrance animation. */
 export const card = (body, cls = '', i = 0, style = '') => `<section class="card ${cls}" style="--i:${i};${style}">${body}</section>`;
@@ -130,22 +130,27 @@ export function modal(html, { onMount, onClose } = {}) {
 }
 
 // ---- Passcodes -----------------------------------------------------------------------------
-// Two fixed 4-digit codes, stored as SHA-256 hashes in data/family.json → passcodes:
-//   · parent — unlocks approvals, adjustments and Admin. Stays unlocked for a few minutes, then
-//              relocks on its own so a wall display never sits in parent mode.
-//   · kids   — asked EVERY time a kid adds coins to herself (ticking a chore, sending an extra
-//              chore for approval). Skipped while parent mode is unlocked.
+// 4-digit codes, stored as SHA-256 hashes in data/family.json → passcodes:
+//   · dad / mom — Parent management for that parent's house: its coin jars, the approvals waiting on
+//                 it, adjustments. Stays unlocked for a few minutes, then relocks on its own so a wall
+//                 display never sits in parent mode. passcodes.siteTools also gets sync/backup/wipe.
+//   · kids      — asked EVERY time a kid adds coins to herself (ticking a chore, asking for an extra).
+//                 Skipped while a parent is unlocked.
 // This keeps honest kids honest; it is not real security (the site is public).
 
 let unlockedUntil = 0;
-export const isParent = () => Date.now() < unlockedUntil;
-export function lockParent() { unlockedUntil = 0; document.body.classList.remove('parent'); }
+let unlockedAs = null;
+/** The unlocked parent's house id ('dad' | 'mom'), or null. */
+export const parentNow = () => (Date.now() < unlockedUntil ? unlockedAs : null);
+export const isParent = () => Boolean(parentNow());
+export const hasSiteTools = () => Boolean(parentNow()) && parentNow() === cfg.family.passcodes?.siteTools;
+export function lockParent() { unlockedUntil = 0; unlockedAs = null; document.body.classList.remove('parent'); }
 
-/** Number-pad sheet. Resolves true once the entered code hashes to `hash`. */
-function passcodeSheet({ title, sub, hash, icon = '' }) {
+/** Number-pad sheet. `codes` = { key: hash }; resolves the key whose code was entered, or null. */
+function passcodeSheet({ title, sub, codes, icon = '' }) {
   return new Promise((resolve) => {
     let entry = '';
-    let ok = false;
+    let hit = null;
     modal(`
       ${icon ? `<div class="sheet-icon">${icon}</div>` : ''}
       <h3 class="sheet-title">${esc(title)}</h3>
@@ -161,39 +166,106 @@ function passcodeSheet({ title, sub, hash, icon = '' }) {
           entry = n === '⌫' ? entry.slice(0, -1) : (entry + n).slice(0, 4);
           dots();
           if (entry.length < 4) return;
-          if ((await hashPin(entry)) === hash) { ok = true; close(); return; }
+          const h = await hashPin(entry);
+          hit = Object.keys(codes).find((k) => codes[k] && codes[k] === h) || null;
+          if (hit) { close(); return; }
           sheet.querySelector('#pin-dots').classList.add('shake');
           setTimeout(() => sheet.querySelector('#pin-dots')?.classList.remove('shake'), 400);
           sheet.querySelector('#pin-sub').textContent = 'Not quite — try again.';
           entry = ''; dots();
         });
       },
-      onClose: () => resolve(ok),
+      onClose: () => resolve(hit),
     });
   });
 }
 
-/** Resolves true once a parent has entered the parent passcode. */
-export async function requireParent() {
-  if (isParent()) return true;
-  const ok = await passcodeSheet({ title: 'Parent passcode', sub: 'Enter the 4-digit parent code.', hash: cfg.family.passcodes?.parent, icon: '🔒' });
-  if (ok) {
+/**
+ * Resolves the unlocked parent's house id, or null. With `houseId`, only that house's parent will
+ * do (each parent approves their own house's extras and rewards); without it, either code works.
+ */
+export async function requireParent(houseId) {
+  const now = parentNow();
+  if (now && (!houseId || now === houseId)) return now;
+  const pc = cfg.family.passcodes || {};
+  const h = houseId && house(houseId);
+  const who = h ? h.label.replace(/’s$|'s$/, '') : '';
+  const codes = houseId ? { [houseId]: pc[houseId] } : Object.fromEntries(houses().map((x) => [x.id, pc[x.id]]));
+  const got = await passcodeSheet({
+    title: houseId ? `${who}’s code` : 'Parent management',
+    sub: houseId ? `This is for ${esc(h.label)} jar, so ${esc(who)} OKs it.` : 'Enter your 4-digit parent code.',
+    codes, icon: '🔒',
+  });
+  if (got) {
+    unlockedAs = got;
     unlockedUntil = Date.now() + 5 * 60e3;
     document.body.classList.add('parent');
   }
-  return ok;
+  return got;
 }
 
 /** Resolves true once the kids' coin passcode is entered. Asked every time (parents skip it). */
-export function requireKidCode(k, what = 'add coins') {
-  if (isParent()) return Promise.resolve(true);
-  return passcodeSheet({
+export async function requireKidCode(k, what = 'add coins') {
+  if (isParent()) return true;
+  return Boolean(await passcodeSheet({
     title: k ? `${k.name}, enter the coin code` : 'Enter the coin code',
     sub: `Type the 4-digit code to ${esc(what)}.`,
-    hash: cfg.family.passcodes?.kids,
+    codes: { kids: cfg.family.passcodes?.kids },
     icon: '🪙',
+  }));
+}
+
+// ---- Houses --------------------------------------------------------------------------------
+
+/** "Where are you?" — resolves a house id or null. `need` greys out jars with fewer coins. */
+export function pickHouse(k, { title = 'Where are you?', sub = 'Your coins go in this house’s jar.', need = 0 } = {}) {
+  const here = houseNow();
+  return new Promise((resolve) => {
+    let picked = null;
+    modal(`
+      <div class="sheet-icon">${avatar(k, 'lg')}</div>
+      <h3 class="sheet-title">${esc(title)}</h3>
+      <p class="sheet-sub">${sub}</p>
+      <div class="who-pick">${houses().map((h) => {
+        const bal = store.balance(k.id, h.id);
+        const ok = bal >= need;
+        return `<button class="who-btn house-btn ${h.id === here ? 'here' : ''} ${ok ? '' : 'disabled'}" data-house="${h.id}" style="--c:${esc(h.color)}" ${ok ? '' : 'disabled'}>
+          <span class="hb-icon">${esc(h.icon)}</span><b>${esc(h.label)}</b>
+          <small>${need ? (ok ? `has 🪙 ${bal}` : `needs ${need - bal} more`) : h.id === here ? 'You’re here now' : `🪙 ${bal} here`}</small></button>`;
+      }).join('')}</div>
+      <button class="btn ghost wide" data-close>Cancel</button>`, {
+      onMount(sheet, close) {
+        sheet.addEventListener('click', (e) => {
+          const b = e.target.closest('[data-house]');
+          if (b && !b.disabled) { picked = b.dataset.house; close(); }
+        });
+      },
+      onClose: () => resolve(picked),
+    });
   });
 }
+
+/**
+ * A kid is about to earn coins: the coin code, then which house's jar. A parent who's unlocked
+ * skips both — the coins go to their own house. Resolves a house id or null.
+ */
+export async function kidEarns(k, what) {
+  const p = parentNow();
+  if (p) return p;
+  if (!(await requireKidCode(k, what))) return null;
+  return pickHouse(k);
+}
+
+/** A kid's two jars, side by side: "🏡 Dad's 12 · 🏠 Mom's 4". */
+export function jars(k, { big = false } = {}) {
+  return `<span class="jars ${big ? 'big' : ''}">${houses().map((h) => `<span class="jar" style="--h:${esc(h.color)}"><span class="jar-l">${esc(h.icon)} ${esc(h.label)}</span><span class="jar-v">🪙 <b data-count="${store.balance(k.id, h.id)}">${store.balance(k.id, h.id)}</b></span></span>`).join('')}</span>`;
+}
+
+/** A small "Dad's" / "Mom's" tag in that house's color. */
+export const houseTag = (id) => {
+  const h = house(id);
+  return h ? `<span class="house-tag" style="--h:${esc(h.color)}">${esc(h.icon)} ${esc(h.label)}</span>` : '';
+};
 
 /** Yes/no sheet. `danger` paints the confirm button red. */
 export function confirmSheet(title, body, { ok = 'Yes', danger = false, icon = '' } = {}) {

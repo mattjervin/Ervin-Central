@@ -770,6 +770,34 @@ input:focus { outline: none; border-color: var(--acc); box-shadow: var(--glow); 
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---- Houses: a coin jar at Dad's and at Mom's (blue / pink come from the sleep schedule) ------------ */
+
+.jars { display: flex; gap: 8px; flex-wrap: wrap; }
+.jar { flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--h) 9%, transparent); border: 1px solid color-mix(in srgb, var(--h) 40%, transparent); }
+.jar-l { font-weight: 700; font-size: 13px; color: var(--h); white-space: nowrap; }
+.jar-v { color: var(--coin); font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.jar-v b { color: var(--coin); font-size: 18px; font-weight: 900; }
+.jars.big { width: 100%; }
+.jars.big .jar { flex-direction: column; align-items: center; gap: 2px; padding: 12px; }
+.jars.big .jar-v b { font-size: 40px; text-shadow: 0 0 24px rgba(var(--coin-rgb), 0.35); }
+.house-tag { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 99px; font: 700 11px var(--sans); color: var(--h); background: color-mix(in srgb, var(--h) 14%, transparent); white-space: nowrap; vertical-align: 1px; }
+.house-btn .hb-icon { font-size: 34px; line-height: 1; }
+.house-btn b { color: var(--c); font-size: 18px; }
+.house-btn.here { background: color-mix(in srgb, var(--c) 22%, transparent); border-color: var(--c); box-shadow: 0 0 22px color-mix(in srgb, var(--c) 30%, transparent); }
+.house-btn.here small { color: var(--t1); font-weight: 700; }
+.part.weekly { padding-top: 12px; border-top: 1px dashed var(--hair2); }
+.part-n { margin-left: auto; font: 600 11px var(--sans); letter-spacing: 0; text-transform: none; color: var(--t4); }
+.t-coins small { font-weight: 600; color: var(--t4); }
+.b-btn:disabled { opacity: 0.55; }
+.b-btn.done { border-color: color-mix(in srgb, var(--c) 60%, transparent); }
+.b-wait.ok { background: var(--acc); color: #03210f; }
+.lb-split { display: flex; gap: 6px; margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--t2); }
+
+.site-foot { position: relative; z-index: 1; display: flex; justify-content: center; padding: 0 16px calc(28px + var(--safe-b)); margin-top: -24px; }
+.parent-btn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 999px; font: 700 14px var(--sans); color: var(--t2); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--hair2); transition: transform 0.2s var(--spring), border-color 0.2s; }
+.parent-btn:active { transform: scale(0.95); }
+.parent-btn.on { color: var(--h); border-color: color-mix(in srgb, var(--h) 55%, transparent); background: color-mix(in srgb, var(--h) 10%, transparent); }
+
 /* ---- iPad portrait / small laptops -------------------------------------------------------------- */
 
 @media (max-width: 1180px) {
