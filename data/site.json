@@ -1,0 +1,10 @@
+{
+  "_help": "Public, safe to share: where the site finds its data. The family data itself is in Supabase (schema ervin_central), published from the private repo (private/ → scripts/publish.mjs); a device sees it only with its own key. key = the PUBLISHABLE key (never the secret one). pollSeconds = how often a visible screen checks for other devices’ changes. vapidPublicKey = the public half of the Web Push key (the private half lives only in ervin_central.push_config).",
+  "sync": {
+    "url": "https://gflocxcogragbwjplwgt.supabase.co",
+    "key": "sb_publishable_JSzTVUs3AyUFBI5wmTmUpA_meMYDSIr",
+    "schema": "ervin_central",
+    "pollSeconds": 15,
+    "vapidPublicKey": "BMCNSLMnrQZSX_dEYe_D-SwlfgC0nxsIT4czQCV63KXZX7QSf6hnSbBJ1M8FH4FmNrzV_9OEaxLNRzItmNTqs_U"
+  }
+}

@@ -1,0 +1,468 @@
+// The one place mutable household state lives: chore check-offs, the Kindness Coin ledger and
+// pending approvals — one doc per kid:
+//   <kidId> → { v, kid, done: { period: { choreId: ts } }, ledger: [..], pending: [..] }
+// A period is the day for daily chores and that week's Monday for weekly ones, so ticking twice in one
+// period is the same tick (the limit counts across both houses).
+//
+// Each girl has a coin jar at each house: every ledger entry and request carries `house` ('dad' |
+// 'mom'), and a jar's balance is the sum of its entries. Entries from before the houses existed have
+// no house and count toward Dad's jar.
+//
+// Shared state lives in Supabase (project "ervin-data", schema `ervin_central`) as an append-only
+// log of ops in table `ops` (seq, op_id, bin, op). Every device rebuilds the same docs by
+// replaying the log in `seq` order, so nothing is ever overwritten and the log *is* the history.
+//
+// Every change is a small serializable op run through `apply()`. It's applied locally at once (the
+// tap feels instant), queued in an outbox that survives reloads, and POSTed with an `op_id` minted
+// up front — a retry of an op that already landed is ignored by the database (unique op_id), so it
+// can't double-pay. Sent ops stay laid on top of the view until a pull shows them in the log.
+//
+// The API key is Supabase's *publishable* key — safe in a public repo. The table itself isn't
+// reachable through the API: devices read and append through rpc ec_ops / ec_add_ops, which check
+// this device's own key (js/cloud.js). Nobody can edit or delete history.
+//
+// Coin balances are never stored — they're the sum of the ledger.
+
+import { uid, ymd } from './util.js';
+import { rpc } from './cloud.js';
+
+const CACHE_KEY = 'ervin-central:cloud';    // { docs, lastSeq, recent } — the replayed log
+const OUTBOX_KEY = 'ervin-central:outbox2'; // [{ op_id, bin, op, by, name }] not yet confirmed sent
+const SENT_KEY = 'ervin-central:sent';      // the same, sent but not yet seen in a pull
+const DEVICE_KEY = 'ervin-central:device';
+const DEVICE_NAME_KEY = 'ervin-central:device-name';
+const LEGACY_KEY = 'ervin-central:v2';      // the old gist/localStorage docs, migrated once
+const LEGACY_OLD = 'ervin-central:v1';
+const MIGRATED_KEY = 'ervin-central:migrated';
+const KEEP_DONE_DAYS = 45;
+const PAGE = 1000;                          // PostgREST's max rows per request
+const OVERLAP = 50;                         // re-read this many seqs back to catch late commits
+
+let kidIds = [];
+let conf = null;                            // { url, key, schema }
+let remote = { docs: {}, lastSeq: 0, recent: [] };
+let outbox = read(OUTBOX_KEY) || [];
+let sent = read(SENT_KEY) || [];
+let docs = {};
+const device = read(DEVICE_KEY) || (() => { const d = uid(); write(DEVICE_KEY, d); return d; })();
+let actor = () => 'kid';                    // who's entering changes: 'kid', or the unlocked parent ('dad' | 'mom')
+let owner = () => null;                     // whose device this is ('Evelynn', 'Dad'…), for its default name
+
+/** A guess until a parent names this device in Parent management: "Evelynn’s iPhone", or "iPhone f8cj" on a shared one. */
+function defaultDeviceName() {
+  const ua = navigator.userAgent || '';
+  const kind = /iPad|Macintosh.*Mobile/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iPad'
+    : /iPhone/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows PC' : 'Device';
+  const who = owner();
+  return who ? `${who}’s ${kind}` : `${kind} ${device.slice(0, 4)}`;
+}
+const status = { lastSync: null, error: null, busy: false };
+const listeners = new Set();
+
+function read(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
+function write(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } }
+
+const blankKid = (kid) => ({ v: 3, kid, done: {}, ledger: [], pending: [] });
+
+function notify(reason) { listeners.forEach((fn) => fn(reason)); }
+function saveLocal() { write(CACHE_KEY, remote); write(OUTBOX_KEY, outbox); write(SENT_KEY, sent); }
+
+// ---- Ops ------------------------------------------------------------------------------------
+
+const LEGACY_HOUSE = 'dad';
+export const houseOf = (e) => e.house || LEGACY_HOUSE;
+
+/** One jar's balance, or both jars together when `house` is omitted. */
+function balanceOf(doc, house) {
+  return (doc.ledger || []).filter((e) => !house || houseOf(e) === house).reduce((s, e) => s + e.amount, 0);
+}
+
+/** Apply one op to one doc, in place. Must be idempotent. */
+function apply(doc, op) {
+  doc.done ||= {}; doc.ledger ||= []; doc.pending ||= [];
+  const hasEntry = (id) => doc.ledger.some((e) => e.id === id);
+  const hasRef = (ref) => doc.ledger.some((e) => e.ref === ref);
+  switch (op.t) {
+    case 'chore': {
+      const day = (doc.done[op.date] ||= {});
+      if (op.on) {
+        day[op.choreId] ||= op.ts;
+        if (!doc.ledger.some((e) => e.ref === op.entry.ref)) doc.ledger.push(op.entry);
+      } else {
+        delete day[op.choreId];
+        doc.ledger = doc.ledger.filter((e) => e.ref !== op.ref);
+      }
+      break;
+    }
+    case 'request': {
+      // An extra chore is once per day: a second ask while one waits or after one was paid is ignored.
+      // (Its ref is dated; a declined ask leaves neither behind, so she can try again.)
+      const it = op.item;
+      if (doc.pending.some((p) => p.id === it.id)) break;
+      if (it.type === 'bonus' && it.limited && (doc.pending.some((p) => p.ref === it.ref) || hasRef(it.ref))) break;
+      doc.pending.push(it);
+      break;
+    }
+    case 'approve': {
+      const p = doc.pending.find((x) => x.id === op.id);
+      if (!p) break;
+      doc.pending = doc.pending.filter((x) => x.id !== op.id);
+      if (!hasEntry(op.entryId)) doc.ledger.push({ id: op.entryId, kid: p.kid, house: p.house, amount: p.amount, reason: p.title, icon: p.icon, type: p.type, ref: p.ref, ts: op.ts });
+      break;
+    }
+    case 'decline':
+      doc.pending = doc.pending.filter((x) => x.id !== op.id);
+      break;
+    case 'entry':
+      // A ref'd entry (a parent-given extra like a kindness catch) is once per ref, i.e. once a day.
+      if (!hasEntry(op.entry.id) && !(op.entry.ref && hasRef(op.entry.ref))) doc.ledger.push(op.entry);
+      break;
+    case 'remove':
+      doc.ledger = doc.ledger.filter((e) => e.id !== op.id);
+      break;
+    case 'zero': {
+      // Computed against the log as replayed *up to this op*, so every device gets the same answer
+      // and it zeroes the real balance even if another device added coins a moment before.
+      // Zeroes one house's jar (op.house); an old zero op without a house zeroes everything.
+      if (hasEntry(op.id)) break;
+      const bal = balanceOf(doc, op.house);
+      if (bal !== 0) doc.ledger.push({ id: op.id, kid: doc.kid, house: op.house, amount: -bal, reason: op.reason, icon: '🧹', type: 'reset', ts: op.ts });
+      break;
+    }
+    case 'wipe':
+      doc.done = {}; doc.ledger = []; doc.pending = [];
+      break;
+    case 'merge':
+      for (const e of op.ledger || []) if (!hasEntry(e.id)) doc.ledger.push(e);
+      for (const p of op.pending || []) if (!doc.pending.some((x) => x.id === p.id)) doc.pending.push(p);
+      for (const [date, day] of Object.entries(op.done || {})) Object.assign((doc.done[date] ||= {}), day);
+      break;
+  }
+  // Keep docs small: old check-offs are only needed for "done today".
+  const cutoff = ymd(new Date(Date.now() - KEEP_DONE_DAYS * 864e5));
+  for (const d of Object.keys(doc.done || {})) if (d < cutoff || !Object.keys(doc.done[d]).length) delete doc.done[d];
+  return doc;
+}
+
+/** Fold log rows ({ seq, bin, op }) onto docs in seq order. Rows for unknown bins are skipped. */
+function replay(base, rows) {
+  const out = base;
+  for (const r of [...rows].sort((a, b) => a.seq - b.seq)) if (out[r.bin]) apply(out[r.bin], r.op);
+  return out;
+}
+
+const blankDocs = () => Object.fromEntries(kidIds.map((k) => [k, blankKid(k)]));
+
+/** What the screen shows: the replayed log, then sent-but-unseen ops, then the outbox. */
+function rebuildView() {
+  docs = structuredClone(remote.docs);
+  for (const k of kidIds) docs[k] ||= blankKid(k);
+  for (const o of [...sent, ...outbox]) if (docs[o.bin]) apply(docs[o.bin], o.op);
+}
+
+function mutate(bin, op) {
+  // Who and where, for the chore log (ops.entered_by / ops.device_name → view ervin_central.chore_log).
+  outbox.push({ op_id: uid(), bin, op, by: actor(), name: store.deviceName });
+  apply(docs[bin], op);
+  saveLocal();
+  notify('local');
+  flush();
+}
+
+// ---- Supabase (rpc over plain fetch — no SDK, no build step; see js/cloud.js) ------------------
+
+/** Every log row with seq > after, oldest first, paging past the 1000-row cap. */
+async function fetchRows(after) {
+  const rows = [];
+  for (let from = after; ;) {
+    const page = await rpc('ec_ops', { p_after: from, p_limit: PAGE });
+    rows.push(...page);
+    if (page.length < PAGE) return rows;
+    from = page[page.length - 1].seq;
+  }
+}
+
+async function postOps(batch) {
+  await rpc('ec_add_ops', { p_device: device, p_ops: batch.map((o) => ({ op_id: o.op_id, bin: o.bin, op: o.op, entered_by: o.by || null, device_name: o.name || null })) });
+}
+
+/**
+ * Bring `remote` up to date. Reads a little behind lastSeq: a seq that shows up below lastSeq that
+ * we have never seen means a slow write committed late, and the only safe fix is a full replay.
+ */
+async function syncDown() {
+  const from = Math.max(0, remote.lastSeq - OVERLAP);
+  const rows = await fetchRows(from);
+  const seen = new Set(remote.recent);
+  const late = rows.some((r) => r.seq <= remote.lastSeq && !seen.has(r.seq));
+  let changed = false;
+  let seenRows = rows;
+  if (late) {
+    const all = await fetchRows(0);
+    remote = { docs: replay(blankDocs(), all), lastSeq: all.at(-1)?.seq || 0, recent: all.slice(-200).map((r) => r.seq) };
+    seenRows = all;
+    changed = true;
+  } else {
+    const fresh = rows.filter((r) => r.seq > remote.lastSeq);
+    if (fresh.length) {
+      for (const k of kidIds) remote.docs[k] ||= blankKid(k);
+      replay(remote.docs, fresh);
+      remote.lastSeq = fresh.at(-1).seq;
+      remote.recent = [...remote.recent, ...fresh.map((r) => r.seq)].slice(-200);
+      changed = true;
+    }
+  }
+  const ids = new Set(seenRows.map((r) => r.op_id));
+  const before = sent.length;
+  sent = sent.filter((o) => !ids.has(o.op_id));
+  if (sent.length !== before) changed = true;
+  return changed;
+}
+
+let flushing = null;
+let retryTimer = null;
+
+function flush() {
+  if (!conf || (!flushing && !outbox.length)) return flushing || Promise.resolve();
+  flushing ||= (async () => {
+    status.busy = true; notify('status');
+    try {
+      while (outbox.length) {
+        const batch = outbox.slice(0, 200);
+        await postOps(batch);
+        outbox = outbox.slice(batch.length);
+        sent.push(...batch);
+        saveLocal();
+      }
+      await syncDown();
+      rebuildView(); saveLocal();
+      status.error = null; status.lastSync = Date.now();
+    } catch (err) {
+      status.error = err.message;
+      clearTimeout(retryTimer);
+      if (!err.fatal) retryTimer = setTimeout(flush, 15e3);
+    } finally {
+      status.busy = false; flushing = null;
+      notify('remote');
+      if (outbox.length && !status.error) setTimeout(flush, 0); // ops that landed mid-flush
+    }
+  })();
+  return flushing;
+}
+
+// ---- One-time move off the old GitHub Gist / on-device storage -------------------------------
+
+/** Docs this device held before the cloud move (they mirror the old gist when sync was on). */
+function legacyDocs() {
+  const out = {};
+  const v2 = read(LEGACY_KEY);
+  for (const k of kidIds) if (v2?.[k]) out[k] = v2[k];
+  const v1 = read(LEGACY_OLD);
+  if (v1) {
+    for (const k of kidIds) out[k] ||= blankKid(k);
+    for (const [date, day] of Object.entries(v1.done || {})) {
+      for (const [key, ts] of Object.entries(day)) {
+        const [choreId, kid] = key.split(':');
+        if (out[kid]) (out[kid].done[date] ||= {})[choreId] = ts;
+      }
+    }
+    for (const e of v1.ledger || []) out[e.kid]?.ledger.push(e);
+    for (const p of v1.pending || []) out[p.kid]?.pending.push(p);
+  }
+  return out;
+}
+
+/** Push this device's pre-cloud coins up once, as `merge` ops (idempotent by entry id). */
+function migrateLegacy() {
+  if (read(MIGRATED_KEY)) return;
+  const old = legacyDocs();
+  for (const [k, d] of Object.entries(old)) {
+    if ((d.ledger || []).length || (d.pending || []).length || Object.keys(d.done || {}).length) {
+      mutate(k, { t: 'merge', ledger: d.ledger || [], pending: d.pending || [], done: d.done || {} });
+    }
+  }
+  write(MIGRATED_KEY, Date.now());
+  if (read(LEGACY_KEY)) write('ervin-central:v2-backup', read(LEGACY_KEY)); // keep a copy, just in case
+  for (const k of [LEGACY_KEY, LEGACY_OLD, 'ervin-central:outbox', 'ervin-central:sync']) write(k, null);
+}
+
+// ---- Public API ------------------------------------------------------------------------------
+
+export const store = {
+  /**
+   * Call once config is loaded. `cloud` = { url, key, schema } from data/site.json → sync. `who` returns
+   * who's entering changes right now ('kid', or the unlocked parent's house id) for the chore log;
+   * `owner` names whose device this is, for the device's default name.
+   */
+  init(ids, cloud, { who, owner: ownerName } = {}) {
+    kidIds = ids;
+    if (who) actor = who;
+    if (ownerName) owner = ownerName;
+    conf = cloud?.url && cloud?.key ? { url: cloud.url.replace(/\/$/, ''), key: cloud.key, schema: cloud.schema || 'public' } : null;
+    remote = read(CACHE_KEY) || { docs: {}, lastSeq: 0, recent: [] };
+    for (const k of ids) remote.docs[k] ||= blankKid(k);
+    rebuildView();
+    migrateLegacy();
+    saveLocal();
+    store.pull().then(() => flush());
+  },
+
+  subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+
+  // ---- Chores ----
+  // `period` is the day (daily chores) or that week's Monday (weekly) — see periodKey() in data.js.
+  isDone(period, choreId, kid) { return Boolean(docs[kid]?.done[period]?.[choreId]); },
+
+  /** Which house a ticked chore paid into, for the little "at Dad's" tag. */
+  doneHouse(period, choreId, kid) {
+    const e = docs[kid]?.ledger.find((x) => x.ref === `${period}:${choreId}:${kid}`);
+    return e ? houseOf(e) : null;
+  },
+
+  /** Tick or untick. Ticking pays `chore.coins` into `house`'s jar; unticking takes them back. */
+  toggleChore(chore, kid, house, period = ymd()) {
+    const on = !store.isDone(period, chore.id, kid);
+    const ref = `${period}:${chore.id}:${kid}`;
+    const ts = Date.now();
+    mutate(kid, { t: 'chore', date: period, choreId: chore.id, on, ts, ref,
+      entry: { id: uid(), kid, house, amount: chore.coins, reason: chore.title, icon: chore.icon, type: 'chore', ref, ts } });
+    return on;
+  },
+
+  // ---- Requests that wait for a parent ----
+  /** type 'bonus' (an extra chore, once a day) or 'reward' (spends from `house`'s jar). */
+  request(kid, type, item, house) {
+    const amount = type === 'reward' ? -item.cost : item.coins;
+    const ref = type === 'bonus' ? `${ymd()}:${item.id}:${kid}` : item.id;
+    mutate(kid, { t: 'request', item: { id: uid(), kid, house, type, ref, choreId: item.id, limited: type === 'bonus', title: item.title, icon: item.icon, amount, ts: Date.now() } });
+  },
+
+  /** An extra chore today: 'waiting' (asked, not OK'd yet), 'done' (paid) or null. */
+  extraState(kid, extraId, date = ymd()) {
+    const ref = `${date}:${extraId}:${kid}`;
+    if (docs[kid]?.ledger.some((e) => e.ref === ref)) return 'done';
+    if (docs[kid]?.pending.some((p) => p.ref === ref)) return 'waiting';
+    return null;
+  },
+
+  /** Everything waiting, oldest first — or only what's waiting on one house's parent. */
+  allPending(house) { return kidIds.flatMap((k) => docs[k].pending).filter((p) => !house || houseOf(p) === house).sort((a, b) => a.ts - b.ts); },
+  pendingFor(kid) { return docs[kid]?.pending || []; },
+
+  approve(id) {
+    const p = store.allPending().find((x) => x.id === id);
+    if (!p) return;
+    if (p.amount < 0 && store.balance(p.kid, houseOf(p)) + p.amount < 0) throw new Error('Not enough coins in that jar');
+    mutate(p.kid, { t: 'approve', id, entryId: uid(), ts: Date.now() });
+  },
+
+  decline(id) {
+    const p = store.allPending().find((x) => x.id === id);
+    if (p) mutate(p.kid, { t: 'decline', id });
+  },
+
+  // ---- Parent edits (each into or out of one house's jar) ----
+  adjust(kid, amount, reason, house) {
+    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount, reason: reason || (amount > 0 ? 'Bonus from a parent' : 'Adjustment'), icon: amount > 0 ? '🎁' : '✏️', type: 'adjust', ts: Date.now() } });
+  },
+
+  /** A parent-given extra (a kindness catch): paid at once, once a day. */
+  award(kid, extra, house) {
+    const ref = `${ymd()}:${extra.id}:${kid}`;
+    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount: extra.coins, reason: extra.title, icon: extra.icon, type: 'bonus', ref, ts: Date.now() } });
+  },
+
+  /** Coins spent in real life (a store trip, a treat) — recorded so the history explains it. */
+  spend(kid, amount, reason, house) {
+    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount: -Math.abs(amount), reason: reason || 'Spent', icon: '🛍️', type: 'spend', ts: Date.now() } });
+  },
+
+  /** Bring one house's jar to exactly 0, keeping history. */
+  zero(kid, house, reason = 'Coins cashed in') { mutate(kid, { t: 'zero', id: uid(), house, reason, ts: Date.now() }); },
+
+  /** Erase a kid's history entirely — ledger, requests, and check-offs. (The log keeps the record.) */
+  wipe(kid) { mutate(kid, { t: 'wipe' }); },
+
+  removeEntry(id) {
+    const e = kidIds.flatMap((k) => docs[k].ledger).find((x) => x.id === id);
+    if (e) mutate(e.kid, { t: 'remove', id });
+  },
+
+  // ---- Coins ----
+  /** One jar (`house`), or both jars together. */
+  balance(kid, house) { return docs[kid] ? balanceOf(docs[kid], house) : 0; },
+
+  /** Coins *earned* (not spent) per day for the last n days, oldest first. */
+  earnedByDay(kid, n = 7) {
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = ymd(d);
+      const sum = (docs[kid]?.ledger || []).filter((e) => e.amount > 0 && ymd(new Date(e.ts)) === key).reduce((s, e) => s + e.amount, 0);
+      out.push({ date: key, sum });
+    }
+    return out;
+  },
+
+  history(kid, limit = 30, house) {
+    const all = kid ? docs[kid]?.ledger || [] : kidIds.flatMap((k) => docs[k].ledger);
+    return all.filter((e) => !house || houseOf(e) === house).sort((a, b) => b.ts - a.ts).slice(0, limit);
+  },
+
+  // ---- Backup ----
+  exportJson() { return JSON.stringify({ app: 'ervin-central', v: 3, docs }, null, 2); },
+
+  /** Merges a backup in (by entry id), so restoring never duplicates coins. */
+  importJson(text) {
+    const b = JSON.parse(text);
+    if (b?.app !== 'ervin-central' || !b.docs) throw new Error('Not an Ervin Central backup');
+    for (const k of kidIds) if (b.docs[k]) mutate(k, { t: 'merge', ...b.docs[k] });
+  },
+
+  // ---- This device's name, recorded on every change it sends ----
+  get deviceName() { return read(DEVICE_NAME_KEY) || defaultDeviceName(); },
+  set deviceName(name) { write(DEVICE_NAME_KEY, String(name || '').trim().slice(0, 40) || null); },
+
+  /**
+   * The newest rows of the readable chore log (view ervin_central.chore_log): who did what, when, at
+   * which house, entered by whom on which device. `kid` narrows it to one girl.
+   */
+  async log({ kid, limit = 100 } = {}) {
+    if (!conf) return [];
+    return rpc('ec_log', { p_kid: kid || null, p_limit: limit });
+  },
+
+  // ---- Sync ----
+  get sync() { return conf; },
+  get status() { return { ...status, pending: outbox.length + sent.length, mode: conf ? 'cloud' : 'local', lastSeq: remote.lastSeq, device }; },
+
+  /** Pull new log rows. Safe to call often: it only reads what's past the last seq it saw. */
+  async pull() {
+    if (!conf) return;
+    if (flushing) return flushing;
+    try {
+      const changed = await syncDown();
+      status.error = null; status.lastSync = Date.now();
+      if (changed) { rebuildView(); saveLocal(); notify('remote'); } else notify('status');
+    } catch (err) {
+      status.error = err.message; notify('status');
+    }
+  },
+
+  /** Throw away the local copy and replay the whole log from the cloud. */
+  async resync() {
+    if (!conf) return;
+    remote = { docs: blankDocs(), lastSeq: 0, recent: [] };
+    saveLocal();
+    await store.pull();
+  },
+};
+
+/** For tests: the op reducer and the log replayer. */
+export { apply as applyOp, replay };
+
+/** SHA-256 of a passcode, so the codes don't sit in the public source as plain digits. Not real security. */
+export async function hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`ervin-central:${pin}`));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}

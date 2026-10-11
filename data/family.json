@@ -1,0 +1,83 @@
+{
+  "_help": "Retired 2026-10-11: the family data moved out of this public repo. This empty stub only lets a phone still running an old cached copy start up and update itself.",
+  "family": "Ervin",
+  "kids": [
+    {
+      "id": "evelynn",
+      "name": "Evelynn",
+      "emoji": "🦋",
+      "color": "#ff8c42",
+      "school": "x",
+      "art": "assets/butterfly-orange.svg"
+    },
+    {
+      "id": "avery",
+      "name": "Avery",
+      "emoji": "🌻",
+      "color": "#fde047",
+      "school": "x"
+    }
+  ],
+  "birthdays": [],
+  "location": {
+    "name": "Adel, IA",
+    "lat": 41.6144,
+    "lon": -94.0169,
+    "timezone": "America/Chicago",
+    "sun": {
+      "1": [
+        "07:35",
+        "17:05"
+      ],
+      "2": [
+        "07:08",
+        "17:45"
+      ],
+      "3": [
+        "07:22",
+        "19:15"
+      ],
+      "4": [
+        "06:37",
+        "19:50"
+      ],
+      "5": [
+        "05:58",
+        "20:22"
+      ],
+      "6": [
+        "05:37",
+        "20:47"
+      ],
+      "7": [
+        "05:50",
+        "20:44"
+      ],
+      "8": [
+        "06:20",
+        "20:08"
+      ],
+      "9": [
+        "06:52",
+        "19:17"
+      ],
+      "10": [
+        "07:25",
+        "18:28"
+      ],
+      "11": [
+        "07:05",
+        "16:55"
+      ],
+      "12": [
+        "07:32",
+        "16:45"
+      ],
+      "_help": "Average sunrise / sunset for Des Moines around the 15th of each month (local clock time, DST included). The Home landscape blends between months so the sky shifts a little every day."
+    }
+  },
+  "kiosk": {
+    "keepAwake": false
+  },
+  "passcodes": {}
+}
