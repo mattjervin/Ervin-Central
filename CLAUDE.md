@@ -113,7 +113,9 @@ sync.vapidPublicKey`; the private key lives only in `ervin_central.push_config` 
   on that Monday via `periodKey()`), `extra` once a day with that house's parent's OK — limits count
   across both houses and are enforced in `apply()` so every device agrees. A coin is worth about 25¢
   (`chores.json → coinValue`): dailies are 1 coin, bigger jobs pay more, and rewards that cost real
-  money are priced at 4 coins per dollar (cash-out: 40 coins = $10).
+  money are priced at 4 coins per dollar for one kid; bigger family outings are priced for 1.5 kids
+  (one kid's cost × 6 — the sister usually tags along), and meals count only what they cost beyond a
+  home dinner (Matt, 2026-10-13).
 - Who did what: every op row carries `entered_by` ('kid' | 'dad' | 'mom' — `store.init(…, { who })`)
   and `device_name` (named in Parent management, stored per device). The view
   `ervin_central.chore_log` flattens the log into readable rows; Parent management → "Who did what"

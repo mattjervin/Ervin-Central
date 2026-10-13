@@ -79,7 +79,8 @@ commit and push the private repo.
   code opens Mom's. Parent mode relocks after 5 min, and while it's unlocked the coin code isn't
   asked and coins go to that parent's house.
 - A coin is worth about **25¢**: daily chores are 1 coin, bigger weekly jobs 3–6, and rewards that
-  cost real money are priced at 4 coins per dollar (**Cash out $10** = 40 coins).
+  cost real money are priced at 4 coins per dollar for one kid; bigger family outings are priced
+  for 1.5 kids (one kid's cost × 6), since a sister usually tags along.
 - Balances are always the sum of the ledger, so every coin can be traced to a chore or approval.
   Entries from before the houses existed count toward Dad's jar.
 - **Who did what**: every change records the girl, the house, the date, who entered it (kid code,
