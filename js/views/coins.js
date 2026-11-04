@@ -8,7 +8,7 @@ import { store, houseOf } from '../store.js';
 import { card, hero, header, avatar, coin, empty, modal, toast, requireParent, pickHouse, parentNow, houseTag, jars } from '../ui.js';
 import { esc, relDay, clock } from '../util.js';
 
-const bestJar = (k) => Math.max(...houses().map((h) => store.balance(k.id, h.id)));
+const bestJar = (k) => store.balance(k.id); // spending is combined across both houses
 
 /** Each girl's coins — her two jars and what she's saving toward. Fixed order, no ranks: it's a total,
  *  not a race. */
@@ -107,7 +107,7 @@ export async function coinClick(e, rerender) {
 
 function pickKidForReward(r, rerender) {
   const ks = choreKids();
-  const best = (k) => Math.max(...houses().map((h) => store.balance(k.id, h.id)));
+  const best = (k) => store.balance(k.id); // both jars together
   modal(`
     <div class="sheet-icon">${esc(r.icon)}</div>
     <div class="eyebrow">Costs ${coin()} ${r.cost}</div>
@@ -123,7 +123,7 @@ function pickKidForReward(r, rerender) {
         const b = e.target.closest('[data-for]'); if (!b) return;
         const k = kidById(b.dataset.for);
         close();
-        const at = await pickHouse(k, { title: 'Which jar pays?', sub: `“${esc(r.title)}” costs ${coin()} ${r.cost}. That house’s parent OKs it.`, need: r.cost });
+        const at = await pickHouse(k, { title: 'Who’s buying?', sub: `“${esc(r.title)}” costs ${coin()} ${r.cost}, paid from both jars together. Pick the house whose parent OKs it.` });
         if (!at) return;
         store.request(k.id, 'reward', r, at);
         toast(`${esc(r.icon)} Asked a parent for “${esc(r.title)}”`, k.color);

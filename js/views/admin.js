@@ -126,10 +126,10 @@ function kidAdmin(k, me) {
       </div>
     </form>
 
-    ${header('Spent offline', { color: 'var(--coin)' })}
+    ${header('Spent offline', { color: 'var(--coin)', eyebrow: 'Uses both jars — this one first' })}
     <form class="spend" data-spend="${k.id}">
       <div class="quick">${[5, 10, 20, 50].map((n) => `<button type="button" class="choice-pill" data-quick="${n}">${n}</button>`).join('')}
-        <button type="button" class="choice-pill" data-quick="${bal}">All ${bal}</button></div>
+        <button type="button" class="choice-pill" data-quick="${store.balance(k.id)}">All ${store.balance(k.id)}</button></div>
       <div class="field-row">
         <input name="amount" type="number" inputmode="numeric" min="1" placeholder="Coins" required>
         <input name="reason" type="text" placeholder="What for? (Target trip…)" maxlength="60">

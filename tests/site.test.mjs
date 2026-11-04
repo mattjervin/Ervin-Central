@@ -201,3 +201,21 @@ test('The public repo holds no family data: data/ has only site.json, wear.json 
     for (const k of j.kids || []) assert.deepEqual(Object.keys(k).filter((x) => !['id', 'name', 'emoji', 'color', 'school', 'art'].includes(x)), [], `${f}: kids carry only what Grandparents Central shows`);
   }
 });
+
+test('a reward is paid from both houses’ jars together', () => {
+  const bal = (doc, h) => doc.ledger.filter((e) => !h || houseOf(e) === h).reduce((s, e) => s + e.amount, 0);
+  const doc = { v: 3, kid: 'a', done: {}, ledger: [], pending: [] };
+  const earn = (id, house, amount) => applyOp(doc, { t: 'entry', entry: { id, kid: 'a', house, amount, reason: 'x', ts: 1 } });
+  earn('e1', 'dad', 6); earn('e2', 'mom', 10);
+  const ask = { t: 'request', item: { id: 'r1', kid: 'a', house: 'dad', type: 'reward', ref: 'toy', title: 'Toy', amount: -10, ts: 2 } };
+  applyOp(doc, ask);
+  const ok = { t: 'approve', id: 'r1', entryId: 'p1', ts: 3 };
+  applyOp(doc, ok); applyOp(doc, ok);
+  assert.equal(bal(doc), 6, 'total drops by the cost, once');
+  assert.equal(bal(doc, 'dad'), 0, 'the approving house pays first');
+  assert.equal(bal(doc, 'mom'), 6, 'the other house covers the rest');
+  applyOp(doc, { t: 'remove', id: 'p1:2' });
+  assert.equal(bal(doc), 16, 'removing the purchase puts back both parts');
+  applyOp(doc, { t: 'spend', entry: { id: 's1', kid: 'a', house: 'mom', amount: -4, reason: 'x', ts: 4 } });
+  assert.equal(bal(doc, 'mom'), 6, 'a spend one jar can cover stays in that jar');
+});

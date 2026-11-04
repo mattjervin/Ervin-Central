@@ -4,6 +4,8 @@
 // A period is the day for daily chores and that week's Monday for weekly ones, so ticking twice in one
 // period is the same tick (the limit counts across both houses).
 //
+// Earning is per house, spending is combined: a reward or purchase draws on both jars (the OK-ing
+// parent's house first, then the other's — see spendEntries).
 // Each girl has a coin jar at each house: every ledger entry and request carries `house` ('dad' |
 // 'mom'), and a jar's balance is the sum of its entries. Entries from before the houses existed have
 // no house and count toward Dad's jar.
@@ -77,6 +79,26 @@ function balanceOf(doc, house) {
   return (doc.ledger || []).filter((e) => !house || houseOf(e) === house).reduce((s, e) => s + e.amount, 0);
 }
 
+/**
+ * A spend comes out of the girl's coins as one pool: the house named on it pays first, the other
+ * house's jar covers the rest, so both jars can fund one purchase. The split is worked out against
+ * the log as replayed up to this op, so every device agrees. Both lines share `split` (the first
+ * line's id) so removing one removes the purchase. A spend bigger than everything she has leaves the
+ * shortfall on the named house, as before.
+ */
+function spendEntries(doc, e) {
+  const cost = -e.amount;
+  if (cost <= 0) return [e];
+  const first = houseOf(e), other = first === 'dad' ? 'mom' : 'dad';
+  const fromFirst = Math.min(cost, Math.max(0, balanceOf(doc, first)));
+  const fromOther = Math.min(cost - fromFirst, Math.max(0, balanceOf(doc, other)));
+  const rest = cost - fromFirst - fromOther;
+  if (!fromOther) return [e];
+  const out = [{ ...e, house: first, amount: -(fromFirst + rest), split: e.id }];
+  out.push({ ...e, id: `${e.id}:2`, house: other, amount: -fromOther, split: e.id, ref: undefined });
+  return out;
+}
+
 /** Apply one op to one doc, in place. Must be idempotent. */
 function apply(doc, op) {
   doc.done ||= {}; doc.ledger ||= []; doc.pending ||= [];
@@ -107,7 +129,10 @@ function apply(doc, op) {
       const p = doc.pending.find((x) => x.id === op.id);
       if (!p) break;
       doc.pending = doc.pending.filter((x) => x.id !== op.id);
-      if (!hasEntry(op.entryId)) doc.ledger.push({ id: op.entryId, kid: p.kid, house: p.house, amount: p.amount, reason: p.title, icon: p.icon, type: p.type, ref: p.ref, ts: op.ts });
+      if (!hasEntry(op.entryId)) {
+        const e = { id: op.entryId, kid: p.kid, house: p.house, amount: p.amount, reason: p.title, icon: p.icon, type: p.type, ref: p.ref, ts: op.ts };
+        doc.ledger.push(...spendEntries(doc, e));
+      }
       break;
     }
     case 'decline':
@@ -117,9 +142,16 @@ function apply(doc, op) {
       // A ref'd entry (a parent-given extra like a kindness catch) is once per ref, i.e. once a day.
       if (!hasEntry(op.entry.id) && !(op.entry.ref && hasRef(op.entry.ref))) doc.ledger.push(op.entry);
       break;
-    case 'remove':
-      doc.ledger = doc.ledger.filter((e) => e.id !== op.id);
+    case 'spend':
+      if (!hasEntry(op.entry.id)) doc.ledger.push(...spendEntries(doc, op.entry));
       break;
+    case 'remove': {
+      // A purchase paid from both jars is two lines; removing either removes both.
+      const gone = doc.ledger.find((e) => e.id === op.id);
+      const group = gone?.split || op.id;
+      doc.ledger = doc.ledger.filter((e) => e.id !== op.id && e.split !== group && e.id !== group);
+      break;
+    }
     case 'zero': {
       // Computed against the log as replayed *up to this op*, so every device gets the same answer
       // and it zeroes the real balance even if another device added coins a moment before.
@@ -352,7 +384,8 @@ export const store = {
   approve(id) {
     const p = store.allPending().find((x) => x.id === id);
     if (!p) return;
-    if (p.amount < 0 && store.balance(p.kid, houseOf(p)) + p.amount < 0) throw new Error('Not enough coins in that jar');
+    // Rewards are paid from both jars together; the house on the request is just who OKs it.
+    if (p.amount < 0 && store.balance(p.kid) + p.amount < 0) throw new Error('Not enough coins');
     mutate(p.kid, { t: 'approve', id, entryId: uid(), ts: Date.now() });
   },
 
@@ -374,7 +407,7 @@ export const store = {
 
   /** Coins spent in real life (a store trip, a treat) — recorded so the history explains it. */
   spend(kid, amount, reason, house) {
-    mutate(kid, { t: 'entry', entry: { id: uid(), kid, house, amount: -Math.abs(amount), reason: reason || 'Spent', icon: '🛍️', type: 'spend', ts: Date.now() } });
+    mutate(kid, { t: 'spend', entry: { id: uid(), kid, house, amount: -Math.abs(amount), reason: reason || 'Spent', icon: '🛍️', type: 'spend', ts: Date.now() } });
   },
 
   /** Bring one house's jar to exactly 0, keeping history. */
