@@ -219,3 +219,17 @@ test('a reward is paid from both houses’ jars together', () => {
   applyOp(doc, { t: 'spend', entry: { id: 's1', kid: 'a', house: 'mom', amount: -4, reason: 'x', ts: 4 } });
   assert.equal(bal(doc, 'mom'), 6, 'a spend one jar can cover stays in that jar');
 });
+
+test('a girl can never spend more than she has', () => {
+  const total = (doc) => doc.ledger.reduce((s, e) => s + e.amount, 0);
+  const doc = { v: 3, kid: 'a', done: {}, ledger: [], pending: [] };
+  applyOp(doc, { t: 'entry', entry: { id: 'e1', kid: 'a', house: 'dad', amount: 5, reason: 'x', ts: 1 } });
+  const ask = (id, cost) => applyOp(doc, { t: 'request', item: { id, kid: 'a', house: 'mom', type: 'reward', ref: id, title: id, amount: -cost, ts: 2 } });
+  ask('big', 20); assert.equal(doc.pending.length, 0, 'a reward she can’t afford is never queued');
+  ask('r1', 4); ask('r2', 4); assert.equal(doc.pending.length, 1, 'rewards already waiting are counted');
+  applyOp(doc, { t: 'entry', entry: { id: 'drain', kid: 'a', house: 'dad', amount: -3, reason: 'x', ts: 3 } });
+  applyOp(doc, { t: 'approve', id: 'r1', entryId: 'p1', ts: 4 });
+  assert.equal(total(doc), 2, 'an OK she can no longer cover pays nothing');
+  applyOp(doc, { t: 'spend', entry: { id: 's1', kid: 'a', house: 'dad', amount: -50, reason: 'x', ts: 5 } });
+  assert.equal(total(doc), 0, 'an offline spend is capped at what she has');
+});

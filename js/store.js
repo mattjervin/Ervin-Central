@@ -86,18 +86,25 @@ function balanceOf(doc, house) {
  * line's id) so removing one removes the purchase. A spend bigger than everything she has leaves the
  * shortfall on the named house, as before.
  */
-function spendEntries(doc, e) {
-  const cost = -e.amount;
-  if (cost <= 0) return [e];
+function spendEntries(doc, e, exact = false) {
+  // Never more than she has: a spend (or an OK) that her total can't cover is capped at her total,
+  // so a stale device, a double tap or a retry can't push her below zero.
+  if (e.amount >= 0) return [e];
+  const have = Math.max(0, balanceOf(doc));
+  if (exact && -e.amount > have) return []; // a reward is paid in full or not at all
+  const cost = Math.min(-e.amount, have);
+  if (cost <= 0) return [];
   const first = houseOf(e), other = first === 'dad' ? 'mom' : 'dad';
   const fromFirst = Math.min(cost, Math.max(0, balanceOf(doc, first)));
-  const fromOther = Math.min(cost - fromFirst, Math.max(0, balanceOf(doc, other)));
-  const rest = cost - fromFirst - fromOther;
-  if (!fromOther) return [e];
-  const out = [{ ...e, house: first, amount: -(fromFirst + rest), split: e.id }];
-  out.push({ ...e, id: `${e.id}:2`, house: other, amount: -fromOther, split: e.id, ref: undefined });
+  const fromOther = cost - fromFirst;
+  const out = [];
+  if (fromFirst) out.push({ ...e, house: first, amount: -fromFirst, split: e.id });
+  if (fromOther) out.push({ ...e, id: fromFirst ? `${e.id}:2` : e.id, house: other, amount: -fromOther, split: fromFirst ? e.id : undefined, ref: fromFirst ? undefined : e.ref });
   return out;
 }
+
+/** Coins already spoken for by rewards waiting on a parent's OK. */
+const promised = (doc) => doc.pending.reduce((s, p) => s + (p.amount < 0 ? -p.amount : 0), 0);
 
 /** Apply one op to one doc, in place. Must be idempotent. */
 function apply(doc, op) {
@@ -121,6 +128,8 @@ function apply(doc, op) {
       // (Its ref is dated; a declined ask leaves neither behind, so she can try again.)
       const it = op.item;
       if (doc.pending.some((p) => p.id === it.id)) break;
+      // A reward must be covered by her coins not already promised to other waiting rewards.
+      if (it.amount < 0 && balanceOf(doc) - promised(doc) + it.amount < 0) break;
       if (it.type === 'bonus' && it.limited && (doc.pending.some((p) => p.ref === it.ref) || hasRef(it.ref))) break;
       doc.pending.push(it);
       break;
@@ -129,9 +138,10 @@ function apply(doc, op) {
       const p = doc.pending.find((x) => x.id === op.id);
       if (!p) break;
       doc.pending = doc.pending.filter((x) => x.id !== op.id);
+      // A reward her coins can't cover is dropped, not paid into the red (enforced here so every device agrees).
       if (!hasEntry(op.entryId)) {
         const e = { id: op.entryId, kid: p.kid, house: p.house, amount: p.amount, reason: p.title, icon: p.icon, type: p.type, ref: p.ref, ts: op.ts };
-        doc.ledger.push(...spendEntries(doc, e));
+        doc.ledger.push(...spendEntries(doc, e, true));
       }
       break;
     }
@@ -366,6 +376,7 @@ export const store = {
   request(kid, type, item, house) {
     const amount = type === 'reward' ? -item.cost : item.coins;
     const ref = type === 'bonus' ? `${ymd()}:${item.id}:${kid}` : item.id;
+    if (amount < 0 && store.available(kid) + amount < 0) throw new Error('Not enough coins for that yet');
     mutate(kid, { t: 'request', item: { id: uid(), kid, house, type, ref, choreId: item.id, limited: type === 'bonus', title: item.title, icon: item.icon, amount, ts: Date.now() } });
   },
 
@@ -423,6 +434,8 @@ export const store = {
 
   // ---- Coins ----
   /** One jar (`house`), or both jars together. */
+  /** Her total minus rewards already waiting for an OK — what she can still ask for. */
+  available(kid) { return docs[kid] ? balanceOf(docs[kid]) - promised(docs[kid]) : 0; },
   balance(kid, house) { return docs[kid] ? balanceOf(docs[kid], house) : 0; },
 
   /** Coins *earned* (not spent) per day for the last n days, oldest first. */

@@ -346,6 +346,7 @@ export function mount(root, rerender) {
       const k = kids().find((x) => x.id === f.dataset.spend);
       const amt = Math.abs(parseInt(f.amount.value, 10));
       if (!amt) return;
+      if (amt > store.balance(k.id)) { toast(`${esc(k.name)} only has ${store.balance(k.id)} coins`, 'var(--red)'); return; }
       store.spend(k.id, amt, f.reason.value.trim() || 'Spent offline', me);
       toast(`🛍️ ${esc(k.name)} spent ${amt}`, k.color);
       rerender();

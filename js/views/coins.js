@@ -107,7 +107,7 @@ export async function coinClick(e, rerender) {
 
 function pickKidForReward(r, rerender) {
   const ks = choreKids();
-  const best = (k) => store.balance(k.id); // both jars together
+  const best = (k) => store.available(k.id); // both jars together, minus rewards already waiting
   modal(`
     <div class="sheet-icon">${esc(r.icon)}</div>
     <div class="eyebrow">Costs ${coin()} ${r.cost}</div>
@@ -125,7 +125,7 @@ function pickKidForReward(r, rerender) {
         close();
         const at = await pickHouse(k, { title: 'Who’s buying?', sub: `“${esc(r.title)}” costs ${coin()} ${r.cost}, paid from both jars together. Pick the house whose parent OKs it.` });
         if (!at) return;
-        store.request(k.id, 'reward', r, at);
+        try { store.request(k.id, 'reward', r, at); } catch (err) { toast(esc(err.message), 'var(--red)'); return; }
         toast(`${esc(r.icon)} Asked a parent for “${esc(r.title)}”`, k.color);
         rerender();
       });
