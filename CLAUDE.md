@@ -108,7 +108,9 @@ sync.vapidPublicKey`; the private key lives only in `ervin_central.push_config` 
   Generic checks live in `tests/` (public); anything that asserts the family's data (dates, the sleep
   pattern, events, names) goes in `private/tests/family.test.mjs`, never in the public tests.
 - Coin balances are derived from the ledger in `store.js`; never store a balance. Each girl has a jar
-  per house: every entry and request carries `house` ('dad' | 'mom', the sleep schedule's places);
+  per house, but **spending is combined** (Matt, 2026-11-04): a reward or offline spend draws on both jars
+  — the OK-ing parent's house first, the other house's for the rest (`spendEntries()` in store.js; the two
+  lines share `split`, and removing one removes both). Earning stays per house: every entry and request carries `house` ('dad' | 'mom', the sleep schedule's places);
   entries without one count as Dad's. Chores: `daily` once a day, `weekly` once a week (Mon–Sun, keyed
   on that Monday via `periodKey()`), `extra` once a day with that house's parent's OK — limits count
   across both houses and are enforced in `apply()` so every device agrees. A coin is worth about 25¢

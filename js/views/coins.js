@@ -1,6 +1,6 @@
 // Kindness Coins — the coin half of the Chores page (there's no separate Coins page any more): the
 // approval queue, the reward shop and Total Coins (each girl's Dad's and Mom's jars). The ledger
-// (historyCard) shows in Parent management — it's a parent's check, not a kid's screen. Coins earned at a house are spent at that house, and only that house's parent OKs its
+// (historyCard) shows in Parent management — it's a parent's check, not a kid's screen. Coins are earned per house but spent from both jars together; the house picked on a reward is just which parent OKs it, and only that parent OKs its
 // extras and rewards. Adjusting coins lives in Parent management (#/admin).
 
 import { cfg, kids, kid as kidById, houses, choreKids } from '../data.js';
