@@ -16,7 +16,7 @@ import { esc, ymd, dayPart } from '../util.js';
 
 export const title = 'Chores';
 
-const PARTS = [['morning', '🌅', 'Morning'], ['afternoon', '☀️', 'After school'], ['evening', '🌙', 'Evening']];
+const PARTS = [['morning', '🌅', 'Morning'], ['afternoon', '☀️', 'After school'], ['learning', '📚', 'Learning'], ['evening', '🌙', 'Evening']];
 const PICK_KEY = 'ervin-central:chore-kid';
 
 /** The girl whose list shows: the one in the URL, else the tab picked this visit, else the girl whose
