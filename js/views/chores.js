@@ -5,18 +5,22 @@
 // earned today, her two jars. Then one list of her chores:
 // tap a chore to finish it and the coins pop out into the jar of the house she's at. Daily chores once
 // a day, weekly chores once a week (Mon–Sun); extra chores go to that house's parent to OK first.
-// Then Total Coins and, at the very bottom, two big fold-down buttons: the reward shop and how she got her
-// coins (coins.js; her last 6, then "show more") — read-only; the full ledger with ✕ lives in Parent management.
+// Then Total Coins and, at the very bottom, four big fold-down buttons: this week's chores, extra chores, the
+// reward shop and how she got her coins (coins.js; her last 6, then "show more") — read-only; the full ledger with ✕ lives in Parent management.
 
 import { cfg, kid as kidById, choreKids, choresFor, weeklyFor, choreById, periodKey, houses, myKid } from '../data.js';
 import { store } from '../store.js';
 import { card, hero, avatar, coin, toast, coinBurst, empty, ring, kidEarns, houseTag } from '../ui.js';
-import { totalCoinsCard, waitingCard, shopCard, historyCard, coinClick, foldEvents } from './coins.js';
+import { totalCoinsCard, waitingCard, shopCard, historyCard, coinClick, foldEvents, foldCard } from './coins.js';
 import { esc, ymd, dayPart } from '../util.js';
 
 export const title = 'Chores';
 
-const PARTS = [['morning', '🌅', 'Morning'], ['afternoon', '☀️', 'After school'], ['learning', '📚', 'Learning'], ['evening', '🌙', 'Evening']];
+// The day's routines. "timers" = the 10-minute menu (reading, math, cleaning, creative, exercise…); it's the
+// "now" part in the afternoon. A part whose chores are all done folds to one line until she taps it.
+const PARTS = [['morning', '🌅', 'Morning'], ['timers', '⏱️', '10-Minute Timers'], ['evening', '🌙', 'Evening']];
+const NOW_PART = { morning: 'morning', afternoon: 'timers', evening: 'evening' };
+const openParts = new Set();
 const PICK_KEY = 'ervin-central:chore-kid';
 
 /** The girl whose list shows: the one in the URL, else the tab picked this visit, else the girl whose
@@ -34,10 +38,11 @@ export function render(params) {
   ${kidBar(k)}
   ${waitingCard(1)}
   ${list(k, 2)}
-  ${extras(k, 3)}
-  ${totalCoinsCard(4)}
-  ${shopCard(5, { fold: true })}
-  ${historyCard(6, { kid: k.id, title: `How ${k.name} got her coins`, eyebrow: 'Newest first · both houses', limit: 40, removable: false, fold: true })}`;
+  ${weekCard(k, 3)}
+  ${extras(k, 4)}
+  ${totalCoinsCard(5)}
+  ${shopCard(6, { fold: true })}
+  ${historyCard(7, { kid: k.id, title: `How ${k.name} got her coins`, eyebrow: 'Newest first · both houses', limit: 40, removable: false, fold: true })}`;
 }
 
 /** Her day so far: today's dailies, how many are done, coins earned, and this week's progress. */
@@ -95,32 +100,38 @@ function watchBar() {
   update();
 }
 
-/** One list: today's dailies by part of the day, then this week's chores. */
+/** Today's dailies by part of the day. A part that's all done folds to a single line. */
 function list(k, i) {
-  const { today, week, daily, weekly, weekDone, frac } = dayStats(k);
-  const now = dayPart();
+  const { today, daily, frac } = dayStats(k);
+  const now = NOW_PART[dayPart()];
 
   const groups = PARTS.map(([part, icon, label]) => {
-    const items = daily.filter((c) => (c.part || 'morning') === part);
+    const items = daily.filter((c) => (c.part === 'learning' ? 'timers' : c.part || 'morning') === part);
     if (!items.length) return '';
+    const done = items.filter((c) => store.isDone(today, c.id, k.id));
+    const coins = done.reduce((s, c) => s + c.coins, 0);
+    if (done.length === items.length && !openParts.has(part)) {
+      return `<button class="part-done" data-part="${part}" aria-expanded="false"><span>✅ ${icon} ${label}</span><span class="pd-n">${coin()} +${coins}</span><span class="fold-arrow" aria-hidden="true">⌄</span></button>`;
+    }
     return `
       <div class="part ${part === now ? 'now' : ''}">
-        <div class="part-l">${icon} ${label}${part === now ? '<span class="now-tag">Now</span>' : ''}</div>
+        <div class="part-l">${icon} ${label}${part === now ? '<span class="now-tag">Now</span>' : ''}${part === 'timers' ? '<span class="part-n">pick any · 10 minutes each</span>' : ''}</div>
         <div class="tiles">${items.map((c, j) => tile(k, c, today, j)).join('')}</div>
       </div>`;
   }).join('');
 
-  const weekGroup = weekly.length ? `
-      <div class="part weekly">
-        <div class="part-l">📅 This week<span class="part-n">${weekDone} of ${weekly.length} · once a week, Mon–Sun</span></div>
-        <div class="tiles">${weekly.map((c, j) => tile(k, c, week, j, 'week')).join('')}</div>
-      </div>` : '';
-
   return card(`
     ${frac === 1 && daily.length ? `<div class="all-done">🎉 All done today, ${esc(k.name)}!</div>` : ''}
     ${groups || empty('No chores today.')}
-    ${weekGroup}
   `, 'kid-col', i, `--c:${esc(k.color)}`);
+}
+
+/** This week's chores, behind a big button. */
+function weekCard(k, i) {
+  const { week, weekly, weekDone } = dayStats(k);
+  if (!weekly.length) return '';
+  const body = `<div class="part weekly"><div class="tiles">${weekly.map((c, j) => tile(k, c, week, j, 'week')).join('')}</div></div>`;
+  return foldCard('week', '📅', 'This week', `${weekDone} of ${weekly.length} done · once a week, Mon–Sun`, body, i);
 }
 
 function tile(k, c, period, j, unit = '') {
@@ -139,9 +150,8 @@ function extras(k, i) {
   const asks = (cfg.chores.extra || []).filter((b) => !b.parentOnly && (!b.who || b.who.includes(k.id)));
   const given = (cfg.chores.extra || []).filter((b) => b.parentOnly);
   if (!asks.length && !given.length) return '';
-  return card(`
+  const body = `
     <div class="part">
-      <div class="part-l">⭐ Extra chores<span class="part-n">once a day each · a parent OKs it</span></div>
       <div class="tiles">${asks.map((b, j) => {
         const st = store.extraState(k.id, b.id);
         return `<button class="tile extra ${st || ''}" data-extra="${b.id}" data-kid="${k.id}" ${st ? 'disabled' : ''} style="--i:${j}">
@@ -152,7 +162,8 @@ function extras(k, i) {
         </button>`;
       }).join('')}</div>
       ${given.map((b) => `<p class="muted small">${esc(b.icon)} <b>${esc(b.title)}</b> · ${coin()} +${b.coins} — a parent gives this when they catch you being kind.</p>`).join('')}
-    </div>`, 'kid-col extras-card', i, `--c:${esc(k.color)}`);
+    </div>`;
+  return foldCard('extras', '⭐', 'Extra chores', 'once a day each · a parent OKs it', body, i);
 }
 
 export function mount(root, rerender, params = []) {
@@ -162,6 +173,8 @@ export function mount(root, rerender, params = []) {
   foldEvents(root, rerender);
 
   root.addEventListener('click', async (e) => {
+    const pd = e.target.closest('[data-part]');
+    if (pd) { openParts.add(pd.dataset.part); rerender(); return; }
     if (await coinClick(e, rerender)) return;
     const t = e.target.closest('[data-chore]');
     if (t) {

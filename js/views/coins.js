@@ -65,7 +65,7 @@ const open = new Set();
 let showAll = false;
 
 /** A big button with a down arrow that opens a card's worth of content beneath it. */
-function foldCard(id, icon, label, sub, body, i) {
+export function foldCard(id, icon, label, sub, body, i) {
   return `<details class="fold anim-fade-up" data-fold="${id}" ${open.has(id) ? 'open' : ''} style="--i:${i}">
     <summary><span class="fold-i">${icon}</span><span class="fold-t">${esc(label)}<small>${esc(sub)}</small></span><span class="fold-arrow" aria-hidden="true">⌄</span></summary>
     <div class="fold-body">${body}</div>

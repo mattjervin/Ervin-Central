@@ -692,6 +692,9 @@ body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: non
 .fold-arrow { font-size: 30px; line-height: 1; transition: transform 0.2s; }
 .fold[open] .fold-arrow { transform: rotate(180deg); }
 .fold-body { padding: 4px 16px 16px; }
+.part-done { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 14px; border-radius: 14px; font: 700 15px var(--sans); color: var(--t1); background: color-mix(in srgb, var(--c, var(--acc)) 12%, transparent); border: 1px solid color-mix(in srgb, var(--c, var(--acc)) 30%, transparent); text-align: left; }
+.part-done .pd-n { margin-left: auto; font-size: 13px; color: var(--t3); }
+.part-done .fold-arrow { font-size: 24px; }
 .more-btn { width: 100%; min-height: 48px; margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) { .fold-arrow { transition: none; } }
 .shop { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
