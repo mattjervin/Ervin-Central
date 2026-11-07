@@ -1,4 +1,4 @@
-// Caches every published breakfast/lunch menu (LINQ usually posts ~2 months ahead) for the lunch.source school into
+// Caches every published lunch menu (LINQ usually posts ~2 months ahead) for the lunch.source school into
 // private/data/menus.json (then node scripts/publish.mjs menus). Run weekly from Matt's Mac by the calendar sync task (LINQ 403s GitHub runners) so the site still has menus if the
 // live LINQ call ever fails from a kid's iPad. Usage: node scripts/fetch-menus.mjs
 import { readFile, writeFile } from 'node:fs/promises';

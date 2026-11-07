@@ -37,18 +37,19 @@ function categoryLabel(name) {
   return n.replace(/\s*-.*$/, '');
 }
 
-/** Raw API payload → { "2026-09-28": { breakfast: [meal], lunch: [meal] } }.
+/** Raw API payload → { "2026-09-28": { lunch: [meal] } }.
  *  meal = { label, main: [..], sides: [{ label, items: [..] }] } */
 export function normalize(raw) {
   const days = {};
   for (const session of raw?.FamilyMenuSessions || []) {
-    const key = /breakfast/i.test(session.ServingSession) ? 'breakfast' : 'lunch';
+    if (/breakfast/i.test(session.ServingSession)) continue; // lunch only: the girls don't eat school breakfast
+    const key = 'lunch';
     for (const plan of session.MenuPlans || []) {
       for (const day of plan.Days || []) {
         const iso = isoFromLinq(day.Date);
-        const slot = (days[iso] ||= { breakfast: [], lunch: [] })[key];
+        const slot = (days[iso] ||= { lunch: [] })[key];
         for (const meal of day.MenuMeals || []) {
-          const out = { label: key === 'breakfast' ? 'Breakfast' : mealLabel(meal.MenuMealName), main: [], sides: [] };
+          const out = { label: mealLabel(meal.MenuMealName), main: [], sides: [] };
           for (const cat of meal.RecipeCategories || []) {
             if (SKIP.some((re) => re.test(cat.CategoryName))) continue;
             const items = (cat.Recipes || []).map((r) => clean(r.RecipeName)).filter(Boolean);

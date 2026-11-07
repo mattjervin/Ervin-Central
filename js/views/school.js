@@ -1,14 +1,14 @@
-// School — per girl: today's hours, specials, and the week's lunch or breakfast menu, pulled live
+// School — per girl: today's hours, specials, and the week's lunch menu, pulled live
 // from ADM's LINQ food-service menus (with a cached copy as backup).
 
 import { cfg, kids, schoolOf, schoolDay, menuRange } from '../data.js';
-import { card, hero, header, kidFilter, segmented, avatar, chip, stat } from '../ui.js';
+import { card, hero, header, kidFilter, avatar, chip, stat } from '../ui.js';
 import { esc, clock, addDays, startOfWeek, ymd, DOW, DOW3, MONTH } from '../util.js';
 
 export const title = 'School';
 
 let who = null;
-let meal = 'lunch';
+const meal = 'lunch'; // the girls never eat breakfast at school (Matt, 2026-11-07)
 let weekOffset = 0;
 
 function schoolWeekStart() {
@@ -24,7 +24,6 @@ export function render() {
   ${hero(`${cfg.school.district.name} · ${cfg.school.year.label}`, 'School', 'day', 'Hours, specials and what’s on the lunch tray — one menu for both girls, straight from the district.')}
   <div class="toolbar anim-fade-up">
     ${kidFilter(kids(), who)}
-    ${segmented('meal', [['lunch', '🍱 Lunch'], ['breakfast', '🥞 Breakfast']], meal)}
     <div class="nav-arrows">
       <button class="icon-btn" data-step="-1" aria-label="Previous week">‹</button>
       <button class="choice-pill ${weekOffset === 0 ? 'selected' : ''}" data-step="0">Week of ${MONTH[start.getMonth()].slice(0, 3)} ${start.getDate()}</button>
@@ -68,7 +67,7 @@ function kidCard(k, i) {
 /** One menu for both girls — the two elementaries serve the same food. */
 function menuCard(start, i) {
   return card(`
-    ${header(meal === 'lunch' ? 'Lunch menu' : 'Breakfast menu', { color: 'var(--acc)', eyebrow: `Week of ${MONTH[start.getMonth()].slice(0, 3)} ${start.getDate()} · same menu at both schools` })}
+    ${header('Lunch menu', { color: 'var(--acc)', eyebrow: `Week of ${MONTH[start.getMonth()].slice(0, 3)} ${start.getDate()} · same menu at both schools` })}
     <div class="menu-week wide" data-menu data-start="${ymd(start)}"><p class="empty">Loading menu…</p></div>`, 'menu-card', i);
 }
 
@@ -83,10 +82,10 @@ async function fillMenu(el) {
     const off = offs.every((o) => o.type === 'none') ? offs[0] : { type: 'open' };
     const meals = menu?.[meal] || [];
     const body = off.type === 'none' ? `<span class="muted">${esc(off.reason)}</span>`
-      : meals.length ? meals.map((m) => meal === 'lunch' && !/hot/i.test(m.label) && !m.sides.length ? `
+      : meals.length ? meals.map((m) => !/hot/i.test(m.label) && !m.sides.length ? `
           <div class="meal alt"><span class="meal-l">${esc(m.label)}</span>${m.main.map((x) => chip(x.replace(/\s*\(.*\)\s*$/, ''), 'var(--acc)')).join('')}</div>` : `
           <div class="meal">
-            ${meal === 'lunch' ? `<span class="meal-l">${esc(m.label)}</span>` : ''}
+            <span class="meal-l">${esc(m.label)}</span>
             ${m.main.map((x) => `<div class="meal-main">${esc(x)}</div>`).join('')}
             ${m.sides.length ? `<div class="meal-sides">${m.sides.flatMap((s) => s.items).map((x) => chip(x)).join('')}</div>` : ''}
           </div>`).join('')
@@ -99,8 +98,6 @@ export function mount(root, rerender) {
   root.addEventListener('click', (e) => {
     const k = e.target.closest('[data-kid]');
     if (k) { who = k.dataset.kid || null; return rerender(); }
-    const m = e.target.closest('[data-seg="meal"] [data-val]');
-    if (m) { meal = m.dataset.val; return rerender(); }
     const s = e.target.closest('[data-step]');
     if (s) { const n = Number(s.dataset.step); weekOffset = n === 0 ? 0 : weekOffset + n; rerender(); }
   });
