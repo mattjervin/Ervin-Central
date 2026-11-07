@@ -5,13 +5,13 @@
 // earned today, her two jars. Then one list of her chores:
 // tap a chore to finish it and the coins pop out into the jar of the house she's at. Daily chores once
 // a day, weekly chores once a week (Mon–Sun); extra chores go to that house's parent to OK first.
-// Then the reward shop, Total Coins and, at the very bottom, how she got her coins (coins.js) — read-only;
-// the full ledger with ✕ lives in Parent management.
+// Then Total Coins and, at the very bottom, two big fold-down buttons: the reward shop and how she got her
+// coins (coins.js; her last 6, then "show more") — read-only; the full ledger with ✕ lives in Parent management.
 
 import { cfg, kid as kidById, choreKids, choresFor, weeklyFor, choreById, periodKey, houses, myKid } from '../data.js';
 import { store } from '../store.js';
 import { card, hero, avatar, coin, toast, coinBurst, empty, ring, kidEarns, houseTag } from '../ui.js';
-import { totalCoinsCard, waitingCard, shopCard, historyCard, coinClick } from './coins.js';
+import { totalCoinsCard, waitingCard, shopCard, historyCard, coinClick, foldEvents } from './coins.js';
 import { esc, ymd, dayPart } from '../util.js';
 
 export const title = 'Chores';
@@ -35,9 +35,9 @@ export function render(params) {
   ${waitingCard(1)}
   ${list(k, 2)}
   ${extras(k, 3)}
-  ${shopCard(4)}
-  ${totalCoinsCard(5)}
-  ${historyCard(6, { kid: k.id, title: `How ${k.name} got her coins`, eyebrow: 'Newest first · both houses', limit: 40, removable: false })}`;
+  ${totalCoinsCard(4)}
+  ${shopCard(5, { fold: true })}
+  ${historyCard(6, { kid: k.id, title: `How ${k.name} got her coins`, eyebrow: 'Newest first · both houses', limit: 40, removable: false, fold: true })}`;
 }
 
 /** Her day so far: today's dailies, how many are done, coins earned, and this week's progress. */
@@ -159,6 +159,7 @@ export function mount(root, rerender, params = []) {
   // Remember whose list this is: for this visit, and (on a shared device) for next time.
   if (kidById(params[0])) try { sessionStorage.setItem(PICK_KEY, params[0]); localStorage.setItem(PICK_KEY, params[0]); } catch { /* private mode */ }
   watchBar();
+  foldEvents(root, rerender);
 
   root.addEventListener('click', async (e) => {
     if (await coinClick(e, rerender)) return;

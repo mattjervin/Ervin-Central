@@ -47,23 +47,56 @@ export function waitingCard(i) {
 }
 
 /** The shop gets a page-sized title (same as "Chore chart") so it's obvious where coins get spent. */
-export function shopCard(i) {
+export function shopCard(i, { fold = false } = {}) {
   const ks = kids();
-  return hero('', 'Reward', 'shop') + card(`
+  const body = `
     <div class="shop">${cfg.chores.rewards.map((r, j) => {
       const canAny = ks.some((k) => bestJar(k) >= r.cost);
       return `<button class="reward ${canAny ? 'can' : ''} anim-row" data-reward="${r.id}" style="--i:${j}">
         <span class="r-icon">${esc(r.icon)}</span><span class="r-title">${esc(r.title)}</span><span class="r-cost">${coin()} ${r.cost}</span>
       </button>`;
-    }).join('')}</div>`, 'shop-card', i);
+    }).join('')}</div>`;
+  return fold ? foldCard('shop', '🎁', 'Reward shop', 'Spend your coins', body, i) : hero('', 'Reward', 'shop') + card(body, 'shop-card', i);
+}
+
+// Which big buttons on the Chores page are open, and whether the activity list shows all of it. Kept
+// here (not in the DOM) because a tick redraws the page.
+const open = new Set();
+let showAll = false;
+
+/** A big button with a down arrow that opens a card's worth of content beneath it. */
+function foldCard(id, icon, label, sub, body, i) {
+  return `<details class="fold anim-fade-up" data-fold="${id}" ${open.has(id) ? 'open' : ''} style="--i:${i}">
+    <summary><span class="fold-i">${icon}</span><span class="fold-t">${esc(label)}<small>${esc(sub)}</small></span><span class="fold-arrow" aria-hidden="true">⌄</span></summary>
+    <div class="fold-body">${body}</div>
+  </details>`;
 }
 
 /**
  * The coin ledger. On Parent management: everyone, ✕ on your own house's lines. On the Chores page: just
  * the picked girl, read-only — so she can see how she got every coin, including a parent's note.
  */
-export const historyCard = (i, { kid = null, title = 'History', eyebrow = 'Every coin, both houses · ✕ removes a line from your own jar', limit = 25, removable = true } = {}) =>
-  card(`${header(title, { color: 'var(--t3)', eyebrow })}${history({ kid, limit, removable })}`, 'hist-card', i);
+export function historyCard(i, { kid = null, title = 'History', eyebrow = 'Every coin, both houses · ✕ removes a line from your own jar', limit = 25, removable = true, fold = false, first = 6 } = {}) {
+  if (!fold) return card(`${header(title, { color: 'var(--t3)', eyebrow })}${history({ kid, limit, removable })}`, 'hist-card', i);
+  const total = store.history(kid, limit).length;
+  const more = total > first;
+  const body = `${history({ kid, limit: showAll ? limit : first, removable })}
+    ${more ? `<button class="btn ghost more-btn" data-more>${showAll ? 'Show fewer' : `Show more (${total - first})`}</button>` : ''}`;
+  return foldCard('hist', '🪙', title, eyebrow, body, i);
+}
+
+/** Clicks and toggles for the folded cards. Returns true when the click was the "show more" button. */
+export function foldEvents(root, rerender) {
+  root.addEventListener('toggle', (e) => {
+    const d = e.target.closest?.('[data-fold]');
+    if (d) d.open ? open.add(d.dataset.fold) : open.delete(d.dataset.fold);
+  }, true);
+  root.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-more]')) return;
+    showAll = !showAll;
+    rerender();
+  });
+}
 
 function history({ kid = null, limit = 25, removable = true } = {}) {
   const rows = store.history(kid, limit);

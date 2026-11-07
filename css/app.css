@@ -682,6 +682,18 @@ body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: non
 .pend .btn { min-width: 48px; padding: 0 14px; }
 
 /* Reward shop: slim rows (icon · name · price), in columns on wide screens and one list on phones. */
+/* Big fold-down buttons at the bottom of Chores: Reward shop, How she got her coins */
+.fold { margin-bottom: 12px; border: 1px solid var(--hair); border-radius: 18px; background: var(--card, rgba(255,255,255,0.04)); overflow: hidden; }
+.fold summary { list-style: none; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 18px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.fold summary::-webkit-details-marker { display: none; }
+.fold-i { font-size: 26px; }
+.fold-t { flex: 1; min-width: 0; font-size: 19px; font-weight: 700; display: flex; flex-direction: column; }
+.fold-t small { font-size: 12px; font-weight: 500; color: var(--t3); }
+.fold-arrow { font-size: 30px; line-height: 1; transition: transform 0.2s; }
+.fold[open] .fold-arrow { transform: rotate(180deg); }
+.fold-body { padding: 4px 16px 16px; }
+.more-btn { width: 100%; min-height: 48px; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .fold-arrow { transition: none; } }
 .shop { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 .reward {
   position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 14px 6px 10px; text-align: left;
