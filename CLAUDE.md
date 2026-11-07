@@ -112,7 +112,7 @@ sync.vapidPublicKey`; the private key lives only in `ervin_central.push_config` 
   — the OK-ing parent's house first, the other house's for the rest (`spendEntries()` in store.js; the two
   lines share `split`, and removing one removes both). Earning stays per house: every entry and request carries `house` ('dad' | 'mom', the sleep schedule's places);
   entries without one count as Dad's. Chores: `daily` once a day, `weekly` once a week (Mon–Sun, keyed
-  on that Monday via `periodKey()`), `extra` once a day with that house's parent's OK — limits count
+  on that Monday via `periodKey()`), `extra` is now only parent-given (kindness catch); the "Extra chores" button on Chores is the weekly list (groceries and yard work included, no OK needed) — limits count
   across both houses and are enforced in `apply()` so every device agrees. A coin is worth about 25¢
   (`chores.json → coinValue`): dailies are 1 coin, bigger jobs pay more, and rewards that cost real
   money are priced at 4 coins per dollar for one kid; bigger family outings are priced for 1.5 kids

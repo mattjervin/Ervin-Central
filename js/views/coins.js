@@ -12,9 +12,10 @@ const bestJar = (k) => store.balance(k.id); // spending is combined across both 
 
 /** Each girl's coins — her two jars and what she's saving toward. Fixed order, no ranks: it's a total,
  *  not a race. */
-export function totalCoinsCard(i) {
-  return card(`
-    ${header('Total Coins', { color: 'var(--coin)', eyebrow: [cfg.chores.coinName, cfg.chores.coinValue].filter(Boolean).join(' · ') })}
+export function totalCoinsCard(i, { fold = false } = {}) {
+  const eyebrow = [cfg.chores.coinName, cfg.chores.coinValue].filter(Boolean).join(' · ');
+  const body = `
+    ${fold ? '' : header('Total Coins', { color: 'var(--coin)', eyebrow })}
     ${choreKids().map((k, r) => {
       const b = store.balance(k.id);
       const week = store.earnedByDay(k.id, 7).reduce((s, d) => s + d.sum, 0);
@@ -26,7 +27,8 @@ export function totalCoinsCard(i) {
           ${jars(k)}
           ${next ? `<div class="lb-next">${next.cost - best} more to ${esc(next.icon)} ${esc(next.title)}</div>` : ''}</div>
         <span class="lb-val">${coin()} <b data-count="${b}">${b}</b></span></a>`;
-    }).join('')}`, 'leader-card', i);
+    }).join('')}`;
+  return fold ? foldCard('total', '🏆', 'Total Coins', eyebrow, body, i) : card(body, 'leader-card', i);
 }
 
 /** Extras and rewards waiting on a parent; each house's parent OKs their own. */

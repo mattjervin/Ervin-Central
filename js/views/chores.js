@@ -4,8 +4,8 @@
 // The bar sticks under the top nav as she scrolls and drops down her day: % done, chores done, coins
 // earned today, her two jars. Then one list of her chores:
 // tap a chore to finish it and the coins pop out into the jar of the house she's at. Daily chores once
-// a day, weekly chores once a week (Mon–Sun); extra chores go to that house's parent to OK first.
-// Then Total Coins and, at the very bottom, four big fold-down buttons: this week's chores, extra chores, the
+// a day, weekly (extra) chores once a week (Mon–Sun), paid the moment they are ticked.
+// At the very bottom, four big fold-down buttons: extra chores (the weekly jobs), Total Coins, the
 // reward shop and how she got her coins (coins.js; her last 6, then "show more") — read-only; the full ledger with ✕ lives in Parent management.
 
 import { cfg, kid as kidById, choreKids, choresFor, weeklyFor, choreById, periodKey, houses, myKid } from '../data.js';
@@ -38,9 +38,8 @@ export function render(params) {
   ${kidBar(k)}
   ${waitingCard(1)}
   ${list(k, 2)}
-  ${weekCard(k, 3)}
-  ${extras(k, 4)}
-  ${totalCoinsCard(5)}
+  ${extras(k, 3)}
+  ${totalCoinsCard(4, { fold: true })}
   ${shopCard(6, { fold: true })}
   ${historyCard(7, { kid: k.id, title: `How ${k.name} got her coins`, eyebrow: 'Newest first · both houses', limit: 40, removable: false, fold: true })}`;
 }
@@ -126,14 +125,6 @@ function list(k, i) {
   `, 'kid-col', i, `--c:${esc(k.color)}`);
 }
 
-/** This week's chores, behind a big button. */
-function weekCard(k, i) {
-  const { week, weekly, weekDone } = dayStats(k);
-  if (!weekly.length) return '';
-  const body = `<div class="part weekly"><div class="tiles">${weekly.map((c, j) => tile(k, c, week, j, 'week')).join('')}</div></div>`;
-  return foldCard('week', '📅', 'This week', `${weekDone} of ${weekly.length} done · once a week, Mon–Sun`, body, i);
-}
-
 function tile(k, c, period, j, unit = '') {
   const done = store.isDone(period, c.id, k.id);
   const at = done ? store.doneHouse(period, c.id, k.id) : null;
@@ -145,25 +136,15 @@ function tile(k, c, period, j, unit = '') {
   </button>`;
 }
 
-/** Her extra chores, as rows: tap when it's done and it goes to that house's parent to OK. */
+/** Extra chores, behind a big button: the weekly jobs (once a week each, Mon–Sun), paid the moment they're
+ *  ticked. Parent-given extras (a kindness catch) are only mentioned. */
 function extras(k, i) {
-  const asks = (cfg.chores.extra || []).filter((b) => !b.parentOnly && (!b.who || b.who.includes(k.id)));
+  const { week, weekly, weekDone } = dayStats(k);
   const given = (cfg.chores.extra || []).filter((b) => b.parentOnly);
-  if (!asks.length && !given.length) return '';
-  const body = `
-    <div class="part">
-      <div class="tiles">${asks.map((b, j) => {
-        const st = store.extraState(k.id, b.id);
-        return `<button class="tile extra ${st || ''}" data-extra="${b.id}" data-kid="${k.id}" ${st ? 'disabled' : ''} style="--i:${j}">
-          <span class="t-check">${st === 'waiting' ? '⏳' : st === 'done' ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : ''}</span>
-          <span class="t-icon">${esc(b.icon)}</span>
-          <span class="t-title">${esc(b.title)}${st === 'waiting' ? '<small>Waiting for a parent</small>' : st === 'done' ? '<small>OK’d today</small>' : ''}</span>
-          <span class="t-coins">${coin()} +${b.coins}</span>
-        </button>`;
-      }).join('')}</div>
-      ${given.map((b) => `<p class="muted small">${esc(b.icon)} <b>${esc(b.title)}</b> · ${coin()} +${b.coins} — a parent gives this when they catch you being kind.</p>`).join('')}
-    </div>`;
-  return foldCard('extras', '⭐', 'Extra chores', 'once a day each · a parent OKs it', body, i);
+  if (!weekly.length && !given.length) return '';
+  const body = `<div class="part weekly"><div class="tiles">${weekly.map((c, j) => tile(k, c, week, j, 'week')).join('')}</div>
+    ${given.map((b) => `<p class="muted small">${esc(b.icon)} <b>${esc(b.title)}</b> · ${coin()} +${b.coins} — a parent gives this when they catch you being kind.</p>`).join('')}</div>`;
+  return foldCard('extras', '⭐', 'Extra chores', `${weekDone} of ${weekly.length} done · once a week each, Mon–Sun`, body, i);
 }
 
 export function mount(root, rerender, params = []) {
@@ -192,17 +173,6 @@ export function mount(root, rerender, params = []) {
       if (on) coinBurst(r.left + r.width / 2, r.top, chore.coins);
       rerender();
       return;
-    }
-    const b = e.target.closest('[data-extra]');
-    if (b) {
-      const k = kidById(b.dataset.kid);
-      const item = choreById(b.dataset.extra);
-      if (store.extraState(k.id, item.id)) return;
-      const at = await kidEarns(k, `send “${item.title}” to a parent`);
-      if (!at) return;
-      store.request(k.id, 'bonus', item, at);
-      toast(`${esc(item.icon)} Sent to a parent — nice, ${esc(k.name)}!`, k.color);
-      rerender();
     }
   });
 }
