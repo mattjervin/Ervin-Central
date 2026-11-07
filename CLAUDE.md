@@ -35,7 +35,7 @@ nav. The site is used on phones ~95% of the time — check every layout at phone
 Top nav: on phones just two big buttons, Home and Chores (the girls' focus); computers (≥1024px,
 `.desk-tab`) also get Calendar, School and Grandparents, plus ⚙︎ Parent management left of ↻ (on
 phones ⚙︎ shows only while a parent is unlocked). On phones, Calendar is reached from Home's Coming Up
-card ("Full calendar") and School from each girl's Today column. Parent management is in the footer.
+card ("Full calendar") and School from each girl's Today column. Parent management is in the footer. Home keeps Today, Tonight, Coming Up (5, then See all), Chores progress and Countdowns open; Tomorrow and the 4-day forecast are fold-down buttons (foldCard in coins.js).
 Away events (a `places` venue outside family.json → location, i.e. not our town) get a small 🗺️ Map
 pill on Home and the Calendar (`awayMap()` in ui.js); the parents know the local spots.
 

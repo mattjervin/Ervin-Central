@@ -1022,3 +1022,11 @@ body[data-route="grandparents"] .admin-link, body[data-route="grandparents"] .si
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   .fireflies { display: none; }
 }
+
+/* Home: chore progress rows */
+.ch-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 2px; border-top: 1px solid var(--hair); color: inherit; text-decoration: none; }
+.ch-row:first-of-type { border-top: 0; }
+.ch-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ch-main b { color: var(--c); font-size: 16px; }
+.ch-main small { font-size: 12px; color: var(--t3); }
+.ch-coins { font-weight: 700; white-space: nowrap; }

@@ -1,10 +1,12 @@
 // Home — phone first. A short live landscape carries the greeting, clock, weather and what to wear; under it
 // is Today: each girl's day (school hours, specials, activities with a countdown to the next one,
-// lunch, a link to School) and a peek at tomorrow. Then where the girls sleep, what's coming up (with
-// the way into the full calendar), a 4-day forecast and countdowns. Chores and coins live on Chores.
+// lunch, one link to School). Then where the girls sleep, what's coming up (5, then "See all"), how the
+// chores are going, and big fold-down buttons for Tomorrow and the 4-day forecast; countdowns stay open.
 
-import { cfg, kids, myKid, itemsOn, holidaysIn, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
-import { card, header, empty, avatar, whoDots, whoColor, chip, awayMap } from '../ui.js';
+import { cfg, kids, choreKids, choresFor, weeklyFor, periodKey, myKid, itemsOn, holidaysIn, menuRange, weather, lastWeather, whatToWear, schoolDay, schoolOf, sleepOn, nextSwitch, countdowns } from '../data.js';
+import { card, header, empty, avatar, whoDots, whoColor, chip, awayMap, coin, ring } from '../ui.js';
+import { store } from '../store.js';
+import { foldCard, foldEvents } from './coins.js';
 import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
 import { esc, greeting, clock, ymd, relDay, plural, addDays, parseYmd, DOW, DOW3, MONTH } from '../util.js';
 
@@ -35,12 +37,15 @@ export function render() {
     ${todayCard(now, 0)}
     ${sleepCard(now, 1)}
     ${comingCard(now, 2)}
-    ${card(`${header('Weather', { color: 'var(--acc)', eyebrow: 'Next 4 days' })}<div class="fc-row" id="wx4"><p class="empty">Loading forecast…</p></div>`, 'wx-card', 3)}
-    ${countdownCard(now, 4)}
+    ${choresCard(now, 3)}
+    ${tomorrowCard(now, 4)}
+    ${foldCard('forecast', '🌤️', '4-day forecast', 'Next 4 days', '<div class="fc-row" id="wx4"><p class="empty">Loading forecast…</p></div>', 5)}
+    ${countdownCard(now, 6)}
   </div>`;
 }
 
 export function mount(root, rerender) {
+  foldEvents(root, rerender);
   weather().then((w) => {
     minute(root); // paint the live weather into the sky
     const now = new Date();
@@ -161,13 +166,10 @@ const kidsMineFirst = () => { const m = myKid(); return m ? [m, ...kids().filter
 
 function todayCard(now, i) {
   const ks = kidsMineFirst();
-  const tomorrow = addDays(now, 1);
   const family = familyItems(now);
   const count = family.length + ks.reduce((s, k) => s + kidItems(k, now).length, 0);
   const schoolToday = ks.some((k) => schoolDay(k.school, now).type !== 'none');
-  const schoolTomorrow = ks.some((k) => schoolDay(k.school, tomorrow).type !== 'none');
   const dayNow = dayChips(ks, now);
-  const dayTmr = dayChips(ks, tomorrow);
   const famChips = (list, withTime) => list.map((x) => chip(`${x.icon} ${x.title}${withTime && !x.allDay ? ` · ${clock(x.start)}` : ''}`, 'var(--acc)'));
 
   const cols = ks.map((k) => {
@@ -190,10 +192,24 @@ function todayCard(now, i) {
         <a class="td-head" href="#/calendar">${avatar(k, 'sm')}<span>${esc(k.name)}</span></a>
         ${chips.length ? `<div class="td-know">${chips.join('')}</div>` : ''}
         ${rows || '<p class="td-free">Nothing on the calendar.</p>'}
-        <a class="td-more" href="#/school">🎒 School details <span aria-hidden="true">→</span></a>
       </div>`;
   }).join('');
 
+  return card(`
+    ${header('Today', { eyebrow: count ? `${plural(count, 'thing')} on the calendar` : 'Nothing on the calendar' })}
+    <div class="td-family">${[dayNow.family, ...famChips(family, true)].join('')}</div>
+    <div class="td-cols">${cols}</div>
+    <a class="td-more" href="#/school">🎒 School details <span aria-hidden="true">→</span></a>
+    ${schoolToday && now.getHours() < 13 ? `<div class="td-lunch" data-lunch="${ymd(now)}"></div>` : ''}`, 'today-card', i);
+}
+
+/** Tomorrow, behind a big button: day type, specials and each girl's things. */
+function tomorrowCard(now, i) {
+  const ks = kidsMineFirst();
+  const tomorrow = addDays(now, 1);
+  const schoolTomorrow = ks.some((k) => schoolDay(k.school, tomorrow).type !== 'none');
+  const dayTmr = dayChips(ks, tomorrow);
+  const famChips = (list) => list.map((x) => chip(`${x.icon} ${x.title}`, 'var(--acc)'));
   const tm = ks.map((k) => {
     const bits = [
       dayTmr.kid(k), specialsChip(k, tomorrow),
@@ -202,17 +218,11 @@ function todayCard(now, i) {
     return `<div class="tm-kid" style="--c:${esc(k.color)}">${avatar(k, 'xs')}<div class="tm-bits">${bits.join('') || '<span class="muted small">Nothing yet</span>'}</div></div>`;
   }).join('');
 
-  return card(`
-    ${header('Today', { eyebrow: count ? `${plural(count, 'thing')} on the calendar` : 'Nothing on the calendar' })}
-    <div class="td-family">${[dayNow.family, ...famChips(family, true)].join('')}</div>
-    <div class="td-cols">${cols}</div>
-    ${schoolToday && now.getHours() < 13 ? `<div class="td-lunch" data-lunch="${ymd(now)}"></div>` : ''}
-    <div class="td-tomorrow">
-      <div class="sh-eyebrow">Tomorrow · ${esc(DOW[tomorrow.getDay()])}</div>
-      <div class="td-family">${[dayTmr.family, ...famChips(familyItems(tomorrow), false)].join('')}</div>
-      ${tm}
-      ${schoolTomorrow ? `<div class="td-lunch" data-lunch="${ymd(tomorrow)}"></div>` : ''}
-    </div>`, 'today-card', i);
+  const body = `
+    <div class="td-family">${[dayTmr.family, ...famChips(familyItems(tomorrow))].join('')}</div>
+    ${tm}
+    ${schoolTomorrow ? `<div class="td-lunch" data-lunch="${ymd(tomorrow)}"></div>` : ''}`;
+  return foldCard('tomorrow', '🌙', 'Tomorrow', DOW[tomorrow.getDay()], body, i);
 }
 
 /** "🍱 Lunch · Mini Corn Dogs" with the sides underneath — one menu for both girls. */
@@ -228,6 +238,28 @@ async function lunchLine(day) {
 }
 
 // ---- Cards ------------------------------------------------------------------------------------
+
+/** How each girl's day of chores is going, down the page a way: done today, and her coins. Taps through to Chores. */
+function choresCard(now, i) {
+  const ks = choreKids();
+  if (!ks.length) return '';
+  const today = ymd(now);
+  const rows = ks.map((k) => {
+    const daily = choresFor(k.id);
+    const done = daily.filter((c) => store.isDone(today, c.id, k.id)).length;
+    const frac = daily.length ? done / daily.length : 1;
+    const week = periodKey('weekly');
+    const weekly = weeklyFor(k.id);
+    const weekDone = weekly.filter((c) => store.isDone(week, c.id, k.id)).length;
+    return `<a class="ch-row" href="#/chores/${k.id}" style="--c:${esc(k.color)}">
+      ${avatar(k, 'sm')}
+      <span class="ch-main"><b>${esc(k.name)}</b><small>${done} of ${daily.length} done today · ${weekDone} of ${weekly.length} extra this week</small></span>
+      ${ring(frac, k.color, 40, 4, `<span class="ki-pct">${Math.round(frac * 100)}%</span>`)}
+      <span class="ch-coins">${coin()} ${store.balance(k.id)}</span>
+    </a>`;
+  }).join('');
+  return card(`${header('Chores', { color: 'var(--acc)', href: '#/chores', eyebrow: 'Today’s progress' })}${rows}`, 'chores-card', i);
+}
 
 /** Where the girls sleep tonight, when it switches, and the week of nights at a glance. */
 function sleepCard(now, i) {
@@ -264,7 +296,7 @@ function weekendsLine(now) {
 }
 
 /** The next few notable things beyond this week — games, parties, events (not routine practices). */
-const COMING = 9;
+const COMING = 5;
 
 function comingCard(now, i) {
   const ks = kids();
@@ -292,7 +324,7 @@ function comingCard(now, i) {
           <div class="cu-sub">${esc([x.allDay ? relDay(x.date, now) : `${relDay(x.date, now)} · ${clock(x.start)}`, x.detail].filter(Boolean).join(' · '))}</div>${awayMap(x)}</div>
         <span class="row-dots">${whoDots(x.who, ks)}</span>
       </div>`).join('') || empty('Nothing on the books yet.')}
-    <a class="btn ghost wide full-cal" href="#/calendar">📅 Full calendar <span aria-hidden="true">→</span></a>`, 'coming-card', i);
+    <a class="btn ghost wide full-cal" href="#/calendar">📅 See all <span aria-hidden="true">→</span></a>`, 'coming-card', i);
 }
 
 function countdownCard(now, i) {
