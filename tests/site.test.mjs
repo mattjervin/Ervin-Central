@@ -166,6 +166,19 @@ test('version.json matches the ?v= on app.js and app.css in index.html', async (
   assert.equal(html.match(/css\/app\.css\?v=([^"]+)"/)?.[1], String(v));
 });
 
+test('the import map versions every module, at the same ?v= as app.js', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const { v } = JSON.parse(await readFile(new URL('../version.json', import.meta.url), 'utf8'));
+  const { imports } = JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]);
+  const files = [
+    ...(await readdir(new URL('../js/', import.meta.url))).filter((f) => f.endsWith('.js') && f !== 'app.js').map((f) => `./js/${f}`),
+    ...(await readdir(new URL('../js/views/', import.meta.url))).filter((f) => f.endsWith('.js')).map((f) => `./js/views/${f}`),
+  ].sort();
+  assert.deepEqual(Object.keys(imports).sort(), files, 'every module in js/ needs an import-map entry');
+  for (const [from, to] of Object.entries(imports)) assert.equal(to, `${from}?v=${v}`);
+});
+
 test('Grandparents share link survives a refreshed app (?r=…) and points at the plain path', async () => {
   const { shareUrl } = await import('../js/views/grandparents.js');
   const want = 'https://mattjervin.github.io/Ervin-Central/grandparents/';

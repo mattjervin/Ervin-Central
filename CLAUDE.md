@@ -93,8 +93,10 @@ sync.vapidPublicKey`; the private key lives only in `ervin_central.push_config` 
 - Content changes go in `private/data/*.json`, not code, then `node scripts/publish.mjs` and commit +
   push the private repo. Never add family data to this repo (no new files in `data/` except public,
   generic ones; a test checks).
-- When you change JS or CSS, bump the `?v=` on `app.js` and `app.css` in `index.html` AND `version.json`
-  (a test checks they match). Home-screen shortcuts on the girls' iPhones cache hard: open apps see the
+- When you change JS or CSS, bump every `?v=<version>` in `index.html` (`app.js`, `app.css` and each
+  module in the import map — a new module in `js/` needs an entry there) AND `version.json` (tests check
+  they match). Without the import map a phone can pair a fresh `app.js` with a cached old module and open
+  on a blank page. Home-screen shortcuts on the girls' iPhones cache hard: open apps see the
   new version.json within ~5 min (or on reopen) and refresh themselves; ↻ (top right) does it by hand.
 - Privacy: never add teacher names, pickup numbers, home/party addresses, phone numbers, medical,
   counseling or legal details — not even to the private data, which family devices cache. The sleep

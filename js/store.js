@@ -231,19 +231,22 @@ async function postOps(batch) {
 /**
  * Bring `remote` up to date. Reads a little behind lastSeq: a seq that shows up below lastSeq that
  * we have never seen means a slow write committed late, and the only safe fix is a full replay.
+ * Resolves 'others' when the log has something this device didn't send (the screen must repaint),
+ * 'mine' when only this device's own sent ops came back (the screen already shows them), or false.
  */
 async function syncDown() {
   const from = Math.max(0, remote.lastSeq - OVERLAP);
   const rows = await fetchRows(from);
   const seen = new Set(remote.recent);
   const late = rows.some((r) => r.seq <= remote.lastSeq && !seen.has(r.seq));
+  const mine = new Set([...sent, ...outbox].map((o) => o.op_id));
   let changed = false;
   let seenRows = rows;
   if (late) {
     const all = await fetchRows(0);
     remote = { docs: replay(blankDocs(), all), lastSeq: all.at(-1)?.seq || 0, recent: all.slice(-200).map((r) => r.seq) };
     seenRows = all;
-    changed = true;
+    changed = 'others';
   } else {
     const fresh = rows.filter((r) => r.seq > remote.lastSeq);
     if (fresh.length) {
@@ -251,13 +254,13 @@ async function syncDown() {
       replay(remote.docs, fresh);
       remote.lastSeq = fresh.at(-1).seq;
       remote.recent = [...remote.recent, ...fresh.map((r) => r.seq)].slice(-200);
-      changed = true;
+      changed = fresh.some((r) => !mine.has(r.op_id)) ? 'others' : 'mine';
     }
   }
   const ids = new Set(seenRows.map((r) => r.op_id));
   const before = sent.length;
   sent = sent.filter((o) => !ids.has(o.op_id));
-  if (sent.length !== before) changed = true;
+  if (sent.length !== before) changed ||= 'mine';
   return changed;
 }
 
@@ -268,6 +271,7 @@ function flush() {
   if (!conf || (!flushing && !outbox.length)) return flushing || Promise.resolve();
   flushing ||= (async () => {
     status.busy = true; notify('status');
+    let changed = false;
     try {
       while (outbox.length) {
         const batch = outbox.slice(0, 200);
@@ -276,7 +280,7 @@ function flush() {
         sent.push(...batch);
         saveLocal();
       }
-      await syncDown();
+      changed = await syncDown();
       rebuildView(); saveLocal();
       status.error = null; status.lastSync = Date.now();
     } catch (err) {
@@ -285,7 +289,8 @@ function flush() {
       if (!err.fatal) retryTimer = setTimeout(flush, 15e3);
     } finally {
       status.busy = false; flushing = null;
-      notify('remote');
+      // Only another device's changes need a repaint; this device's own ops are on screen already.
+      notify(changed === 'others' ? 'remote' : 'status');
       if (outbox.length && !status.error) setTimeout(flush, 0); // ops that landed mid-flush
     }
   })();
@@ -489,7 +494,8 @@ export const store = {
     try {
       const changed = await syncDown();
       status.error = null; status.lastSync = Date.now();
-      if (changed) { rebuildView(); saveLocal(); notify('remote'); } else notify('status');
+      if (changed) { rebuildView(); saveLocal(); }
+      notify(changed === 'others' ? 'remote' : 'status');
     } catch (err) {
       status.error = err.message; notify('status');
     }

@@ -102,25 +102,49 @@ function precip(kind) {
   return '';
 }
 
-/** `opts.sun` = the month table from family.json; `opts.weather` = { code } from Open-Meteo. */
-export function sceneSvg(now = new Date(), opts = {}) {
+/** Where everything in the sky is at `now`: phase, weather, colors, sun and moon positions. */
+function sky(now, opts) {
   const h = now.getHours() + now.getMinutes() / 60;
-  const sunT0 = sunTimes(now, opts.sun);
-  const ph = phase(h, sunT0);
+  const { rise, set } = sunTimes(now, opts.sun);
+  const ph = phase(h, { rise, set });
   const kind = skyKind(opts.weather?.code);
   const overcast = kind !== 'clear' && kind !== 'partly';
   const [top, mid, low] = (overcast ? GREY : SKY)[ph];
 
   // Sun: sunrise → sunset across the sky. Moon: sunset → next sunrise.
-  const { rise, set } = sunT0;
   const sunT = (h - rise) / (set - rise);
   const moonT = ((h - set + 24) % 24) / (24 - set + rise);
   const arc = (t) => ({ x: lerp(40, 560, t), y: 232 - Math.sin(Math.PI * t) * 100 }); // low arc: wide banners crop the top
   const sunUp = sunT > -0.02 && sunT < 1.02;
-  const sun = arc(Math.min(1, Math.max(0, sunT)));
-  const moon = arc(Math.min(1, Math.max(0, moonT)));
-  const dark = ph === 'night' || ph === 'dusk';
+  const moonUp = !sunUp || ph === 'night';
   const lit = h >= set - 0.75 || h < rise + 0.5 || (overcast && kind !== 'fog');
+  return {
+    ph, kind, overcast, top, mid, low, sunUp, moonUp, lit,
+    sun: arc(Math.min(1, Math.max(0, sunT))), moon: arc(Math.min(1, Math.max(0, moonT))),
+    dark: ph === 'night' || ph === 'dusk',
+    // Everything but the sun and moon positions: while this stays the same, the minute tick only moves them.
+    key: [ph, kind, sunUp, moonUp, lit].join('|'),
+  };
+}
+
+const at = (p) => `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`;
+
+/**
+ * The once-a-minute update: slide the sun and moon along their arc without redrawing, so the clouds,
+ * rain and fireflies keep animating instead of jumping back to the start. Returns false when the
+ * sky itself changed (a new phase, the weather, the windows lighting up) and needs a fresh sceneSvg().
+ */
+export function moveSky(svg, now = new Date(), opts = {}) {
+  const s = sky(now, opts);
+  if (svg?.dataset.key !== s.key) return false;
+  svg.querySelector('.sun')?.setAttribute('transform', at(s.sun));
+  svg.querySelector('.moon')?.setAttribute('transform', at(s.moon));
+  return true;
+}
+
+/** `opts.sun` = the month table from family.json; `opts.weather` = { code } from Open-Meteo. */
+export function sceneSvg(now = new Date(), opts = {}) {
+  const { ph, kind, overcast, top, mid, low, sunUp, moonUp, lit, sun, moon, dark, key } = sky(now, opts);
   const hidden = overcast ? 'veiled' : ''; // sun/moon dimmed behind the cloud deck
 
   const stars = dark && !overcast ? Array.from({ length: 34 }, (_, i) => {
@@ -134,7 +158,7 @@ export function sceneSvg(now = new Date(), opts = {}) {
   }).join('') : '';
 
   return `
-  <svg class="scene-svg sky-${kind}" viewBox="0 0 600 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <svg class="scene-svg sky-${kind}" data-key="${key}" viewBox="0 0 600 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
     <defs>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="${top}"/><stop offset=".62" stop-color="${mid}"/><stop offset="1" stop-color="${low}"/>
@@ -147,8 +171,8 @@ export function sceneSvg(now = new Date(), opts = {}) {
     </defs>
     <rect width="600" height="300" fill="url(#sky)"/>
     <g class="stars">${stars}</g>
-    ${sunUp ? `<g class="sun ${hidden}" transform="translate(${sun.x.toFixed(1)} ${sun.y.toFixed(1)})"><circle r="80" fill="url(#sunGlow)" class="pulse"/><circle r="20" fill="#fde047"/><circle r="20" fill="none" stroke="#fef9c3" stroke-opacity=".6" stroke-width="3"/></g>` : ''}
-    ${!sunUp || ph === 'night' ? `<g class="moon ${hidden}" transform="translate(${moon.x.toFixed(1)} ${moon.y.toFixed(1)})"><circle r="46" fill="url(#moonGlow)" class="pulse"/><circle r="14" fill="#e8f5ec"/><circle r="14" cx="6" cy="-4" fill="${top}" opacity=".9"/></g>` : ''}
+    ${sunUp ? `<g class="sun ${hidden}" transform="${at(sun)}"><circle r="80" fill="url(#sunGlow)" class="pulse"/><circle r="20" fill="#fde047"/><circle r="20" fill="none" stroke="#fef9c3" stroke-opacity=".6" stroke-width="3"/></g>` : ''}
+    ${moonUp ? `<g class="moon ${hidden}" transform="${at(moon)}"><circle r="46" fill="url(#moonGlow)" class="pulse"/><circle r="14" fill="#e8f5ec"/><circle r="14" cx="6" cy="-4" fill="${top}" opacity=".9"/></g>` : ''}
     ${cloudLayer(kind, ph)}
 
     <path class="hill far" d="M0 205 C 90 165, 170 180, 250 190 S 420 160, 600 185 V300 H0Z" fill="url(#hillA)" opacity=".85"/>

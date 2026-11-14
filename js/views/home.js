@@ -7,7 +7,7 @@ import { cfg, kids, choreKids, choresFor, weeklyFor, periodKey, myKid, itemsOn, 
 import { card, header, empty, avatar, whoDots, whoColor, chip, awayMap, coin, ring } from '../ui.js';
 import { store } from '../store.js';
 import { foldCard, foldEvents } from './coins.js';
-import { sceneSvg, sunTimes, skyLabel } from '../scene.js';
+import { sceneSvg, moveSky, sunTimes, skyLabel } from '../scene.js';
 import { esc, greeting, clock, ymd, relDay, plural, addDays, parseYmd, DOW, DOW3, MONTH } from '../util.js';
 
 export const title = 'Home';
@@ -72,10 +72,11 @@ export function mount(root, rerender) {
   }
 }
 
-/** Called every minute by the shell: keep the sky honest without a full re-render. */
+/** Called every minute by the shell: keep the sky honest without a full re-render. The sun and moon
+ *  just move; the scene is redrawn only when the sky itself changes (dusk, the weather). */
 export function minute(root) {
   const s = root.querySelector('#scene .scene-svg');
-  if (s) s.outerHTML = sceneSvg(new Date(), sceneOpts());
+  if (s && !moveSky(s, new Date(), sceneOpts())) s.outerHTML = sceneSvg(new Date(), sceneOpts());
 }
 
 const sceneOpts = () => ({ sun: cfg.family.location.sun, weather: lastWeather()?.now });

@@ -6,7 +6,7 @@
 // Only family devices (ones holding their key, js/cloud.js) get the family pages; any other device
 // gets the lock page (views/lock.js) on every route except Grandparents Central, which stays open.
 
-import { loadConfig, cfg, kids, house, weather, me, meFromLink, isFamily } from './data.js';
+import { loadConfig, loadCachedConfig, cfg, kids, house, weather, me, meFromLink, isFamily } from './data.js';
 import { setVersion } from './cloud.js';
 import { registerWorker } from './push.js';
 import { store } from './store.js';
@@ -197,12 +197,6 @@ function kiosk() {
     if (ymd() !== lastDay) { lastDay = ymd(); render(); }                 // new day → fresh chores
     if (document.visibilityState === 'visible' && Date.now() - lastCheck > 5 * 60e3) checkForUpdate();
   }, 15e3);
-
-  if (cfg.family.kiosk?.keepAwake && 'wakeLock' in navigator) {
-    const grab = () => navigator.wakeLock.request('screen').catch(() => {});
-    grab();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') grab(); });
-  }
 }
 
 // ---- Refresh -----------------------------------------------------------------------------------
@@ -260,14 +254,18 @@ async function checkForUpdate() {
 
 async function boot() {
   setVersion(VERSION);
-  try {
-    await loadConfig(VERSION);
-    // A phone that was in use before the lock gets its key on its first open, without anyone noticing.
-    if (!isFamily() && parseHash().name !== 'grandparents' && (await lock.carryOver())) await loadConfig(VERSION);
-  } catch (err) {
-    $('#main').innerHTML = `<div class="card" style="margin-top:40px"><p class="empty">Couldn’t load the family data (${esc(err.message)}).</p></div>`;
-    $('#refresh-btn')?.addEventListener('click', hardRefresh);
-    return;
+  // A family device paints from the copy it saved last time and refreshes behind it (freshConfig).
+  const cached = loadCachedConfig();
+  if (!cached) {
+    try {
+      await loadConfig(VERSION);
+      // A phone that was in use before the lock gets its key on its first open, without anyone noticing.
+      if (!isFamily() && parseHash().name !== 'grandparents' && (await lock.carryOver())) await loadConfig(VERSION);
+    } catch (err) {
+      $('#main').innerHTML = `<div class="card" style="margin-top:40px"><p class="empty">Couldn’t load the family data (${esc(err.message)}).</p></div>`;
+      $('#refresh-btn')?.addEventListener('click', hardRefresh);
+      return;
+    }
   }
   if (isFamily()) {
     // Whose device: the home-screen link carries ?me=<id> (avery/, evelynn/, dad/, mom/ forward there).
@@ -298,6 +296,17 @@ async function boot() {
   render();
   kiosk();
   document.fonts?.ready.then(moveGlider); // tab widths change once Inter arrives
+  if (cached) freshConfig();
+}
+
+/** The app opened on its saved copy: fetch the latest, repaint if it changed, lock if this device was turned off. */
+async function freshConfig() {
+  let changed;
+  try { changed = await loadConfig(VERSION); } catch { return; } // offline: the saved copy stands
+  if (!isFamily()) { location.reload(); return; } // key revoked: the lock page
+  if (!changed) return;
+  if ($('#modal').classList.contains('open') || document.activeElement?.matches('input, textarea, select')) return; // the next repaint picks it up
+  render();
 }
 
 boot();

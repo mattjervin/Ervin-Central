@@ -9,6 +9,8 @@ import { card, hero, header, avatar, coin, empty, modal, toast, requireParent, p
 import { esc, relDay, clock } from '../util.js';
 
 const bestJar = (k) => store.balance(k.id); // spending is combined across both houses
+/** Days in this chore week so far, counting today (chore weeks run Monday–Sunday, like periodKey()). */
+const sinceMonday = () => ((new Date().getDay() + 6) % 7) + 1;
 
 /** Each girl's coins — her two jars and what she's saving toward. Fixed order, no ranks: it's a total,
  *  not a race. */
@@ -18,7 +20,7 @@ export function totalCoinsCard(i, { fold = false } = {}) {
     ${fold ? '' : header('Total Coins', { color: 'var(--coin)', eyebrow })}
     ${choreKids().map((k, r) => {
       const b = store.balance(k.id);
-      const week = store.earnedByDay(k.id, 7).reduce((s, d) => s + d.sum, 0);
+      const week = store.earnedByDay(k.id, sinceMonday()).reduce((s, d) => s + d.sum, 0);
       const best = bestJar(k);
       const next = cfg.chores.rewards.filter((x) => x.cost > best).sort((x, y) => x.cost - y.cost)[0];
       return `<a class="lb-row anim-row" href="#/chores/${k.id}" style="--c:${esc(k.color)};--i:${r}">
@@ -88,7 +90,7 @@ export function historyCard(i, { kid = null, title = 'History', eyebrow = 'Every
   const more = total > first;
   const body = `${history({ kid, limit: showAll ? limit : first, removable })}
     ${more ? `<button class="btn ghost more-btn" data-more>${showAll ? 'Show fewer' : `Show more (${total - first})`}</button>` : ''}`;
-  return foldCard('hist', '🪙', title, eyebrow, body, i);
+  return foldCard('hist', coin(), title, eyebrow, body, i);
 }
 
 /** Clicks and toggles for the folded cards. Returns true when the click was the "show more" button. */

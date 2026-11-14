@@ -26,7 +26,30 @@ async function getJson(path) {
 const readCache = () => { try { return JSON.parse(localStorage.getItem(CONFIG_CACHE)); } catch { return null; } };
 const writeCache = (v) => { try { v ? localStorage.setItem(CONFIG_CACHE, JSON.stringify(v)) : localStorage.removeItem(CONFIG_CACHE); } catch { /* private mode, full */ } };
 
-/** `version` is the site version, so Matt can see which devices have updated (scripts/devices.mjs). */
+function useConfig(got, site, wear) {
+  setSite(site.sync);
+  holidayCache.clear(); // holidays are worked out from cfg.calendar
+  Object.assign(cfg, {
+    scope: got.scope, site, wear,
+    family: got.family, calendar: got.calendar,
+    school: got.school || null, chores: got.chores || null,
+    menus: got.menus || { updated: null, schools: {} },
+  });
+}
+
+/**
+ * A family device opens on the copy it saved last time, so the page shows at once instead of
+ * waiting on two network calls; loadConfig() then refreshes it. False when there's no usable copy.
+ */
+export function loadCachedConfig() {
+  const c = deviceKey() && readCache();
+  if (c?.scope !== 'family' || !c.site) return false; // copies from before 2026-11-14 lack site/wear
+  useConfig(c, c.site, c.wear || { rules: [] });
+  return true;
+}
+
+/** `version` is the site version, so Matt can see which devices have updated (scripts/devices.mjs).
+ *  Resolves true when what it loaded differs from what the page already had. */
 export async function loadConfig(version) {
   const [site, wear] = await Promise.all([
     getJson('data/site.json'),
@@ -40,14 +63,12 @@ export async function loadConfig(version) {
     got = deviceKey() && readCache(); // offline: the family's last copy
     if (!got) throw err;
   }
-  if (got.scope === 'family') writeCache(got);
+  const before = JSON.stringify(readCache());
+  if (got.scope === 'family') writeCache({ ...got, site, wear });
   else if (got.keyRejected) { setDeviceKey(null); writeCache(null); } // this device was turned off
-  Object.assign(cfg, {
-    scope: got.scope, site, wear,
-    family: got.family, calendar: got.calendar,
-    school: got.school || null, chores: got.chores || null,
-    menus: got.menus || { updated: null, schools: {} },
-  });
+  const changed = got.scope !== cfg.scope || JSON.stringify(readCache()) !== before;
+  useConfig(got, site, wear);
+  return changed;
 }
 
 /** This device can see the family pages (it has its key). Without it, only Grandparents Central. */
@@ -448,14 +469,19 @@ export function houseNow(now = new Date()) {
 // ---- Menus -------------------------------------------------------------------------------
 
 const live = {}; // schoolKey → { iso → day } merged from live calls this session
+const missed = new Map(); // `${schoolKey}:${iso}` → when LINQ last came back without that day (or failed)
+const MISS_MS = 30 * 60e3; // don't ask again for half an hour: Home repaints on every tap and sync
 
 /** Menu for one school over [start, start+n). Cached file first; live LINQ fills any gap. */
 export async function menuRange(schoolKey, start, n = 5) {
   const want = Array.from({ length: n }, (_, i) => ymd(addDays(start, i)));
   const have = { ...(cfg.menus.schools?.[schoolKey] || {}), ...(live[schoolKey] || {}) };
-  if (want.some((d) => !have[d] && parseYmd(d).getDay() % 6 !== 0)) {
+  const tried = (d) => Date.now() - (missed.get(`${schoolKey}:${d}`) || 0) < MISS_MS;
+  const gaps = want.filter((d) => !have[d] && parseYmd(d).getDay() % 6 !== 0 && !tried(d));
+  if (gaps.length) {
+    let got = {};
     try {
-      const got = await fetchMenu({
+      got = await fetchMenu({
         districtId: cfg.school.district.linq.districtId,
         buildingId: cfg.school.schools[schoolKey].buildingId,
         start: want[0], end: want[want.length - 1],
@@ -465,6 +491,7 @@ export async function menuRange(schoolKey, start, n = 5) {
     } catch (err) {
       console.warn('Live menu unavailable, using cache', err);
     }
+    for (const d of gaps) if (!got[d]) missed.set(`${schoolKey}:${d}`, Date.now());
   }
   return want.map((d) => ({ date: d, menu: have[d] || null }));
 }
