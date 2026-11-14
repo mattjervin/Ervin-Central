@@ -49,16 +49,20 @@ export function waitingCard(i) {
 }
 
 /** The shop gets a page-sized title (same as "Chore chart") so it's obvious where coins get spent. */
-export function shopCard(i, { fold = false } = {}) {
-  const ks = kids();
+export function shopCard(i, { fold = false, kid = null } = {}) {
+  // With a girl picked, the shop is hers: what she can't afford yet is greyed out and can't be tapped.
+  const ks = kid ? [kid] : kids();
+  const have = (k) => store.available(k.id); // both jars together, minus rewards already waiting
+  const sub = kid ? `${kid.name} has ${have(kid)} coins` : 'Spend your coins';
   const body = `
     <div class="shop">${cfg.chores.rewards.map((r, j) => {
-      const canAny = ks.some((k) => bestJar(k) >= r.cost);
-      return `<button class="reward ${canAny ? 'can' : ''} anim-row" data-reward="${r.id}" style="--i:${j}">
-        <span class="r-icon">${esc(r.icon)}</span><span class="r-title">${esc(r.title)}</span><span class="r-cost">${coin()} ${r.cost}</span>
+      const can = ks.some((k) => have(k) >= r.cost);
+      const short = kid ? r.cost - have(kid) : 0;
+      return `<button class="reward ${can ? 'can' : ''} ${kid && !can ? 'locked' : ''} anim-row" data-reward="${r.id}" ${kid ? `data-kid="${esc(kid.id)}"` : ''} ${kid && !can ? 'disabled aria-disabled="true"' : ''} style="--i:${j}">
+        <span class="r-icon">${esc(r.icon)}</span><span class="r-title">${esc(r.title)}${kid && !can ? `<small>needs ${short} more</small>` : ''}</span><span class="r-cost">${coin()} ${r.cost}</span>
       </button>`;
     }).join('')}</div>`;
-  return fold ? foldCard('shop', '🎁', 'Reward shop', 'Spend your coins', body, i) : hero('', 'Reward', 'shop') + card(body, 'shop-card', i);
+  return fold ? foldCard('shop', '🎁', 'Reward shop', sub, body, i) : hero('', 'Reward', 'shop') + card(body, 'shop-card', i);
 }
 
 // Which big buttons on the Chores page are open, and whether the activity list shows all of it. Kept
@@ -122,7 +126,13 @@ export async function coinClick(e, rerender) {
   const d = t.dataset;
   if (!(d.reward || d.approve || d.decline)) return false;
 
-  if (d.reward) { pickKidForReward(cfg.chores.rewards.find((r) => r.id === d.reward), rerender); return true; }
+  if (d.reward) {
+    const r = cfg.chores.rewards.find((x) => x.id === d.reward);
+    const k = kidById(d.kid);
+    if (k && store.available(k.id) < r.cost) { toast(`${esc(k.name)} needs ${r.cost - store.available(k.id)} more coins`, 'var(--red)'); return true; }
+    pickKidForReward(r, rerender, k);
+    return true;
+  }
 
   const id = d.approve || d.decline;
   if (id) {
@@ -140,8 +150,8 @@ export async function coinClick(e, rerender) {
   return false;
 }
 
-function pickKidForReward(r, rerender) {
-  const ks = choreKids();
+function pickKidForReward(r, rerender, only = null) {
+  const ks = only ? [only] : choreKids();
   const best = (k) => store.available(k.id); // both jars together, minus rewards already waiting
   modal(`
     <div class="sheet-icon">${esc(r.icon)}</div>

@@ -40,7 +40,7 @@ export function render(params) {
   ${list(k, 2)}
   ${extras(k, 3)}
   ${totalCoinsCard(4, { fold: true })}
-  ${shopCard(6, { fold: true })}
+  ${shopCard(6, { fold: true, kid: k })}
   ${historyCard(7, { kid: k.id, title: `How ${k.name} got her coins`, eyebrow: 'Newest first · both houses', limit: 40, removable: false, fold: true })}`;
 }
 
