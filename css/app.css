@@ -406,9 +406,11 @@ body[data-route="home"] .tn-clock, body[data-route="home"] .tn-wx { display: non
 .fc-l { font-size: 11.5px; font-weight: 700; color: var(--t2); text-align: center; line-height: 1.2; }
 
 .board { display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-flow: dense; align-items: start; margin-top: 16px; }
-.today-card { grid-column: span 8; grid-row: span 3; }
-.sleep-card, .coming-card, .wx-card { grid-column: span 4; }
+/* Computers: Today then Tonight on the left, Coming Up then Chores on the right (dense flow pairs them) */
+.today-card, .sleep-card { grid-column: span 8; }
+.coming-card, .chores-card, .wx-card { grid-column: span 4; }
 .cd-card { grid-column: span 12; }
+.board > .fold { grid-column: span 6; margin-bottom: 0; } /* Tomorrow · 4-day forecast side by side */
 
 /* Today: each girl's day, then a peek at tomorrow */
 .td-family { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -911,7 +913,7 @@ body[data-route="grandparents"] .admin-link, body[data-route="grandparents"] .si
   .tn-wx { display: none; }
   .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .today-card, .coming-card, .cd-card { grid-column: span 2; grid-row: auto; }
-  .sleep-card, .wx-card { grid-column: span 1; }
+  .sleep-card, .wx-card, .chores-card, .board > .fold { grid-column: span 1; }
   .cd-card { grid-column: span 2; }
   .cd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .menu-week.wide { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -946,7 +948,7 @@ body[data-route="grandparents"] .admin-link, body[data-route="grandparents"] .si
   .page-hero { padding-top: 14px; }
   .headline { font-size: 30px; }
   .board { grid-template-columns: minmax(0, 1fr); }
-  .today-card, .sleep-card, .coming-card, .wx-card, .cd-card { grid-column: auto; }
+  .today-card, .sleep-card, .coming-card, .wx-card, .cd-card, .chores-card, .board > .fold { grid-column: auto; }
   .td-cols { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .home-hero { margin-top: 8px; }
   .home-hero { min-height: 157px; }
