@@ -325,7 +325,8 @@ export function holidaysIn(y) {
 // ---- Countdowns -----------------------------------------------------------------------------------
 
 /** Six "days until" tiles, soonest first. The girls' birthdays are always included; the other four
- *  are the soonest of everyone else's birthdays and the major holidays (holidays with countdown: true). */
+ *  are the soonest of everyone else's birthdays, the major holidays (holidays with countdown: true) and
+ *  dated events with countdown: true (a big outing like a show). */
 export function countdowns(now = new Date(), total = 6) {
   const today = parseYmd(ymd(now));
   const days = (d) => Math.round((d - today) / 864e5);
@@ -344,7 +345,11 @@ export function countdowns(now = new Date(), total = 6) {
     const d = parseYmd(h.date);
     return { title: h.title, icon: h.icon, date: d, days: days(d), kind: 'holiday' };
   }).filter((h, i, all) => h.days >= 0 && all.findIndex((x) => x.title === h.title && x.days >= 0) === i); // next one only
-  const rest = [...bs.filter((b) => !b.kid), ...hol].sort((a, b) => a.days - b.days).slice(0, total - pinned.length);
+  const evs = (cfg.calendar.events || []).filter((e) => e.countdown && e.date).map((e) => {
+    const d = parseYmd(e.date);
+    return { title: e.title, icon: e.icon || '📅', date: d, days: days(d), kind: 'event' };
+  }).filter((e) => e.days >= 0);
+  const rest = [...bs.filter((b) => !b.kid), ...hol, ...evs].sort((a, b) => a.days - b.days).slice(0, total - pinned.length);
   return [...pinned, ...rest].sort((a, b) => a.days - b.days); // soonest first, wherever the girls land
 }
 
